@@ -1,7 +1,7 @@
 import { App, TFile, WorkspaceLeaf } from "obsidian";
 import { WorkflowNode, ExecutionContext, PromptCallbacks } from "../types.js";
 import { parseJsonRecord, replaceVariables } from "./utils.js";
-import { VAULT_TOOL_SCOPE_DENIED_MSG, isFileAllowedForVaultTools, isPathInAllowedVaultFolders } from "../../core/vaultScope.js";
+import { VAULT_TOOL_SCOPE_DENIED_MSG, hasVaultToolFolderRestrictions, isFileAllowedForVaultTools, isPathInAllowedVaultFolders } from "../../core/vaultScope.js";
 
 function hasWorkflowVaultScope(context: ExecutionContext): boolean {
   return !!(context.vaultToolAllowedFolders && context.vaultToolAllowedFolders.length > 0);
@@ -137,6 +137,12 @@ export async function handleObsidianCommandNode(
   const command = (app as unknown as { commands: { commands: Record<string, unknown> } }).commands.commands[commandId];
   if (!command) {
     throw new Error(`Command not found: ${commandId}`);
+  }
+
+  // With an active vault-tool scope, a pathless command could act on the current editor or let
+  // another plugin touch arbitrary files. Require an explicit, scope-checked target instead.
+  if (!path && hasVaultToolFolderRestrictions(context.vaultToolAllowedFolders)) {
+    throw new Error(VAULT_TOOL_SCOPE_DENIED_MSG);
   }
 
   // If path is specified, open the file first
