@@ -1,3 +1,4 @@
+export * from "../core/mcpTypes.js";
 export * from "./skillMd.js";
 export * from "./skillsLoader.js";
 export * from "./builtinSkills.js";
