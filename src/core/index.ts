@@ -14,3 +14,4 @@ export * from "./sandbox.js";
 export * from "./globMatcher.js";
 export * from "./provider.js";
 export * from "./mcpTypes.js";
+export * from "./tracingHooks.js";

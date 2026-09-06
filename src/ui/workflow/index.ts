@@ -18,6 +18,8 @@ export * from "../ConfirmModal.js";
 export * from "../EditHistoryModal.js";
 export * from "../HTMLPreviewModal.js";
 export * from "./McpAppModal.js";
+// Kept out of the package's main entry so that entry stays free of Obsidian at runtime.
+export { default as McpAppRenderer } from "../McpAppRenderer.js";
 export * from "./DialogPromptModal.js";
 export * from "./WorkflowSelectorModal.js";
 export { default as WorkflowPanel } from "./WorkflowPanel.js";
