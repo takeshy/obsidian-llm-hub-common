@@ -36,6 +36,7 @@ export interface Message {
   usage?: StreamChunkUsage;  // Token usage and cost
   elapsedMs?: number;        // Response time in milliseconds
   interactionId?: string;    // Interactions API interaction ID for conversation chaining
+  ragContexts?: RagContext[];   // Excerpts retrieved by RAG search
   ragCitations?: RagCitation[];   // per-chunk citation locations (new chats)
   toolCallId?: string;          // tool call ID (for tool role messages, LM Studio)
   toolName?: string;            // tool name (for tool role messages, Ollama)
@@ -167,4 +168,9 @@ export interface McpToolInfo {
     };
     "ui/resourceUri"?: string;
   };
+}
+
+export interface RagContext {
+  source: string;
+  text: string;
 }
