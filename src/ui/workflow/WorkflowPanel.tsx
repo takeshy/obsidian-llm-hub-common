@@ -1288,7 +1288,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
 
   // Short explainer shown under the create buttons so users know which to pick.
   const createHint = (
-    <div className=cls("workflow-empty-create-hint")>
+    <div className={cls("workflow-empty-create-hint")}>
       <p>{renderMarkdownHint(t("workflow.createHintWorkflow"))}</p>
       <p>{renderMarkdownHint(t("workflow.createHintSkill"))}</p>
     </div>
@@ -1302,12 +1302,12 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
   // ファイルが選択されていない場合
   if (!workflowFile) {
     return (
-      <div className=cls("workflow-sidebar")>
-        <div className=cls("workflow-sidebar-content")>
-          <div className=cls("workflow-empty-state")>
+      <div className={cls("workflow-sidebar")}>
+        <div className={cls("workflow-sidebar-content")}>
+          <div className={cls("workflow-empty-state")}>
             <p>{t("workflow.openMarkdownFile")}</p>
             <button
-              className=cls("workflow-sidebar-run-btn")
+              className={cls("workflow-sidebar-run-btn")}
               onClick={handleOpenWorkflowSelector}
             >
               <FolderOpen size={14} />
@@ -1321,7 +1321,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
               <span>{t("workflow.createWithAI")}</span>
             </button>
             <button
-              className=cls("workflow-sidebar-ai-btn")
+              className={cls("workflow-sidebar-ai-btn")}
               onClick={() => void handleCreateSkillWithAI()}
             >
               <Sparkles size={14} />
@@ -1337,12 +1337,12 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
   // Workflowコードブロックがない場合
   if (!hasWorkflowBlock) {
     return (
-      <div className=cls("workflow-sidebar")>
-        <div className=cls("workflow-sidebar-content")>
-          <div className=cls("workflow-empty-state")>
+      <div className={cls("workflow-sidebar")}>
+        <div className={cls("workflow-sidebar-content")}>
+          <div className={cls("workflow-empty-state")}>
             <p>{isSkillFile ? t("workflow.skillNoInlineWorkflow") : t("workflow.noWorkflowInFile")}</p>
             <button
-              className=cls("workflow-sidebar-run-btn")
+              className={cls("workflow-sidebar-run-btn")}
               onClick={handleOpenWorkflowSelector}
             >
               <FolderOpen size={14} />
@@ -1365,7 +1365,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
               <span>{t("workflow.createWithAI")}</span>
             </button>
             <button
-              className=cls("workflow-sidebar-ai-btn")
+              className={cls("workflow-sidebar-ai-btn")}
               onClick={() => void handleCreateSkillWithAI()}
             >
               <Sparkles size={14} />
@@ -1379,11 +1379,11 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
   }
 
   return (
-    <div className=cls("workflow-sidebar")>
+    <div className={cls("workflow-sidebar")}>
       {/* Header */}
-      <div className=cls("workflow-sidebar-header")>
+      <div className={cls("workflow-sidebar-header")}>
         <select
-          className=cls("workflow-sidebar-select")
+          className={cls("workflow-sidebar-select")}
           value="__self__"
           onChange={(e) => void handleActionSelect(e)}
         >
@@ -1392,35 +1392,35 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
           <option value="__new_ai__">{t("workflow.newAI")}</option>
           <option value="__reload__">{t("workflow.reloadFromFile")}</option>
         </select>
-        <div className=cls("workflow-sidebar-buttons")>
+        <div className={cls("workflow-sidebar-buttons")}>
           <button
             ref={addBtnRef}
-            className=cls("workflow-sidebar-add-btn")
+            className={cls("workflow-sidebar-add-btn")}
             onClick={showAddNodeMenu}
             title={t("workflow.addNode")}
           >
             <Plus size={14} />
-            <span className=cls("workflow-btn-label")>{t("workflow.addNode")}</span>
+            <span className={cls("workflow-btn-label")}>{t("workflow.addNode")}</span>
           </button>
           <button
-            className=cls("workflow-sidebar-ai-btn")
+            className={cls("workflow-sidebar-ai-btn")}
             onClick={() => void (isSkillFile ? handleModifySkillWithAI() : handleModifyWithAI())}
             disabled={!workflowFile}
             title={isSkillFile ? t("workflow.modifySkillWithAI") : t("workflow.modifyWithAI")}
           >
             <Sparkles size={14} />
-            <span className=cls("workflow-btn-label")>
+            <span className={cls("workflow-btn-label")}>
               {isSkillFile ? t("workflow.modifySkillWithAI") : t("workflow.modifyWithAI")}
             </span>
           </button>
           {isSkillFile && (
             <button
-              className=cls("workflow-sidebar-ai-btn")
+              className={cls("workflow-sidebar-ai-btn")}
               onClick={() => void handleCreateSkillWithAI()}
               title={t("workflow.createSkillWithAI")}
             >
               <Sparkles size={14} />
-              <span className=cls("workflow-btn-label")>
+              <span className={cls("workflow-btn-label")}>
                 {t("workflow.createSkillWithAI")}
               </span>
             </button>
@@ -1430,12 +1430,12 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
 
       {/* Error display */}
       {loadError && (
-        <div className=cls("workflow-error-banner")>
-          <span className=cls("workflow-error-icon")>⚠</span>
-          <span className=cls("workflow-error-message")>{loadError}</span>
+        <div className={cls("workflow-error-banner")}>
+          <span className={cls("workflow-error-icon")}>⚠</span>
+          <span className={cls("workflow-error-message")}>{loadError}</span>
           {multiBlockCount > 1 && (
             <button
-              className=cls("workflow-error-migrate-btn")
+              className={cls("workflow-error-migrate-btn")}
               onClick={() => void migrateMultiBlockFile()}
             >
               {t("workflow.migrate")}
@@ -1445,8 +1445,8 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
       )}
 
       {/* Content */}
-      <div className=cls("workflow-sidebar-content")>
-        <label className=cls("workflow-option")>
+      <div className={cls("workflow-sidebar-content")}>
+        <label className={cls("workflow-option")}>
           <input
             type="checkbox"
             checked={showProgress}
@@ -1458,9 +1458,9 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
           />
           <span>{t("workflow.showProgress")}</span>
         </label>
-        <div className=cls("workflow-node-list")>
+        <div className={cls("workflow-node-list")}>
           {nodes.length === 0 && !loadError ? (
-            <div className=cls("workflow-empty-state")>
+            <div className={cls("workflow-empty-state")}>
               {t("workflow.noNodes")}
             </div>
           ) : nodes.length === 0 && loadError ? null : (() => {
@@ -1478,7 +1478,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
                 <div key={node.id}>
                   {/* Incoming connection indicator */}
                   {incoming.length > 0 && (
-                    <div className=cls("workflow-node-incoming")>
+                    <div className={cls("workflow-node-incoming")}>
                       {incoming.map((conn, i) => (
                         <span key={i} className={`workflow-incoming-badge workflow-incoming-${conn.type}`}>
                           ← {conn.from}{conn.type !== "next" ? `.${conn.type === "true" ? "True" : "False"}` : ""}
@@ -1506,18 +1506,18 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
                     onDrop={(e) => void onDrop(e, index)}
                   >
                     {/* Drag handle */}
-                    <div className=cls("workflow-node-drag-handle")>&#x2630;</div>
+                    <div className={cls("workflow-node-drag-handle")}>&#x2630;</div>
 
                     {/* Header */}
-                    <div className=cls("workflow-node-header")>
+                    <div className={cls("workflow-node-header")}>
                       <span className={`workflow-node-type workflow-node-type-${node.type}`}>
                         {NODE_TYPE_LABELS[node.type]}
                       </span>
-                      <span className=cls("workflow-node-id")>{node.id}</span>
+                      <span className={cls("workflow-node-id")}>{node.id}</span>
                     </div>
 
                     {/* Summary */}
-                    <div className=cls("workflow-node-summary")>
+                    <div className={cls("workflow-node-summary")}>
                       {getNodeSummary(node)}
                     </div>
 
@@ -1539,16 +1539,16 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
                             });
                           } : undefined}
                         >
-                          {isMultiLine && <span className=cls("workflow-node-comment-toggle")>{isExpanded ? "▼" : "▶"}</span>}
-                          <span className=cls("workflow-node-comment-text")>{comment}</span>
+                          {isMultiLine && <span className={cls("workflow-node-comment-toggle")}>{isExpanded ? "▼" : "▶"}</span>}
+                          <span className={cls("workflow-node-comment-text")}>{comment}</span>
                         </div>
                       );
                     })()}
 
                     {/* Actions */}
-                    <div className=cls("workflow-node-actions")>
+                    <div className={cls("workflow-node-actions")}>
                       <button
-                        className=cls("workflow-node-action-btn")
+                        className={cls("workflow-node-action-btn")}
                         onClick={(e) => {
                           e.stopPropagation();
                           editNode(index);
@@ -1557,7 +1557,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
                         {t("common.edit")}
                       </button>
                       <button
-                        className=cls("workflow-node-action-btn", "workflow-node-action-delete")
+                        className={cls("workflow-node-action-btn", "workflow-node-action-delete")}
                         onClick={(e) => {
                           e.stopPropagation();
                           void deleteNode(index);
@@ -1570,28 +1570,28 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
 
                   {/* Outgoing connections */}
                   {isBranchNode ? (
-                    <div className=cls("workflow-node-branch")>
-                      <div className=cls("workflow-branch-row")>
-                        <span className=cls("workflow-branch-label", "workflow-branch-label-true")>{t("workflow.branchTrue")}</span>
-                        <span className=cls("workflow-branch-arrow")>→</span>
-                        <span className=cls("workflow-branch-target")>{node.trueNext || t("workflow.branchNext")}</span>
+                    <div className={cls("workflow-node-branch")}>
+                      <div className={cls("workflow-branch-row")}>
+                        <span className={cls("workflow-branch-label", "workflow-branch-label-true")}>{t("workflow.branchTrue")}</span>
+                        <span className={cls("workflow-branch-arrow")}>→</span>
+                        <span className={cls("workflow-branch-target")}>{node.trueNext || t("workflow.branchNext")}</span>
                       </div>
-                      <div className=cls("workflow-branch-row")>
-                        <span className=cls("workflow-branch-label", "workflow-branch-label-false")>{t("workflow.branchFalse")}</span>
-                        <span className=cls("workflow-branch-arrow")>→</span>
-                        <span className=cls("workflow-branch-target")>{node.falseNext || t("workflow.branchEnd")}</span>
+                      <div className={cls("workflow-branch-row")}>
+                        <span className={cls("workflow-branch-label", "workflow-branch-label-false")}>{t("workflow.branchFalse")}</span>
+                        <span className={cls("workflow-branch-arrow")}>→</span>
+                        <span className={cls("workflow-branch-target")}>{node.falseNext || t("workflow.branchEnd")}</span>
                       </div>
                     </div>
                   ) : outgoing.length > 0 ? (
-                    <div className=cls("workflow-node-outgoing")>
+                    <div className={cls("workflow-node-outgoing")}>
                       {outgoing.map((conn, i) => (
-                        <span key={i} className=cls("workflow-outgoing-badge")>
+                        <span key={i} className={cls("workflow-outgoing-badge")}>
                           → {conn.to}
                         </span>
                       ))}
                     </div>
                   ) : nextNode && (
-                    <div className=cls("workflow-node-arrow") />
+                    <div className={cls("workflow-node-arrow")} />
                   )}
                 </div>
               );
@@ -1601,7 +1601,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
       </div>
 
       {/* Footer */}
-      <div className=cls("workflow-sidebar-footer")>
+      <div className={cls("workflow-sidebar-footer")}>
         <button
           className={`${cls("workflow-sidebar-run-btn")} mod-cta`}
           onClick={() => {
@@ -1616,7 +1616,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
           {isRunning ? t("workflow.showProgress") : t("workflow.run")}
         </button>
         <button
-          className=cls("workflow-sidebar-history-btn")
+          className={cls("workflow-sidebar-history-btn")}
           onClick={showHistory}
         >
           {t("workflow.history")}
