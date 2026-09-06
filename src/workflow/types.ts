@@ -271,3 +271,10 @@ export interface PromptCallbacks extends WorkflowHostCallbacks {
   promptForPassword?: () => Promise<string | null>;
   onThinking?: (nodeId: string, thinking: string) => void;  // Stream thinking content
 }
+
+/** What an AI generation run reported alongside the workflow it produced. */
+export interface GenerationContext {
+  plan?: string;
+  thinking?: string;
+  review?: string;
+}

@@ -7,3 +7,4 @@ export * from "../mcpAppViewer.js";
 export * from "./HistoryModal.js";
 export * from "./EventTriggerModal.js";
 export * from "./NodeEditorModal.js";
+export * from "./WorkflowPreviewModal.js";
