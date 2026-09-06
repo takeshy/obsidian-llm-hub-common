@@ -15,3 +15,8 @@ export * from "../preferences.js";
 export * from "./WorkflowGenerationModal.js";
 export * from "./AIWorkflowModal.js";
 export * from "../ConfirmModal.js";
+export * from "./DialogPromptModal.js";
+export * from "./WorkflowSelectorModal.js";
+export * from "./WorkflowPanel.js";
+export * from "../passwordPrompt.js";
+export * from "../htmlPreview.js";

@@ -4549,3 +4549,725 @@
   flex-shrink: 0;
   margin-top: 8px;
 }
+
+/* Workflow panel, selector and dialog prompt */
+
+/* ===============================================
+   Workflow Sidebar Styles (from visualflow)
+   =============================================== */
+
+.chat-ui-workflow-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-ui-workflow-sidebar-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Workflow sidebar buttons container */
+.chat-ui-workflow-sidebar-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.chat-ui-workflow-sidebar-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chat-ui-workflow-sidebar-add-btn {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+}
+
+.chat-ui-workflow-sidebar-add-btn:hover {
+  background: var(--background-modifier-hover);
+}
+
+.chat-ui-workflow-sidebar-select {
+  width: 100%;
+}
+
+/* Error Banner */
+.chat-ui-workflow-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  margin: 8px 12px;
+  background: rgba(var(--color-red-rgb), 0.15);
+  border: 1px solid var(--color-red);
+  border-radius: 6px;
+  color: var(--text-normal);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chat-ui-workflow-error-icon {
+  flex-shrink: 0;
+  color: var(--color-red);
+  font-size: 14px;
+}
+
+.chat-ui-workflow-error-message {
+  word-break: break-word;
+  flex: 1;
+}
+
+.chat-ui-workflow-error-migrate-btn {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+}
+
+.chat-ui-workflow-error-migrate-btn:hover {
+  background: var(--interactive-accent-hover);
+}
+
+.chat-ui-workflow-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.chat-ui-workflow-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+}
+
+.chat-ui-workflow-sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  display: flex;
+  gap: 8px;
+}
+
+.chat-ui-workflow-sidebar-footer button {
+  flex: 1;
+}
+
+.chat-ui-workflow-sidebar-footer .chat-ui-workflow-sidebar-hotkey-btn {
+  flex: 0;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-ui-workflow-sidebar-footer .chat-ui-workflow-sidebar-event-btn {
+  flex: 0;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Node List */
+.chat-ui-workflow-node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-ui-workflow-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  padding: 24px;
+}
+
+/* Workflow-vs-skill explainer shown under the Create buttons */
+.chat-ui-workflow-empty-create-hint {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.chat-ui-workflow-empty-create-hint p {
+  margin: 4px 0;
+}
+
+.chat-ui-workflow-empty-create-hint p:first-child { margin-top: 0; }
+
+.chat-ui-workflow-empty-create-hint p:last-child { margin-bottom: 0; }
+
+.chat-ui-workflow-empty-create-hint strong {
+  color: var(--text-normal);
+}
+
+/* Drag Handle */
+.chat-ui-workflow-node-drag-handle {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  cursor: grab;
+  padding: 4px;
+  font-size: 12px;
+}
+
+.chat-ui-workflow-node-drag-handle:hover {
+  color: var(--text-normal);
+}
+
+/* Node Header */
+.chat-ui-workflow-node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
+}
+
+.chat-ui-workflow-node-id {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-accent);
+  background-color: var(--background-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Node Summary */
+.chat-ui-workflow-node-summary {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  margin-left: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-ui-workflow-node-comment-toggle {
+  font-size: 8px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-style: normal;
+}
+
+.chat-ui-workflow-node-comment-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Node Actions */
+.chat-ui-workflow-node-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  margin-left: 16px;
+}
+
+.chat-ui-workflow-node-action-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+.chat-ui-workflow-node-action-delete {
+  color: var(--text-error);
+}
+
+/* Arrow between nodes */
+.chat-ui-workflow-node-arrow {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 16px;
+  padding: 4px 0;
+}
+
+.chat-ui-workflow-node-arrow::before {
+  content: "\2193"; /* Down arrow */
+}
+
+/* Incoming connection indicator */
+.chat-ui-workflow-node-incoming {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 16px;
+  margin-bottom: 2px;
+}
+
+/* Outgoing connection indicator */
+.chat-ui-workflow-node-outgoing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 16px;
+  justify-content: center;
+}
+
+.chat-ui-workflow-outgoing-badge {
+  font-size: 11px;
+  font-family: monospace;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: var(--background-secondary);
+  color: var(--text-accent);
+}
+
+/* Branch indicator for if/while nodes */
+.chat-ui-workflow-node-branch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 16px;
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.chat-ui-workflow-branch-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+}
+
+.chat-ui-workflow-branch-label {
+  font-weight: 600;
+  font-size: 11px;
+  min-width: 40px;
+}
+
+.chat-ui-workflow-branch-label-true {
+  color: var(--color-green);
+}
+
+.chat-ui-workflow-branch-label-false {
+  color: var(--color-red);
+}
+
+.chat-ui-workflow-branch-arrow {
+  color: var(--text-muted);
+}
+
+.chat-ui-workflow-branch-target {
+  color: var(--text-accent);
+  font-family: monospace;
+  font-size: 11px;
+}
+
+/* Workflow panel AI button */
+.chat-ui-workflow-empty-state .chat-ui-workflow-sidebar-run-btn,
+.chat-ui-workflow-empty-state .chat-ui-workflow-sidebar-ai-btn {
+  width: 200px;
+}
+
+.chat-ui-workflow-sidebar-run-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: 1px solid var(--interactive-accent);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.chat-ui-workflow-sidebar-run-btn:hover {
+  background: var(--interactive-accent-hover);
+  border-color: var(--interactive-accent-hover);
+}
+
+.chat-ui-workflow-sidebar-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chat-ui-workflow-sidebar-ai-btn:hover:not(:disabled) {
+  background: var(--interactive-accent-hover);
+}
+
+.chat-ui-workflow-sidebar-ai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Hide button labels on mobile */
+.is-mobile .chat-ui-workflow-btn-label {
+  display: none;
+}
+
+.is-mobile .chat-ui-workflow-sidebar-add-btn {
+  padding: 6px 8px;
+}
+
+/* Workflow Selector Modal */
+.chat-ui-workflow-selector-modal-container {
+  width: 800px;
+  max-width: 90vw;
+  height: 600px;
+  max-height: 80vh;
+}
+
+.chat-ui-workflow-selector-modal-container .modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.chat-ui-workflow-selector-modal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.chat-ui-workflow-selector-modal h2 {
+  margin: 0 0 12px 0;
+  flex-shrink: 0;
+}
+
+.chat-ui-workflow-selector-search {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+
+.chat-ui-workflow-selector-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+  font-size: 14px;
+}
+
+.chat-ui-workflow-selector-search-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.chat-ui-workflow-selector-main {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-ui-workflow-selector-left-pane {
+  width: 250px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.chat-ui-workflow-selector-file-list {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--background-secondary);
+}
+
+.chat-ui-workflow-selector-folder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--background-primary-alt);
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-weight: 500;
+}
+
+.chat-ui-workflow-selector-folder-icon {
+  font-size: 10px;
+}
+
+.chat-ui-workflow-selector-file-item {
+  padding: 8px 10px 8px 24px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  transition: background 0.15s;
+}
+
+.chat-ui-workflow-selector-file-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.chat-ui-workflow-selector-file-item:focus {
+  background: var(--background-modifier-hover);
+  outline: none;
+}
+
+.chat-ui-workflow-selector-file-item.is-selected {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.chat-ui-workflow-selector-no-files {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.chat-ui-workflow-selector-right-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chat-ui-workflow-selector-preview {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.chat-ui-workflow-selector-preview:not(:empty) {
+  color: var(--text-normal);
+}
+
+.chat-ui-workflow-selector-buttons {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chat-ui-workflow-selector-buttons button {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+/* Workflow Selector - Visual Preview */
+.chat-ui-workflow-selector-workflow-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chat-ui-workflow-selector-nodes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-ui-workflow-selector-nodes .chat-ui-workflow-node-header {
+  margin-left: 0;
+}
+
+.chat-ui-workflow-selector-nodes .chat-ui-workflow-node-summary {
+  margin-left: 0;
+}
+
+/* Workflow Selector - AI Workflow History */
+.chat-ui-workflow-selector-history {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chat-ui-workflow-selector-history-summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 0;
+  user-select: none;
+  list-style: none;
+}
+
+.chat-ui-workflow-selector-history-summary::-webkit-details-marker {
+  display: none;
+}
+
+.chat-ui-workflow-selector-history-summary::before {
+  content: "▼ ";
+  font-size: 10px;
+}
+
+.chat-ui-workflow-selector-history:not([open]) .chat-ui-workflow-selector-history-summary::before {
+  content: "▶ ";
+}
+
+.chat-ui-workflow-selector-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.chat-ui-workflow-selector-history-item {
+  padding: 6px 10px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-normal);
+}
+
+.chat-ui-workflow-selector-history-more {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 4px;
+}
+
+/* Workflow panel buttons and node cards */
+
+/* Hotkey enabled indicator */
+.chat-ui-hotkey-enabled {
+  color: var(--interactive-accent);
+}
+
+.chat-ui-workflow-sidebar-footer .chat-ui-workflow-sidebar-hotkey-btn.chat-ui-hotkey-enabled {
+  color: var(--interactive-accent);
+}
+
+.chat-ui-workflow-sidebar-footer .chat-ui-workflow-sidebar-event-btn.chat-ui-event-enabled {
+  color: var(--color-yellow);
+}
+
+/* Node Card */
+.chat-ui-workflow-node-card {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  position: relative;
+}
+
+.chat-ui-workflow-node-card:hover {
+  background-color: var(--background-secondary-alt);
+}
+
+/* Node Comment */
+.chat-ui-workflow-node-comment {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--color-yellow);
+  margin-top: 2px;
+  margin-left: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.chat-ui-workflow-node-comment.is-multiline {
+  cursor: pointer;
+}
+
+.chat-ui-workflow-node-comment.is-expanded .chat-ui-workflow-node-comment-text {
+  white-space: pre-wrap;
+  text-overflow: unset;
+}
+
+/* Override node card styles in selector preview */
+.chat-ui-workflow-selector-nodes .chat-ui-workflow-node-card {
+  cursor: default;
+}
+
+.chat-ui-workflow-selector-nodes .chat-ui-workflow-node-card:hover {
+  background-color: var(--background-secondary);
+}
+
+/* Workflow panel drag states */
+
+.chat-ui-workflow-node-card.chat-ui-workflow-node-dragging {
+  opacity: 0.5;
+}
+
+.chat-ui-workflow-node-card.chat-ui-workflow-drop-above {
+  border-top: 2px solid var(--interactive-accent);
+}
+
+.chat-ui-workflow-node-card.chat-ui-workflow-drop-below {
+  border-bottom: 2px solid var(--interactive-accent);
+}
+
+/* Workflow panel footer buttons */
+
+.chat-ui-workflow-sidebar-history-btn,
+.chat-ui-workflow-sidebar-save-btn,
+.chat-ui-workflow-sidebar-canvas-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: var(--background-modifier-border);
+  color: var(--text-normal);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat-ui-workflow-sidebar-history-btn:hover,
+.chat-ui-workflow-sidebar-save-btn:hover,
+.chat-ui-workflow-sidebar-canvas-btn:hover {
+  background: var(--background-modifier-border-hover);
+}
+
+.chat-ui-workflow-sidebar-canvas-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

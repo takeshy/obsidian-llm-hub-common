@@ -2,6 +2,7 @@ import type { StreamChunkUsage } from "../core/usage.js";
 import type { App } from "obsidian";
 import type { EncryptionConfig } from "./history.js";
 import type { ExecutionContext, PromptCallbacks, WorkflowNode } from "./types.js";
+import type { WorkflowEventTrigger } from "./triggers.js";
 
 /**
  * What shared workflow code needs from the plugin around it. Everything here is host-specific by
@@ -100,6 +101,17 @@ export interface WorkflowHost {
   getHistoryEncryption(): EncryptionConfig | undefined;
   /** The plugin version, recorded with generated workflows. */
   getPluginVersion(): string;
+  /** Workflow files the user bound to a hotkey, and the setter the panel saves through. */
+  getWorkflowHotkeys(): string[];
+  setWorkflowHotkeys(paths: string[]): void;
+  /** Workflows started by Obsidian events, and the setter the panel saves through. */
+  getWorkflowEventTriggers(): WorkflowEventTrigger[];
+  setWorkflowEventTriggers(triggers: WorkflowEventTrigger[]): void;
+  /** Runs a workflow the way its hotkey would, for the panel's run button. */
+  runWorkflowFromHotkey(path: string): void;
+  /** The workflow the selector opened last, so it can reopen there. */
+  getLastSelectedWorkflow(): string | undefined;
+  setLastSelectedWorkflow(path: string): void;
   /** Runs a prompt against the host's model layer — the one thing this package cannot do itself. */
   streamChat(request: WorkflowChatRequest): AsyncIterable<WorkflowChatChunk>;
   /** Observability, for hosts that have it wired up. */
@@ -126,6 +138,13 @@ const noHost: WorkflowHost = {
   getSkillsFolder: () => "",
   getHistoryEncryption: () => undefined,
   getPluginVersion: () => "",
+  getWorkflowHotkeys: () => [],
+  setWorkflowHotkeys: () => {},
+  getWorkflowEventTriggers: () => [],
+  setWorkflowEventTriggers: () => {},
+  runWorkflowFromHotkey: () => {},
+  getLastSelectedWorkflow: () => undefined,
+  setLastSelectedWorkflow: () => {},
   // eslint-disable-next-line require-yield
   streamChat: async function* () {
     throw new Error("No workflow host is configured: call configureWorkflowHost() during plugin load.");
