@@ -13,11 +13,11 @@ export interface WorkflowHostContext {}
 export interface WorkflowHostStep {}
 
 /**
- * Callbacks whose shape is the host's own, such as its edit-confirmation dialog:
+ * Callbacks only some hosts can serve, such as showing an MCP app:
  *
  *   declare module "obsidian-llm-hub-common/workflow" {
  *     interface WorkflowHostCallbacks {
- *       promptForConfirmation: (path: string, content: string, mode: string) => Promise<EditConfirmationResult>;
+ *       showMcpApp?: (mcpApp: McpAppInfo) => Promise<void>;
  *     }
  *   }
  */
@@ -124,7 +124,8 @@ export interface ExecutionContext extends WorkflowHostContext {
   variables: Map<string, string | number>;
   chatId?: string;
   logs: ExecutionLog[];
-  cloudVaultToolAllowedFolders?: string[];
+  /** Folders the vault tools may touch during this run; empty means the whole vault. */
+  vaultToolAllowedFolders?: string[];
   lastCommandInfo?: LastCommandInfo;
   regenerateInfo?: RegenerateInfo;
 }
@@ -233,7 +234,22 @@ export interface DialogResult {
 }
 
 // Prompt callbacks for interactive nodes
+/** What the edit-confirmation dialog reports back to a workflow. */
+export interface EditConfirmationResult {
+  action: "save" | "cancel" | "edit";
+  /** The follow-up request, when the user asked for changes instead of saving. */
+  additionalRequest?: string;
+  /** Whether to open the file after applying; the checkbox remembers its last state. */
+  openFile?: boolean;
+}
+
 export interface PromptCallbacks extends WorkflowHostCallbacks {
+  promptForConfirmation: (
+    filePath: string,
+    content: string,
+    mode: string,
+    originalContent?: string
+  ) => Promise<EditConfirmationResult>;
   promptForFile: (defaultPath?: string, title?: string) => Promise<string | null>;
   promptForAnyFile?: (
     extensions?: string[],

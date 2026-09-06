@@ -14,13 +14,9 @@ import {
   setOpenFileAfterApplyPreference,
 } from "../preferences.js";
 
-export interface EditConfirmationResult {
-  action: "save" | "cancel" | "edit";
-  /** The follow-up request, when the user asked for changes instead of saving. */
-  additionalRequest?: string;
-  /** Whether to open the file after applying; the checkbox remembers its last state. */
-  openFile?: boolean;
-}
+import type { EditConfirmationResult } from "../../workflow/types.js";
+
+export type { EditConfirmationResult };
 
 /**
  * Modal for confirming file edits before writing
