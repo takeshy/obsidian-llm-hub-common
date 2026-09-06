@@ -52,6 +52,11 @@
       "types": "./plugin.d.ts",
       "import": "./dist/plugin/index.js",
       "default": "./dist/plugin/index.js"
+    },
+    "./settings": {
+      "types": "./settings.d.ts",
+      "import": "./dist/settings/index.js",
+      "default": "./dist/settings/index.js"
     }
   },
   "files": [
@@ -68,7 +73,8 @@
     "workflow.d.ts",
     "modals.d.ts",
     "skills.d.ts",
-    "plugin.d.ts"
+    "plugin.d.ts",
+    "settings.d.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
