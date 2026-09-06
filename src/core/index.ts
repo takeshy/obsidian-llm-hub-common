@@ -15,6 +15,7 @@ export * from "./globMatcher.js";
 export * from "./provider.js";
 export * from "./vaultTools.js";
 export * from "./searchSelection.js";
+export * from "./ragSettingStore.js";
 export * from "./mcpTypes.js";
 export * from "./tracingHooks.js";
 export * from "./webUrl.js";
