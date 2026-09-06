@@ -1084,6 +1084,7 @@ export const ko = {
   "settings.toolLimits": "도구 제한",
   "settings.useCurrentModel": "현재 모델 사용",
   "settings.useCurrentSetting": "현재 설정 사용",
+  "settings.vaultToolAllowedFolders.invalidPath": "폴더는 볼트 기준 상대 경로여야 하며 . 또는 .. 세그먼트를 포함할 수 없습니다.",
   "settings.vaultToolModeOptional": "보관함 도구 (선택사항)",
   "settings.vaultToolModeOptional.desc": "이 명령어 사용 시 보관함 도구 모드를 재정의",
   "settings.workspace": "워크스페이스",

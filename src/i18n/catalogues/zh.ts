@@ -1084,6 +1084,7 @@ export const zh = {
   "settings.toolLimits": "工具限制",
   "settings.useCurrentModel": "使用当前模型",
   "settings.useCurrentSetting": "使用当前设置",
+  "settings.vaultToolAllowedFolders.invalidPath": "文件夹必须是相对于仓库的路径，且不能包含 . 或 .. 路径段。",
   "settings.vaultToolModeOptional": "库工具（可选）",
   "settings.vaultToolModeOptional.desc": "使用此命令时覆盖库工具模式",
   "settings.workspace": "工作区",

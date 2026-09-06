@@ -1193,6 +1193,7 @@ export const en = {
   "settings.toolLimits": "Tool limits",
   "settings.useCurrentModel": "Use current model",
   "settings.useCurrentSetting": "Use current setting",
+  "settings.vaultToolAllowedFolders.invalidPath": "Folders must be vault-relative paths and cannot contain '.' or '..' segments.",
   "settings.vaultToolModeOptional": "Vault tools (optional)",
   "settings.vaultToolModeOptional.desc": "Override the vault tool mode when using this command",
   "settings.workspace": "Workspace",

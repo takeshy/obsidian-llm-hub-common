@@ -1084,6 +1084,7 @@ export const de = {
   "settings.toolLimits": "Werkzeug-Limits",
   "settings.useCurrentModel": "Aktuelles Modell verwenden",
   "settings.useCurrentSetting": "Aktuelle Einstellung verwenden",
+  "settings.vaultToolAllowedFolders.invalidPath": "Ordner müssen vault-relative Pfade sein und dürfen keine Segmente . oder .. enthalten.",
   "settings.vaultToolModeOptional": "Vault-Tools (optional)",
   "settings.vaultToolModeOptional.desc": "Vault-Tool-Modus bei Verwendung dieses Befehls überschreiben",
   "settings.workspace": "Arbeitsbereich",

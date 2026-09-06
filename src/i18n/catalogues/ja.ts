@@ -1193,6 +1193,7 @@ export const ja = {
   "settings.toolLimits": "ツール制限",
   "settings.useCurrentModel": "現在のモデルを使用",
   "settings.useCurrentSetting": "現在の設定を使用",
+  "settings.vaultToolAllowedFolders.invalidPath": "フォルダはVault相対パスで指定し、'.' や '..' を含めないでください。",
   "settings.vaultToolModeOptional": "Vaultツール（任意）",
   "settings.vaultToolModeOptional.desc": "このコマンド使用時にVaultツールモードを変更",
   "settings.workspace": "ワークスペース",

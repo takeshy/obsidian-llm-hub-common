@@ -1084,6 +1084,7 @@ export const es = {
   "settings.toolLimits": "Límites de herramientas",
   "settings.useCurrentModel": "Usar modelo actual",
   "settings.useCurrentSetting": "Usar configuración actual",
+  "settings.vaultToolAllowedFolders.invalidPath": "Las carpetas deben ser rutas relativas al vault y no pueden contener segmentos '.' o '..'.",
   "settings.vaultToolModeOptional": "Herramientas del vault (opcional)",
   "settings.vaultToolModeOptional.desc": "Anular el modo de herramientas del vault al usar este comando",
   "settings.workspace": "Espacio de trabajo",

@@ -1084,6 +1084,7 @@ export const fr = {
   "settings.toolLimits": "Limites des outils",
   "settings.useCurrentModel": "Utiliser le modèle actuel",
   "settings.useCurrentSetting": "Utiliser le paramètre actuel",
+  "settings.vaultToolAllowedFolders.invalidPath": "Les dossiers doivent être des chemins relatifs au coffre et ne peuvent pas contenir de segments '.' ou '..'.",
   "settings.vaultToolModeOptional": "Outils du coffre (optionnel)",
   "settings.vaultToolModeOptional.desc": "Remplacer le mode des outils du coffre lors de l'utilisation de cette commande",
   "settings.workspace": "Espace de travail",
