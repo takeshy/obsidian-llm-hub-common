@@ -37,6 +37,11 @@
       "types": "./workflow.d.ts",
       "import": "./dist/workflow/index.js",
       "default": "./dist/workflow/index.js"
+    },
+    "./modals": {
+      "types": "./modals.d.ts",
+      "import": "./dist/ui/workflow/index.js",
+      "default": "./dist/ui/workflow/index.js"
     }
   },
   "files": [
@@ -50,7 +55,8 @@
     "README.md",
     "LICENSE",
     "i18n.d.ts",
-    "workflow.d.ts"
+    "workflow.d.ts",
+    "modals.d.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

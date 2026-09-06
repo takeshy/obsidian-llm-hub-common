@@ -6,3 +6,4 @@ export * from "./usage.js";
 export * from "./editHistory.js";
 export * from "./editHistoryStore.js";
 export * from "./diffUtils.js";
+export * from "./classPrefix.js";
