@@ -69,3 +69,8 @@ export const Platform = { isMobile: false, isDesktop: true };
 
 // Only ever used as the argument to getActiveViewOfType; tests stub the lookup itself.
 export class MarkdownView extends Component {}
+
+// Obsidian bundles PDF.js; tests that read a PDF replace this with a stand-in.
+export function loadPdfJs(): Promise<unknown> {
+  return Promise.reject(new Error("loadPdfJs is not available in tests"));
+}

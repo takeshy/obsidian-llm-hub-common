@@ -62,25 +62,31 @@
       "types": "./chat.d.ts",
       "import": "./dist/chat/index.js",
       "default": "./dist/chat/index.js"
+    },
+    "./vault": {
+      "types": "./vault.d.ts",
+      "import": "./dist/vault/index.js",
+      "default": "./dist/vault/index.js"
     }
   },
   "files": [
-    "dist",
-    "scripts/styles.mjs",
-    "scripts/check-markup.mjs",
+    "LICENSE",
+    "README.md",
+    "chat.d.ts",
     "check-markup.d.ts",
     "core.d.ts",
-    "obsidian.d.ts",
-    "styles.css",
-    "README.md",
-    "LICENSE",
+    "dist",
     "i18n.d.ts",
-    "workflow.d.ts",
     "modals.d.ts",
-    "skills.d.ts",
+    "obsidian.d.ts",
     "plugin.d.ts",
+    "scripts/check-markup.mjs",
+    "scripts/styles.mjs",
     "settings.d.ts",
-    "chat.d.ts"
+    "skills.d.ts",
+    "styles.css",
+    "vault.d.ts",
+    "workflow.d.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -91,12 +97,12 @@
     "test:unit": "vitest run"
   },
   "peerDependencies": {
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.38.0",
     "lucide-react": "^0.503.0",
     "obsidian": "^1.13.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "@codemirror/state": "^6.5.0",
-    "@codemirror/view": "^6.38.0"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@codemirror/state": "^6.5.0",
@@ -125,6 +131,7 @@
     }
   },
   "dependencies": {
-    "diff": "^8.0.4"
+    "diff": "^8.0.4",
+    "pdf-lib": "^1.17.1"
   }
 }
