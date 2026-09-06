@@ -1,0 +1,43 @@
+{
+  "name": "obsidian-llm-hub-chat-ui",
+  "version": "0.1.0",
+  "description": "Shared React chat UI for Obsidian AI plugins",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles": "./scripts/styles.mjs",
+    "./styles.css": "./styles.css"
+  },
+  "files": [
+    "dist",
+    "scripts/styles.mjs",
+    "styles.css",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.mjs",
+    "prepack": "npm run build && npm test",
+    "sync-plugins": "node scripts/sync-plugins.mjs"
+  },
+  "peerDependencies": {
+    "lucide-react": "^0.503.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "lucide-react": "^0.503.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-test-renderer": "^18.3.1",
+    "typescript": "^5.9.3"
+  }
+}
