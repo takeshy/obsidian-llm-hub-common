@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ChangeEvent, type ReactNode, type Ref, type TextareaHTMLAttributes, type MouseEvent } from "react";
-import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, Database, Wrench, X, Paperclip } from "lucide-react";
+import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, Database, Wrench, X, Paperclip, FileText, Maximize2, Minimize2 } from "lucide-react";
 
 export interface ChatMessage {
   role: string;
@@ -11,8 +11,29 @@ export type { StyleProps } from "./types.js";
 import type { StyleProps } from "./types.js";
 
 /** The host owns lifecycle, persistence and provider execution. */
-export function ChatLayout({ className, children }: { className: string; children: ReactNode }) {
-  return <div className={className}>{children}</div>;
+export function ChatLayout({ classPrefix: p, modifiers, children }: StyleProps & { modifiers?: readonly (string | false | undefined)[]; children: ReactNode }) {
+  return <div className={[`${p}-chat`, ...(modifiers ?? [])].filter(Boolean).join(" ")}>{children}</div>;
+}
+
+/** A button in the chat header strip. */
+export function HeaderButton({ classPrefix: p, title, onClick, disabled, className, children }: StyleProps & { title: string; onClick: () => void; disabled?: boolean; className?: string; children: ReactNode }) {
+  return <button className={[`${p}-header-btn`, className].filter(Boolean).join(" ")} onClick={onClick} disabled={disabled} title={title}>{children}</button>;
+}
+
+/** Widen or narrow the sidebar the chat lives in. */
+export function SidebarWidthButton({ classPrefix: p, wide, title, onClick }: StyleProps & { wide: boolean; title: string; onClick: () => void }) {
+  return <HeaderButton classPrefix={p} className={`${p}-sidebar-width-btn`} title={title} onClick={onClick}>
+    {wide ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+  </HeaderButton>;
+}
+
+/** Save the conversation as a note, showing progress in place of the icon. */
+export function SaveNoteButton({ classPrefix: p, state, title, disabled, onClick }: StyleProps & { state: "idle" | "saving" | "saved"; title: string; disabled?: boolean; onClick: () => void }) {
+  return <HeaderButton classPrefix={p} title={title} disabled={disabled || state === "saving"} onClick={onClick}>
+    {state === "idle" && <FileText size={16} />}
+    {state === "saving" && <Loader2 size={16} className={`${p}-spin`} />}
+    {state === "saved" && <Check size={16} />}
+  </HeaderButton>;
 }
 
 export interface MessageListProps<M extends ChatMessage> extends StyleProps {
@@ -166,8 +187,8 @@ export function ChatHeader({ classPrefix: p, title, children }: StyleProps & { t
   return <div className={`${p}-chat-header`}>{title && <h3>{title}</h3>}<div className={`${p}-header-actions`}>{children}</div></div>;
 }
 
-export function InputArea({ classPrefix: p, className, collapsed, beforeInput, accessories, composer, footer }: StyleProps & { className?: string; collapsed?: boolean; beforeInput?: ReactNode; accessories?: ReactNode; composer: ReactNode; footer?: ReactNode }) {
-  return <div className={className ?? `${p}-input-container`}>
+export function InputArea({ classPrefix: p, modifiers, collapsed, beforeInput, accessories, composer, footer }: StyleProps & { modifiers?: readonly (string | false | undefined)[]; collapsed?: boolean; beforeInput?: ReactNode; accessories?: ReactNode; composer: ReactNode; footer?: ReactNode }) {
+  return <div className={[`${p}-input-container`, ...(modifiers ?? [])].filter(Boolean).join(" ")}>
     {beforeInput}
     {!collapsed && <div className={`${p}-input-area`}>{accessories}{composer}</div>}
     {footer}

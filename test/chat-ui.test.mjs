@@ -6,7 +6,7 @@ import { join } from "node:path";
 import React, { useState, createRef } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection } from "../dist/index.js";
+import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection, ChatLayout, HeaderButton, SidebarWidthButton, SaveNoteButton } from "../dist/index.js";
 const h = React.createElement;
 const render = element => { let tree; act(() => { tree = TestRenderer.create(element); }); return tree; };
 const buttons = tree => tree.root.findAllByType("button");
@@ -17,7 +17,7 @@ test("mobile Gemini collapse and expand retain draft and attachments", () => {
     const [collapsed, setCollapsed] = useState(false);
     const [draft, setDraft] = useState("unsent draft");
     return h(InputArea, {
-      classPrefix: "gemini-helper", collapsed,
+      classPrefix: "gemini-helper", collapsed, modifiers: ["keyboard-visible"],
       beforeInput: !collapsed && h(Attachments, { classPrefix: "gemini-helper", attachments: [{ type: "pdf", name: "note.pdf" }], pending: true }),
       composer: h(Composer, { ...baseComposer, textarea: { value: draft, onChange: e => setDraft(e.target.value) }, collapse: { collapsed, label: "collapse", onToggle: () => setCollapsed(true) } }),
       footer: collapsed && h(CollapsedInput, { classPrefix: "gemini-helper", label: "expand", onExpand: () => setCollapsed(false) }),
@@ -346,5 +346,26 @@ test("vault tool section titles the group it introduces", () => {
   const tree = render(h(VaultToolSection, { classPrefix: "llm-hub", label: "MCP servers" }, h("label", null, "Notes")));
   assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-vault-tool-divider").length, 1);
   assert.equal(tree.root.findByProps({ className: "llm-hub-vault-tool-section-label" }).props.children, "MCP servers");
+  act(() => tree.unmount());
+});
+
+test("chat shell composes its own class names and header buttons", () => {
+  let saved = 0, toggled = 0;
+  const tree = render(h(ChatLayout, { classPrefix: "llm-hub", modifiers: ["keyboard-visible", false, undefined] },
+    h(SidebarWidthButton, { classPrefix: "llm-hub", wide: false, title: "widen", onClick: () => toggled++ }),
+    h(SaveNoteButton, { classPrefix: "llm-hub", state: "idle", title: "save", onClick: () => saved++ }),
+    h(HeaderButton, { classPrefix: "llm-hub", title: "new chat", onClick() {} }, "+")));
+  assert.equal(tree.toJSON().props.className, "llm-hub-chat keyboard-visible");
+  assert.deepEqual(buttons(tree).map(button => button.props.className), [
+    "llm-hub-header-btn llm-hub-sidebar-width-btn", "llm-hub-header-btn", "llm-hub-header-btn",
+  ]);
+  act(() => buttons(tree)[0].props.onClick());
+  act(() => buttons(tree)[1].props.onClick());
+  assert.deepEqual([toggled, saved], [1, 1]);
+  act(() => tree.update(h(ChatLayout, { classPrefix: "llm-hub" },
+    h(SaveNoteButton, { classPrefix: "llm-hub", state: "saving", title: "saving", onClick() {} }))));
+  assert.equal(tree.toJSON().props.className, "llm-hub-chat");
+  assert.equal(buttons(tree)[0].props.disabled, true);
+  assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-spin").length, 1);
   act(() => tree.unmount());
 });

@@ -37,10 +37,11 @@ single React instance. The package ships compiled ESM and TypeScript declaration
 
 ## Mobile
 
-`Composer.collapse`, `InputArea.collapsed` and `CollapsedInput` provide optional
-collapse/expand controls. Gemini Helper retains its existing mobile behavior,
-keyboard handling and mobile CSS. Draft and attachment state stays in the host,
-so hiding the composer does not clear it. Local LLM Hub has no collapse toggle.
+`Composer.collapse`, `InputArea.collapsed` and `CollapsedInput` provide the
+collapse/expand controls. Hosts keep their own keyboard handling and mobile CSS,
+and pass state-driven class names through `modifiers` (`ChatLayout` and
+`InputArea` build the shared class themselves). Draft and attachment state stays
+in the host, so hiding the composer does not clear it.
 
 ## Build and verify
 
