@@ -126,11 +126,15 @@ export function agentPluginAbsolutePaths(app: App, name: string): { root: string
 
 /** Enable tested Agent Plugin MCP servers for the lifetime of a chat turn
  * when at least one skill from the same enabled package is active. */
-export function resolveAgentPluginMcpServers(
-  servers: McpServerConfig[],
+/**
+ * Filters a host's MCP servers down to the ones its active agent-plugin skills contribute.
+ * Generic over the host's own server record, which is stricter than the shared shape.
+ */
+export function resolveAgentPluginMcpServers<T extends McpServerConfig>(
+  servers: T[],
   activeSkillPaths: string[],
   installs: AgentPluginInstall[],
-): McpServerConfig[] {
+): T[] {
   const activePlugins = new Set<string>();
   for (const skillPath of activeSkillPaths) {
     const normalized = skillPath.split("\\").join("/");
