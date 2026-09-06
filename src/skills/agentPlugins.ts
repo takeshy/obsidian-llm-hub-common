@@ -16,8 +16,22 @@ export interface AgentPluginInstall {
 
 export const AGENT_PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
 export const AGENT_PLUGIN_MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json";
-export const AGENT_PLUGIN_ROOT = ".llm-hub/agent-plugins";
-export const AGENT_PLUGIN_DATA_ROOT = ".llm-hub/agent-plugin-data";
+/**
+ * Agent plugins live under a folder named for the host, so each plugin keeps its own installs.
+ * A host declares its folder at load; the default matches llm-hub's.
+ */
+let agentPluginBase = ".llm-hub";
+
+export function configureAgentPluginBase(folder: string): void {
+  agentPluginBase = folder;
+}
+
+export function agentPluginRoot(): string {
+  return `${agentPluginBase}/agent-plugins`;
+}
+export function agentPluginDataRoot(): string {
+  return `${agentPluginBase}/agent-plugin-data`;
+}
 const NAME = /^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
 const SKILL_NAME = /^(?!.*--)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
@@ -128,18 +142,18 @@ export async function previewAgentPlugin<T extends McpServerConfig = McpServerCo
 
 async function mkdirs(app: App, path: string): Promise<void> { const parts = normalizePath(path).split("/"); for (let i = 1; i <= parts.length; i++) { const current = parts.slice(0, i).join("/"); if (!await app.vault.adapter.exists(current)) await app.vault.adapter.mkdir(current); } }
 export async function installAgentPlugin(app: App, preview: AgentPluginPreview): Promise<AgentPluginInstall> {
-  const target = `${AGENT_PLUGIN_ROOT}/${preview.manifest.name}`; const stage = `${AGENT_PLUGIN_ROOT}/.${preview.manifest.name}-stage-${Date.now()}`; await mkdirs(app, stage);
+  const target = `${agentPluginRoot()}/${preview.manifest.name}`; const stage = `${agentPluginRoot()}/.${preview.manifest.name}-stage-${Date.now()}`; await mkdirs(app, stage);
   try {
     for (const [path, bytes] of Object.entries(preview.files)) { if (!safePath(path)) throw new Error(`Unsafe plugin path: ${path}`); const full = `${stage}/${path}`; await mkdirs(app, full.slice(0, full.lastIndexOf("/"))); await app.vault.adapter.writeBinary(full, bytes); }
     const metadata: AgentPluginInstall = { name: preview.manifest.name, repo: preview.repo, version: preview.version, sourceType: preview.sourceType, sourceRef: preview.sourceRef, commitSha: preview.commitSha, enabled: true, skillNames: preview.skills.map(v => v.name), executables: preview.executables };
-    await app.vault.adapter.write(`${stage}/install.json`, JSON.stringify(metadata, null, 2)); if (await app.vault.adapter.exists(target)) await app.vault.adapter.rmdir(target, true); await app.vault.adapter.rename(stage, target); await mkdirs(app, `${AGENT_PLUGIN_DATA_ROOT}/${preview.manifest.name}`); return metadata;
+    await app.vault.adapter.write(`${stage}/install.json`, JSON.stringify(metadata, null, 2)); if (await app.vault.adapter.exists(target)) await app.vault.adapter.rmdir(target, true); await app.vault.adapter.rename(stage, target); await mkdirs(app, `${agentPluginDataRoot()}/${preview.manifest.name}`); return metadata;
   } catch (error) { if (await app.vault.adapter.exists(stage)) await app.vault.adapter.rmdir(stage, true); throw error; }
 }
-export async function uninstallAgentPlugin(app: App, name: string): Promise<void> { if (!NAME.test(name)) throw new Error("Invalid Agent Plugin name"); const path = `${AGENT_PLUGIN_ROOT}/${name}`; if (await app.vault.adapter.exists(path)) await app.vault.adapter.rmdir(path, true); }
+export async function uninstallAgentPlugin(app: App, name: string): Promise<void> { if (!NAME.test(name)) throw new Error("Invalid Agent Plugin name"); const path = `${agentPluginRoot()}/${name}`; if (await app.vault.adapter.exists(path)) await app.vault.adapter.rmdir(path, true); }
 export function agentPluginAbsolutePaths(app: App, name: string): { root: string; data: string } {
   const adapter = app.vault.adapter;
   const base = adapter instanceof FileSystemAdapter ? adapter.getBasePath().replace(/[\\/]$/, "") : "";
-  return { root: `${base ? `${base}/` : ""}${AGENT_PLUGIN_ROOT}/${name}`, data: `${base ? `${base}/` : ""}${AGENT_PLUGIN_DATA_ROOT}/${name}` };
+  return { root: `${base ? `${base}/` : ""}${agentPluginRoot()}/${name}`, data: `${base ? `${base}/` : ""}${agentPluginDataRoot()}/${name}` };
 }
 
 /** Enable tested Agent Plugin MCP servers for the lifetime of a chat turn
@@ -156,7 +170,7 @@ export function resolveAgentPluginMcpServers<T extends McpServerConfig>(
   const activePlugins = new Set<string>();
   for (const skillPath of activeSkillPaths) {
     const normalized = skillPath.split("\\").join("/");
-    const match = normalized.match(/^\.llm-hub\/agent-plugins\/([^/]+)\/skills\/[^/]+$/);
+    const match = normalized.match(new RegExp(`^${agentPluginRoot().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/([^/]+)/skills/[^/]+$`));
     if (match) activePlugins.add(match[1]);
   }
   const enabledPlugins = new Set(installs.filter(plugin => plugin.enabled && activePlugins.has(plugin.name)).map(plugin => plugin.name));

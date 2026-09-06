@@ -3,7 +3,7 @@ import { extractCapabilitiesBlock, parseFrontmatter } from "./skillMd.js";
 const SKILLS_FOLDER = "skills";
 import { getBuiltinSkillMetadata, isBuiltinSkillPath, loadBuiltinSkill, loadBuiltinSkillByCapability } from "./builtinSkills.js";
 import { getRuntimeSkillMetadata, isRuntimeSkillPath, loadRuntimeSkill } from "./runtimeSkills.js";
-import { AGENT_PLUGIN_ROOT } from "./agentPlugins.js";
+import { agentPluginRoot } from "./agentPlugins.js";
 
 export interface SkillWorkflowRef {
   path: string;              // relative path from skill folder (e.g. "workflows/lint.md")
@@ -90,7 +90,7 @@ export async function discoverSkills(app: App, skillsFolderPath = SKILLS_FOLDER)
   const folder = app.vault.getAbstractFileByPath(skillsFolderPath);
   const roots: Array<{ folder: TFolder; pluginName?: string }> = [];
   if (folder instanceof TFolder) roots.push({ folder });
-  const pluginRoot = app.vault.getAbstractFileByPath(AGENT_PLUGIN_ROOT);
+  const pluginRoot = app.vault.getAbstractFileByPath(agentPluginRoot());
   if (pluginRoot instanceof TFolder) for (const plugin of pluginRoot.children) {
     if (!(plugin instanceof TFolder) || plugin.name.startsWith(".")) continue;
     try {
@@ -188,7 +188,7 @@ export async function discoverSkills(app: App, skillsFolderPath = SKILLS_FOLDER)
   // Agent Plugins live under .llm-hub, so discover their skills through the
   // adapter and keep their content in memory instead of relying on read_note.
   try {
-    const pluginEntries = await app.vault.adapter.list(AGENT_PLUGIN_ROOT);
+    const pluginEntries = await app.vault.adapter.list(agentPluginRoot());
     for (const pluginPath of pluginEntries.folders) {
       const pluginName = pluginPath.split("/").pop() || "";
       if (!pluginName || pluginName.startsWith(".")) continue;
