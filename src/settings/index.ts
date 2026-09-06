@@ -6,3 +6,5 @@ export * from "./externalSkillSettings.js";
 export * from "./editHistorySettings.js";
 export * from "./workspaceSettings.js";
 export * from "./McpServerModal.js";
+export * from "./ragSettings.js";
+export * from "./controls.js";

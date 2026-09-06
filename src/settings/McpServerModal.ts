@@ -1,5 +1,6 @@
 import { Modal, Notice, Platform, Setting, type App } from "obsidian";
 import { cls } from "../core/classPrefix.js";
+import { useSettingTextArea } from "./controls.js";
 import { formatError } from "../core/error.js";
 import type { McpFraming, McpServerConfig, McpTransport } from "../core/mcpTypes.js";
 import { joinCommandLine, normalizeSpawnCommand, splitCommandLine } from "../mcp/commandLine.js";
@@ -192,7 +193,6 @@ export class McpServerModal extends Modal {
     const headersSetting = new Setting(fields)
       .setName(t("settings.mcpServerHeaders"))
       .setDesc(t("settings.mcpServerHeaders.desc"));
-    headersSetting.settingEl.addClass(cls("settings-textarea-container"));
     headersSetting.addTextArea((text) => {
       text
         .setPlaceholder(t("settings.mcpServerHeaders.placeholder"))
@@ -201,8 +201,7 @@ export class McpServerModal extends Modal {
           this.headersText = value;
           this.invalidateConnectionTest();
         });
-      text.inputEl.rows = 3;
-      text.inputEl.addClass(cls("settings-textarea"));
+      useSettingTextArea(headersSetting, text.inputEl, 3);
     });
     this.options.markSecretField?.(headersSetting, "headers", this.server, this.headersText);
   }
@@ -251,7 +250,6 @@ export class McpServerModal extends Modal {
     const envSetting = new Setting(fields)
       .setName(t("settings.mcpServerEnv"))
       .setDesc(t("settings.mcpServerEnv.desc"));
-    envSetting.settingEl.addClass(cls("settings-textarea-container"));
     envSetting.addTextArea((text) => {
       text
         .setPlaceholder(t("settings.mcpServerEnv.placeholder"))
@@ -260,8 +258,7 @@ export class McpServerModal extends Modal {
           this.envText = value;
           this.invalidateConnectionTest();
         });
-      text.inputEl.rows = 3;
-      text.inputEl.addClass(cls("settings-textarea"));
+      useSettingTextArea(envSetting, text.inputEl, 3);
     });
     this.options.markSecretField?.(envSetting, "env", this.server, this.envText);
   }

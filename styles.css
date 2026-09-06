@@ -5643,3 +5643,16 @@
   color: var(--text-on-accent);
   border-color: var(--interactive-accent);
 }
+
+/* Settings rows whose control is a textarea */
+
+.chat-ui-settings-textarea-container .setting-item-control {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.chat-ui-settings-textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+}

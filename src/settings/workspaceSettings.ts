@@ -1,5 +1,6 @@
 import { Notice, Setting, type App } from "obsidian";
 import { cls } from "../core/classPrefix.js";
+import { useSettingTextArea } from "./controls.js";
 import { normalizeVaultScopePath } from "../core/vaultScope.js";
 import { t } from "../i18n/index.js";
 import { ConfirmModal } from "../ui/ConfirmModal.js";
@@ -306,7 +307,6 @@ export function addSystemPromptSetting(
   const setting = new Setting(containerEl)
     .setName(t("settings.systemPrompt"))
     .setDesc(t("settings.systemPrompt.desc"));
-  setting.settingEl.addClass(cls("settings-textarea-container"));
   setting.addTextArea((text) => {
     text
       .setPlaceholder(t("settings.systemPrompt.placeholder"))
@@ -317,8 +317,7 @@ export function addSystemPromptSetting(
           await plugin.saveSettings();
         })();
       });
-    text.inputEl.rows = rows;
-    text.inputEl.addClass(cls("settings-textarea"));
+    useSettingTextArea(setting, text.inputEl, rows);
   });
 }
 
