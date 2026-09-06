@@ -4,3 +4,4 @@ export * from "./contextSkills.js";
 export * from "./localFileLink.js";
 export * from "./noDiscoveryPrompt.js";
 export * from "../core/message.js";
+export * from "../core/mcpTypes.js";
