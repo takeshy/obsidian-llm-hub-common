@@ -50,3 +50,16 @@ export function t(key: string, vars?: TranslationVars): string {
   }
   return result;
 }
+
+import { en } from "./catalogues/en.js";
+import { ja } from "./catalogues/ja.js";
+import { es } from "./catalogues/es.js";
+import { fr } from "./catalogues/fr.js";
+import { zh } from "./catalogues/zh.js";
+import { ko } from "./catalogues/ko.js";
+import { pt } from "./catalogues/pt.js";
+import { it } from "./catalogues/it.js";
+import { de } from "./catalogues/de.js";
+
+// The package's own strings. Hosts register their catalogues afterwards, so their wording wins.
+registerTranslations({ en, ja, es, fr, zh, ko, pt, it, de });

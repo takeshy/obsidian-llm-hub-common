@@ -32,6 +32,11 @@
       "types": "./i18n.d.ts",
       "import": "./dist/i18n/index.js",
       "default": "./dist/i18n/index.js"
+    },
+    "./workflow": {
+      "types": "./workflow.d.ts",
+      "import": "./dist/workflow/index.js",
+      "default": "./dist/workflow/index.js"
     }
   },
   "files": [
@@ -44,7 +49,8 @@
     "styles.css",
     "README.md",
     "LICENSE",
-    "i18n.d.ts"
+    "i18n.d.ts",
+    "workflow.d.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -56,11 +62,12 @@
   },
   "peerDependencies": {
     "lucide-react": "^0.503.0",
+    "obsidian": "^1.13.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "obsidian": "^1.13.1"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/diff": "^7.0.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.7",
     "lucide-react": "^0.503.0",
@@ -75,5 +82,8 @@
     "obsidian": {
       "optional": true
     }
+  },
+  "dependencies": {
+    "diff": "^8.0.4"
   }
 }

@@ -2,3 +2,7 @@ export * from "./crypto.js";
 export * from "./id.js";
 export * from "./error.js";
 export * from "./mentionResolver.js";
+export * from "./usage.js";
+export * from "./editHistory.js";
+export * from "./editHistoryStore.js";
+export * from "./diffUtils.js";

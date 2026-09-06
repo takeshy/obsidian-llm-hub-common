@@ -1,0 +1,276 @@
+import type { StreamChunkUsage } from "../core/usage.js";
+
+/**
+ * Fields only some hosts have. A host adds its own by augmenting this interface:
+ *
+ *   declare module "obsidian-llm-hub-common/workflow" {
+ *     interface WorkflowHostContext { persistentCliSessions?: Map<ChatProvider, PersistentCliSession>; }
+ *   }
+ */
+export interface WorkflowHostContext {}
+
+/** The same escape hatch for per-step results, such as a host's MCP app payload. */
+export interface WorkflowHostStep {}
+
+/** And for callbacks only some hosts can serve, such as showing an MCP app. */
+export interface WorkflowHostCallbacks {}
+
+/** What the edit confirmation dialog reports back to a workflow. */
+export interface EditConfirmationResult {
+  action: "save" | "cancel" | "edit";
+  content?: string;
+}
+
+// Workflow node types
+export type WorkflowNodeType =
+  | "variable"
+  | "set"
+  | "if"
+  | "while"
+  | "command"
+  | "http"
+  | "json"
+  | "note"
+  | "note-read"
+  | "note-search"
+  | "note-list"
+  | "folder-list"
+  | "open"
+  | "dialog"
+  | "prompt-file"
+  | "prompt-selection"
+  | "workflow"
+  | "rag-sync"
+  | "file-explorer"
+  | "file-save"
+  | "mcp"
+  | "obsidian-command"
+  | "sleep"
+  | "script"
+  | "shell";
+
+/** All valid workflow node type values. Single source of truth for validation. */
+const WORKFLOW_NODE_TYPES: ReadonlySet<string> = new Set<WorkflowNodeType>([
+  "variable", "set", "if", "while", "command", "http", "json",
+  "note", "note-read", "note-search", "note-list", "folder-list",
+  "open", "dialog", "prompt-file", "prompt-selection",
+  "workflow", "rag-sync", "file-explorer", "file-save",
+  "mcp", "obsidian-command", "sleep", "script", "shell",
+]);
+
+/** Type guard for WorkflowNodeType. Used by parser.ts and codeblockSync.ts. */
+export function isWorkflowNodeType(value: unknown): value is WorkflowNodeType {
+  return typeof value === "string" && WORKFLOW_NODE_TYPES.has(value);
+}
+
+/** Normalize unknown YAML values to string. Shared between parser and codeblock sync. */
+export function normalizeValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return JSON.stringify(value);
+}
+
+export interface WorkflowNode {
+  id: string;
+  type: WorkflowNodeType;
+  canvasNodeId: string;
+  properties: Record<string, string>;
+}
+
+export interface WorkflowEdge {
+  from: string;
+  to: string;
+  label?: string; // "true" or "false" for conditional nodes
+}
+
+export interface WorkflowOptions {
+  showProgress?: boolean;  // Show execution progress modal (default: true)
+}
+
+export interface Workflow {
+  nodes: Map<string, WorkflowNode>;
+  edges: WorkflowEdge[];
+  startNode: string | null;
+  options?: WorkflowOptions;
+}
+
+// Information about the last executed command node (for regeneration)
+export interface LastCommandInfo {
+  nodeId: string;
+  originalPrompt: string;
+  saveTo: string;
+}
+
+// Information needed to regenerate content
+export interface RegenerateInfo {
+  commandNodeId: string;
+  originalPrompt: string;
+  previousOutput: string;
+  additionalRequest: string;
+}
+
+// Execution context
+export interface ExecutionContext extends WorkflowHostContext {
+  variables: Map<string, string | number>;
+  chatId?: string;
+  logs: ExecutionLog[];
+  cloudVaultToolAllowedFolders?: string[];
+  lastCommandInfo?: LastCommandInfo;
+  regenerateInfo?: RegenerateInfo;
+}
+
+export interface ExecutionLog extends WorkflowHostStep {
+  nodeId: string;
+  nodeType: WorkflowNodeType | "system";
+  message: string;
+  timestamp: Date;
+  status: "info" | "success" | "error";
+  input?: Record<string, unknown>;
+  output?: unknown;
+  usage?: StreamChunkUsage;
+  elapsedMs?: number;
+}
+
+// Editor position for selection
+export interface EditorPosition {
+  line: number;
+  ch: number;
+}
+
+// Selection info for prompt-selection node
+export interface SelectionInfo {
+  path: string;
+  start: EditorPosition;
+  end: EditorPosition;
+}
+
+// File explorer data for file-explorer node
+export interface FileExplorerData {
+  path: string;
+  basename: string;
+  name: string;
+  extension: string;
+  mimeType: string;
+  contentType: "text" | "binary";
+  data: string; // text content or Base64 encoded data
+}
+
+// Condition evaluation
+export type ComparisonOperator =
+  | "=="
+  | "!="
+  | "<"
+  | ">"
+  | "<="
+  | ">="
+  | "contains";
+
+export interface ParsedCondition {
+  left: string;
+  operator: ComparisonOperator;
+  right: string;
+}
+
+// Sidebar types
+export interface SidebarNode {
+  id: string;
+  type: WorkflowNodeType;
+  properties: Record<string, string>;
+  next?: string;
+  trueNext?: string;
+  falseNext?: string;
+}
+
+// Execution history types
+export type ExecutionStatus = "running" | "completed" | "error" | "cancelled";
+export type StepStatus = "success" | "error" | "skipped";
+
+export interface ExecutionStep extends WorkflowHostStep {
+  nodeId: string;
+  nodeType: WorkflowNodeType;
+  timestamp: string;
+  input?: Record<string, unknown>;
+  output?: unknown;
+  status: StepStatus;
+  error?: string;
+  variablesSnapshot?: Record<string, string | number>;  // Variables state before this step
+  usage?: StreamChunkUsage;
+  elapsedMs?: number;
+}
+
+export interface ExecutionRecord {
+  id: string;
+  workflowPath: string;
+  workflowName?: string;
+  startTime: string;
+  endTime?: string;
+  status: ExecutionStatus;
+  steps: ExecutionStep[];
+  errorNodeId?: string;
+  variablesSnapshot?: Record<string, string | number>;
+}
+
+// Workflow input for execution
+export interface WorkflowInput {
+  variables: Map<string, string | number>;
+}
+
+// Dialog result
+export interface DialogResult {
+  button: string;
+  selected: string[];
+  input?: string;
+}
+
+// Prompt callbacks for interactive nodes
+export interface PromptCallbacks extends WorkflowHostCallbacks {
+  promptForFile: (defaultPath?: string, title?: string) => Promise<string | null>;
+  promptForAnyFile?: (
+    extensions?: string[],
+    defaultPath?: string,
+    title?: string
+  ) => Promise<string | null>;
+  promptForNewFilePath?: (
+    extensions?: string[],
+    defaultPath?: string,
+    title?: string
+  ) => Promise<string | null>;
+  promptForSelection: () => Promise<SelectionInfo | null>;
+  promptForValue: (
+    prompt: string,
+    defaultValue?: string,
+    multiline?: boolean
+  ) => Promise<string | null>;
+  promptForConfirmation: (
+    filePath: string,
+    content: string,
+    mode: string,
+    originalContent?: string
+  ) => Promise<EditConfirmationResult>;
+  promptForDialog?: (
+    title: string,
+    message: string,
+    options: string[],
+    multiSelect: boolean,
+    button1: string,
+    button2?: string,
+    markdown?: boolean,
+    inputTitle?: string,
+    defaults?: { input?: string; selected?: string[] },
+    multiline?: boolean
+  ) => Promise<DialogResult | null>;
+  openFile?: (filePath: string) => Promise<void>;
+  executeSubWorkflow?: (
+    workflowPath: string,
+    inputVariables: Map<string, string | number>
+  ) => Promise<Map<string, string | number>>;
+  promptForPassword?: () => Promise<string | null>;
+  onThinking?: (nodeId: string, thinking: string) => void;  // Stream thinking content
+}
