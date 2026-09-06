@@ -529,4 +529,10 @@ export const ja = {
   "chat.rateLimitPaid": "このモデルはレート制限されている可能性があります。明日まで別のモデルを試してください。",
   "chat.unknownError": "不明なエラー",
   "chat.yesterday": "昨日",
+  "chat.encryptedChat": "暗号化されたチャット",
+  "chat.savedAsNote": "{{path}}に保存しました",
+  "chat.chatDeleted": "チャットを削除しました",
+  "chat.decrypted": "復号化に成功しました",
+  "chat.decryptFailed": "復号化に失敗しました。パスワードを確認してください。",
+  "common.error": "エラー: ",
 };

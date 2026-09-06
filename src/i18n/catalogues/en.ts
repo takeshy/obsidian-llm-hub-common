@@ -529,4 +529,10 @@ export const en = {
   "chat.rateLimitPaid": "This model may be rate limited. Please try a different model until tomorrow.",
   "chat.unknownError": "Unknown error",
   "chat.yesterday": "Yesterday",
+  "chat.encryptedChat": "Encrypted chat",
+  "chat.savedAsNote": "Saved as {{path}}",
+  "chat.chatDeleted": "Chat deleted",
+  "chat.decrypted": "Decrypted successfully",
+  "chat.decryptFailed": "Decryption failed. Check your password.",
+  "common.error": "Error: ",
 };
