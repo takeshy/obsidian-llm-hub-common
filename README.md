@@ -1,4 +1,4 @@
-# obsidian-llm-hub-chat-ui
+# obsidian-llm-hub-common
 
 React chat UI shared by `obsidian-gemini-helper`, `obsidian-llm-hub`, and
 `obsidian-local-llm-hub`. The visual baseline is Local LLM Hub. This is an npm
@@ -26,7 +26,7 @@ Two rules keep the three plugins from drifting apart again, and both are enforce
   optional, and the library ships no default strings. `VaultToolOption.description` is the model:
   a host cannot render a mode without explaining it. Hosts map their own i18n keys into these props,
   so key-naming differences between plugins stay in the host adapter.
-- **Duplicated markup fails a test.** `obsidian-llm-hub-chat-ui/check-markup` scans a plugin's
+- **Duplicated markup fails a test.** `obsidian-llm-hub-common/check-markup` scans a plugin's
   sources for classes the shared stylesheet defines. Each plugin runs it in
   `src/ui/components/sharedMarkup.test.ts` with an allowlist of UI it still renders itself. That
   allowlist only shrinks: a second test fails once an entry no longer appears, and new entries are
@@ -55,7 +55,7 @@ npm pack
 Each plugin pins a full commit SHA from this GitHub repository:
 
 ```json
-"obsidian-llm-hub-chat-ui": "git+https://github.com/takeshy/obsidian-llm-hub-chat-ui.git#<full-commit-sha>"
+"obsidian-llm-hub-common": "git+https://github.com/takeshy/obsidian-llm-hub-common.git#<full-commit-sha>"
 ```
 
 On installation, npm runs `prepare` to compile the Git checkout into `dist/`.

@@ -15,7 +15,7 @@ function run(command, args, cwd, capture = false) {
 const git = args => run("git", args, packageRoot, true).trim();
 if (git(["status", "--porcelain"])) throw new Error("Commit library changes before syncing consumers.");
 const commit = git(["rev-parse", "HEAD"]);
-const repository = "https://github.com/takeshy/obsidian-llm-hub-chat-ui.git";
+const repository = "https://github.com/takeshy/obsidian-llm-hub-common.git";
 const remoteCommit = git(["ls-remote", repository, "refs/heads/main"]).split(/\s+/)[0];
 if (commit !== remoteCommit) throw new Error("Push the library commit to main before syncing consumers.");
 // Validate every target before updating any dependency.
