@@ -257,15 +257,18 @@ test("input buttons wire the paperclip to the hidden file input and keep host bu
   act(() => tree.unmount());
 });
 
+const searchOwnerDocument = { addEventListener() {}, removeEventListener() {} };
+const searchLabels = { webSearch: "Web search", rag: name => `RAG: ${name}`, ragNone: "RAG: none", none: "No search" };
+const searchProps = (overrides = {}) => ({
+  classPrefix: "llm-hub", ownerDocument: searchOwnerDocument, labels: searchLabels,
+  webSearch: { checked: false, disabled: false, combinable: true },
+  rag: { settings: ["notes", "papers"], selected: null, disabled: false },
+  ...overrides,
+});
+
 test("search selector summarises the active sources and drops web search for hosts without it", () => {
-  const picked = [], webToggles = [];
-  const ownerDocument = { addEventListener() {}, removeEventListener() {} };
-  const labels = { webSearch: "Web search", rag: name => `RAG: ${name}`, ragNone: "RAG: none", none: "No search" };
-  const props = {
-    classPrefix: "llm-hub", ownerDocument, labels,
-    webSearch: { checked: false, disabled: false, onChange: checked => webToggles.push(checked) },
-    rag: { settings: ["notes", "papers"], selected: null, disabled: false, onSelect: name => picked.push(name) },
-  };
+  const changes = [];
+  const props = searchProps({ onChange: selection => changes.push(selection) });
   const tree = render(h(SearchSelector, props));
   const button = () => buttons(tree)[0];
   assert.equal(button().props.children[0], "No search");
@@ -273,14 +276,54 @@ test("search selector summarises the active sources and drops web search for hos
   const options = tree.root.findAllByType("input");
   assert.deepEqual(options.map(input => input.props.type), ["checkbox", "radio", "radio", "radio"]);
   act(() => options[0].props.onChange({ target: { checked: true } }));
-  assert.deepEqual(webToggles, [true]);
+  assert.deepEqual(changes, [{ webSearch: true, ragSetting: null }]);
   act(() => options[3].props.onChange());
-  assert.deepEqual(picked, ["papers"]);
+  assert.deepEqual(changes[1], { webSearch: false, ragSetting: "papers" });
   act(() => tree.update(h(SearchSelector, { ...props, webSearch: { ...props.webSearch, checked: true }, rag: { ...props.rag, selected: "papers" } })));
   assert.equal(button().props.children[0], "Web search + papers");
   act(() => tree.update(h(SearchSelector, { ...props, webSearch: undefined, rag: { ...props.rag, selected: "notes" } })));
   assert.equal(button().props.children[0], "RAG: notes");
   assert.deepEqual(tree.root.findAllByType("input").map(input => input.props.type), ["radio", "radio", "radio"]);
+  act(() => tree.unmount());
+});
+
+test("a host that cannot combine web search and RAG is never handed both", () => {
+  // Gemini's provider takes one or the other; the selector reports the whole
+  // selection so the host cannot be left holding a pair it will not honour.
+  const changes = [];
+  const props = searchProps({
+    webSearch: { checked: true, disabled: false, combinable: false },
+    rag: { settings: ["notes", "papers"], selected: null, disabled: false },
+    onChange: selection => changes.push(selection),
+  });
+  const tree = render(h(SearchSelector, props));
+  act(() => buttons(tree)[0].props.onClick());
+  const options = tree.root.findAllByType("input");
+
+  act(() => options[2].props.onChange());
+  assert.deepEqual(changes[0], { webSearch: false, ragSetting: "notes" });
+
+  act(() => tree.update(h(SearchSelector, { ...props, webSearch: { ...props.webSearch, checked: false }, rag: { ...props.rag, selected: "notes" } })));
+  act(() => tree.root.findAllByType("input")[0].props.onChange({ target: { checked: true } }));
+  assert.deepEqual(changes[1], { webSearch: true, ragSetting: null });
+
+  // Turning RAG off does not switch web search back on by itself.
+  act(() => tree.root.findAllByType("input")[1].props.onChange());
+  assert.deepEqual(changes[2], { webSearch: false, ragSetting: null });
+  act(() => tree.unmount());
+});
+
+test("a host that can combine web search and RAG keeps both", () => {
+  const changes = [];
+  const props = searchProps({
+    webSearch: { checked: true, disabled: false, combinable: true },
+    rag: { settings: ["notes"], selected: null, disabled: false },
+    onChange: selection => changes.push(selection),
+  });
+  const tree = render(h(SearchSelector, props));
+  act(() => buttons(tree)[0].props.onClick());
+  act(() => tree.root.findAllByType("input")[2].props.onChange());
+  assert.deepEqual(changes[0], { webSearch: true, ragSetting: "notes" });
   act(() => tree.unmount());
 });
 

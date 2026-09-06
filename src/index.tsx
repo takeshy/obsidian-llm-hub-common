@@ -9,6 +9,7 @@ export interface ChatMessage {
 }
 export type { StyleProps } from "./types.js";
 import type { StyleProps } from "./types.js";
+import type { SearchSelection } from "./core/events.js";
 
 /** The host owns lifecycle, persistence and provider execution. */
 export function ChatLayout({ classPrefix: p, modifiers, children }: StyleProps & { modifiers?: readonly (string | false | undefined)[]; children: ReactNode }) {
@@ -217,14 +218,23 @@ export interface SearchSelectorProps extends StyleProps {
   /** Obsidian popout windows own their document, so hosts pass `activeDocument`. */
   ownerDocument: Document;
   labels: { webSearch: string; rag: (name: string) => string; ragNone: string; none: string };
-  /** Left out by hosts without a web search provider; RAG-only plugins pass nothing. */
-  webSearch?: { checked: boolean; disabled: boolean; onChange: (checked: boolean) => void };
-  rag: { settings: readonly string[]; selected: string | null; disabled: boolean; onSelect: (name: string | null) => void };
+  /**
+   * Left out by hosts without a web search provider; RAG-only plugins pass nothing.
+   *
+   * `combinable` says whether this host can search the web and a RAG index in
+   * the same turn. Where it cannot, picking one turns the other off here — the
+   * host is told the whole selection, so it cannot end up holding a pair its
+   * provider will not honour.
+   */
+  webSearch?: { checked: boolean; disabled: boolean; combinable: boolean };
+  rag: { settings: readonly string[]; selected: string | null; disabled: boolean };
+  /** The complete selection after the change, not just the part that moved. */
+  onChange: (selection: SearchSelection) => void;
   disabled?: boolean;
 }
 
 /** One control for web search and RAG selection; RAG is off when nothing is selected. */
-export function SearchSelector({ classPrefix: p, ownerDocument, labels, webSearch, rag, disabled }: SearchSelectorProps) {
+export function SearchSelector({ classPrefix: p, ownerDocument, labels, webSearch, rag, onChange, disabled }: SearchSelectorProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -253,6 +263,10 @@ export function SearchSelector({ classPrefix: p, ownerDocument, labels, webSearc
     : webSearch?.checked ? labels.webSearch
     : rag.selected ? labels.rag(rag.selected)
     : labels.none;
+  const selectRag = (name: string | null) => onChange({
+    webSearch: (webSearch?.checked ?? false) && (name === null || webSearch!.combinable),
+    ragSetting: name,
+  });
   const option = (key: string, label: string, input: ReactNode, muted: boolean) =>
     <label key={key} className={[`${p}-search-selector-option`, muted && "disabled"].filter(Boolean).join(" ")}>{input}<span>{label}</span></label>;
 
@@ -264,13 +278,16 @@ export function SearchSelector({ classPrefix: p, ownerDocument, labels, webSearc
     {open && <div className={`${p}-search-selector-menu`} role="menu" ref={menuRef}>
       {webSearch && <>
         {option("web", labels.webSearch, <input type="checkbox" checked={webSearch.checked} disabled={webSearch.disabled}
-          onChange={event => webSearch.onChange(event.target.checked)} />, webSearch.disabled)}
+          onChange={event => onChange({
+            webSearch: event.target.checked,
+            ragSetting: event.target.checked && !webSearch.combinable ? null : rag.selected,
+          })} />, webSearch.disabled)}
         <div className={`${p}-search-selector-separator`} />
       </>}
       {option("rag-none", labels.ragNone, <input type="radio" name={`${p}-rag-setting`} checked={rag.selected === null}
-        disabled={rag.disabled} onChange={() => rag.onSelect(null)} />, rag.disabled)}
+        disabled={rag.disabled} onChange={() => selectRag(null)} />, rag.disabled)}
       {rag.settings.map(name => option(`rag-${name}`, labels.rag(name), <input type="radio" name={`${p}-rag-setting`}
-        checked={rag.selected === name} disabled={rag.disabled} onChange={() => rag.onSelect(name)} />, rag.disabled))}
+        checked={rag.selected === name} disabled={rag.disabled} onChange={() => selectRag(name)} />, rag.disabled))}
     </div>}
   </div>;
 }

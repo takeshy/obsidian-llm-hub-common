@@ -2,6 +2,7 @@ import { Notice, Setting, type App } from "obsidian";
 import { cls } from "../core/classPrefix.js";
 import { useSettingTextArea } from "./controls.js";
 import { normalizeVaultScopePath } from "../core/vaultScope.js";
+import { isSavedChatFileName } from "../chat/chatId.js";
 import { t } from "../i18n/index.js";
 import { ConfirmModal } from "../ui/ConfirmModal.js";
 import type { SettingsContext, SettingsPlugin } from "./context.js";
@@ -245,10 +246,7 @@ export async function deleteChatHistoryFiles(app: App, folder: string): Promise<
   if (!(await app.vault.adapter.exists(folder))) return;
 
   const listed = await app.vault.adapter.list(folder);
-  const chatFiles = listed.files.filter((path) => {
-    const name = path.split("/").pop() || "";
-    return name.startsWith("chat_") && (name.endsWith(".md") || name.endsWith(".md.encrypted"));
-  });
+  const chatFiles = listed.files.filter((path) => isSavedChatFileName(path.split("/").pop() || ""));
 
   let deletedCount = 0;
   for (const file of chatFiles) {
