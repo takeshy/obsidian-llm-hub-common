@@ -4,13 +4,15 @@
  * {a,b,c} (brace expansion), [abc] (character class), [a-z] (character range), [!abc] (negated class)
  */
 export function matchFilePattern(pattern: string, filePath: string): boolean {
-  // Handle brace expansion first: {a,b,c} -> (a|b|c)
-  // This needs to be done before regex escaping
+  // Handle brace expansion first: {a,b,c} -> (a|b|c). The group characters are
+  // written as placeholders, because the escaping below would otherwise turn
+  // the "(", "|" and ")" we just produced into literals and the alternation
+  // would match nothing.
   const expandBraces = (p: string): string => {
     const braceRegex = /\{([^{}]+)\}/g;
     return p.replace(braceRegex, (_, content: string) => {
       const alternatives = content.split(",").map((alt: string) => alt.trim());
-      return `(${alternatives.join("|")})`;
+      return `<<<ALTOPEN>>>${alternatives.join("<<<ALTSEP>>>")}<<<ALTCLOSE>>>`;
     });
   };
 
@@ -54,6 +56,11 @@ export function matchFilePattern(pattern: string, filePath: string): boolean {
   regexPattern = regexPattern.replace(/\?/g, "[^/]");
   // Convert ** placeholder to match anything including /
   regexPattern = regexPattern.replace(/<<<DOUBLESTAR>>>/g, ".*");
+  // Restore the alternation the brace expansion asked for, now that escaping is done.
+  regexPattern = regexPattern
+    .replace(/<<<ALTOPEN>>>/g, "(")
+    .replace(/<<<ALTSEP>>>/g, "|")
+    .replace(/<<<ALTCLOSE>>>/g, ")");
 
   // Ensure the pattern matches the whole path
   try {
