@@ -8,3 +8,4 @@ export * from "./agentPlugins.js";
 export * from "./pathAccess.js";
 export * from "./okfLoader.js";
 export * from "./okfDocumentTool.js";
+export * from "./skillTools.js";

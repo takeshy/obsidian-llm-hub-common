@@ -23,6 +23,20 @@ export interface ToolDefinition {
   };
 }
 
+/**
+ * A tool as declared to an OpenAI-compatible endpoint (Ollama, LM Studio, ...),
+ * which nests the same schema under `function`.
+ */
+export interface OpenAiToolDefinition {
+  type: "function";
+  function: ToolDefinition;
+}
+
+/** Wrap a shared tool definition in the OpenAI wire shape. */
+export function toOpenAiTool(tool: ToolDefinition): OpenAiToolDefinition {
+  return { type: "function", function: tool };
+}
+
 export interface ToolPropertyDefinition {
   type: string;
   description: string;

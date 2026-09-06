@@ -13,6 +13,7 @@ export * from "./vaultScope.js";
 export * from "./sandbox.js";
 export * from "./globMatcher.js";
 export * from "./provider.js";
+export * from "./vaultTools.js";
 export * from "./mcpTypes.js";
 export * from "./tracingHooks.js";
 export * from "./webUrl.js";
