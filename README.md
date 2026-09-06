@@ -39,21 +39,36 @@ npm test
 npm pack
 ```
 
-`npm pack` builds and tests first. No registry publication is needed for local
-integration. Each plugin currently pins the same tarball under `vendor/`, allowing
-its CI and standalone checkout to use `npm ci` without a sibling source checkout.
-For subsequent changes, bump this package's version and synchronize consumers:
+Each plugin pins a full commit SHA from this GitHub repository:
+
+```json
+"obsidian-llm-hub-chat-ui": "git+https://github.com/takeshy/obsidian-llm-hub-chat-ui.git#<full-commit-sha>"
+```
+
+On installation, npm runs `prepare` to compile the Git checkout into `dist/`.
+The generated ESM and declarations are included in the installed package; they
+are not tracked in Git. Registry publication and checked-in tarballs are not
+needed. Consumers can run `npm ci` from a standalone checkout. Lifecycle scripts
+must be enabled for Git dependency preparation.
+
+For subsequent updates, build and test the library, commit and push it to `main`,
+then synchronize the consumers from that clean commit:
 
 ```sh
-npm version patch --no-git-tag-version
+npm run build
+npm test
+git add <changed-files>
+git commit -m "Describe the library change"
+git push origin main
 npm run sync-plugins -- ../obsidian-gemini-helper ../obsidian-llm-hub ../obsidian-local-llm-hub
 ```
 
-The sync script builds, tests, packs, copies the same artifact to all specified
-consumers and updates their npm dependency/lockfiles. Run each consumer's build,
-lint and tests afterward. Commit the tarballs together with their lockfiles.
-After publishing to npm, consumers can replace the `file:vendor/...` dependency
-with the published version; component code needs no change.
+The sync script verifies that the clean local HEAD matches GitHub's `main`, then
+updates each consumer's dependency and lockfile to that exact SHA. It runs npm
+with lifecycle scripts enabled so `prepare` generates the package's build output.
+Run each consumer's build, lint and relevant tests afterward, then commit its
+`package.json`, `package-lock.json` and any regenerated styles. A version bump is
+optional for Git-only updates because the full SHA identifies the exact source.
 
 ## Styles
 

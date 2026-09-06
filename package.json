@@ -26,7 +26,8 @@
     "build": "tsc -p tsconfig.json",
     "test": "node --test test/*.test.mjs",
     "prepack": "npm run build && npm test",
-    "sync-plugins": "node scripts/sync-plugins.mjs"
+    "sync-plugins": "node scripts/sync-plugins.mjs",
+    "prepare": "npm run build"
   },
   "peerDependencies": {
     "lucide-react": "^0.503.0",
