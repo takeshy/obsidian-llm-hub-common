@@ -12,14 +12,17 @@ export interface WorkflowHostContext {}
 /** The same escape hatch for per-step results, such as a host's MCP app payload. */
 export interface WorkflowHostStep {}
 
-/** And for callbacks only some hosts can serve, such as showing an MCP app. */
+/**
+ * Callbacks whose shape is the host's own, such as its edit-confirmation dialog:
+ *
+ *   declare module "obsidian-llm-hub-common/workflow" {
+ *     interface WorkflowHostCallbacks {
+ *       promptForConfirmation: (path: string, content: string, mode: string) => Promise<EditConfirmationResult>;
+ *     }
+ *   }
+ */
 export interface WorkflowHostCallbacks {}
 
-/** What the edit confirmation dialog reports back to a workflow. */
-export interface EditConfirmationResult {
-  action: "save" | "cancel" | "edit";
-  content?: string;
-}
 
 // Workflow node types
 export type WorkflowNodeType =
@@ -248,12 +251,6 @@ export interface PromptCallbacks extends WorkflowHostCallbacks {
     defaultValue?: string,
     multiline?: boolean
   ) => Promise<string | null>;
-  promptForConfirmation: (
-    filePath: string,
-    content: string,
-    mode: string,
-    originalContent?: string
-  ) => Promise<EditConfirmationResult>;
   promptForDialog?: (
     title: string,
     message: string,
