@@ -1046,6 +1046,34 @@
   border-radius: 3px;
 }
 
+/* Skills used indicator (in message bubble) */
+.chat-ui-skills-used {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.75em;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+.chat-ui-skills-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Clickable only when not static (i.e., vault skills) */
+.chat-ui-skill-chip:not(.is-static):hover {
+  background: var(--background-modifier-active);
+  color: var(--text-normal);
+  cursor: pointer;
+}
+
+.chat-ui-skill-chip.is-static {
+  cursor: default;
+}
+
 /* Tools Used indicator (in message bubble) */
 .chat-ui-tools-used {
   margin-bottom: 4px;

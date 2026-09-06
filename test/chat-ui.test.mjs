@@ -6,7 +6,7 @@ import { join } from "node:path";
 import React, { useState, createRef } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit } from "../dist/index.js";
+import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection } from "../dist/index.js";
 const h = React.createElement;
 const render = element => { let tree; act(() => { tree = TestRenderer.create(element); }); return tree; };
 const buttons = tree => tree.root.findAllByType("button");
@@ -310,5 +310,41 @@ test("history limit offers every count up to the cap and reports numbers, not st
   act(() => select.props.onChange({ target: { value: "7" } }));
   assert.deepEqual(chosen, [7]);
   assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-vault-tool-separator").length, 1);
+  act(() => tree.unmount());
+});
+
+test("message indicators open their sources and mark bundled skills as static", () => {
+  const opened = [];
+  const badges = render(h(SourceBadges, { classPrefix: "llm-hub", icon: "📚", label: "Semantic search",
+    sources: [{ label: "📄 note", title: "notes/note.md", onOpen: () => opened.push("note") }] }));
+  const source = badges.root.findByProps({ className: "llm-hub-rag-source llm-hub-tool-clickable" });
+  act(() => source.props.onClick());
+  assert.deepEqual(opened, ["note"]);
+  act(() => badges.update(h(SourceBadges, { classPrefix: "llm-hub", icon: "🎨", label: "Image generated" })));
+  assert.equal(badges.root.findAll(node => node.props.className === "llm-hub-rag-sources").length, 0);
+  act(() => badges.unmount());
+
+  const tools = render(h(ToolsUsed, { classPrefix: "llm-hub", errorHint: "a workflow failed" }, h("span", null, "read_note")));
+  assert.equal(tools.root.findAll(node => node.props.className === "llm-hub-workflow-error-hint").length, 1);
+  act(() => tools.update(h(ToolsUsed, { classPrefix: "llm-hub" }, h("span", null, "read_note"))));
+  assert.equal(tools.root.findAll(node => node.props.className === "llm-hub-workflow-error-hint").length, 0);
+  act(() => tools.unmount());
+
+  const skills = render(h(SkillsUsed, { classPrefix: "llm-hub", label: "Skills", skills: [
+    { name: "writing", title: "open writing", open: { onOpen: () => opened.push("writing") } },
+    { name: "search", title: "search" },
+  ] }));
+  const chips = skills.root.findAll(node => node.props.className?.startsWith("llm-hub-skill-chip"));
+  assert.deepEqual(chips.map(chip => chip.props.className), ["llm-hub-skill-chip llm-hub-tool-clickable", "llm-hub-skill-chip is-static"]);
+  act(() => chips[0].props.onClick());
+  assert.deepEqual(opened, ["note", "writing"]);
+  assert.equal(chips[1].props.onClick, undefined);
+  act(() => skills.unmount());
+});
+
+test("vault tool section titles the group it introduces", () => {
+  const tree = render(h(VaultToolSection, { classPrefix: "llm-hub", label: "MCP servers" }, h("label", null, "Notes")));
+  assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-vault-tool-divider").length, 1);
+  assert.equal(tree.root.findByProps({ className: "llm-hub-vault-tool-section-label" }).props.children, "MCP servers");
   act(() => tree.unmount());
 });

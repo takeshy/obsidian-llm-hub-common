@@ -286,6 +286,15 @@ export function HistoryLimit({ classPrefix: p, label, value, onChange, max = 99 
   </>;
 }
 
+/** A labelled group inside the vault tool menu, such as the MCP server list. */
+export function VaultToolSection({ classPrefix: p, label, children }: StyleProps & { label: string; children: ReactNode }) {
+  return <>
+    <div className={`${p}-vault-tool-divider`} />
+    <div className={`${p}-vault-tool-section-label`}>{label}</div>
+    {children}
+  </>;
+}
+
 /** `hint` and `toolsTitle` are required so every server says what it brings. */
 export interface McpServerChoice { id: string; name: string; enabled: boolean; hint: string; toolsTitle: string }
 
@@ -322,6 +331,40 @@ export function VaultToolMenu<T extends string>({ classPrefix: p, options, onSel
       <div className={`${p}-vault-tool-item-desc`}>{option.description}</div>
     </div>)}
     {children}
+  </div>;
+}
+
+/** A source the reader can open: a note, a web result, a skill file. */
+export interface SourceLink { label: string; title: string; onOpen: () => void }
+
+/** "Used X" line above a message, with the sources it drew on. */
+export function SourceBadges({ classPrefix: p, icon, label, sources }: StyleProps & { icon: string; label: string; sources?: readonly SourceLink[] }) {
+  return <div className={`${p}-rag-used`}>
+    <span className={`${p}-rag-indicator`}>{icon} {label}</span>
+    {sources && sources.length > 0 && <div className={`${p}-rag-sources`}>
+      {sources.map((source, index) => <span key={index} className={`${p}-rag-source ${p}-tool-clickable`} onClick={source.onOpen} title={source.title}>{source.label}</span>)}
+    </div>}
+  </div>;
+}
+
+/** The tool indicators under a message, plus the hint shown when one of them failed. */
+export function ToolsUsed({ classPrefix: p, errorHint, children }: StyleProps & { errorHint?: string; children: ReactNode }) {
+  return <>
+    <div className={`${p}-tools-used`}>{children}</div>
+    {errorHint && <div className={`${p}-workflow-error-hint`}>{errorHint}</div>}
+  </>;
+}
+
+/** `title` is required so a chip always says what it is, clickable or not. */
+export interface SkillChip { name: string; title: string; open?: { onOpen: () => void } }
+
+/** The skills that shaped a message; vault skills open their SKILL.md, bundled ones stay static. */
+export function SkillsUsed({ classPrefix: p, label, skills }: StyleProps & { label: string; skills: readonly SkillChip[] }) {
+  return <div className={`${p}-skills-used`}>
+    <span className={`${p}-skills-indicator`}>✨ {label}:</span>
+    {skills.map((skill, index) => <span key={index}
+      className={`${p}-skill-chip${skill.open ? ` ${p}-tool-clickable` : " is-static"}`}
+      onClick={skill.open?.onOpen} title={skill.title}>{skill.name}</span>)}
   </div>;
 }
 
