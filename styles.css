@@ -1920,3 +1920,357 @@
 .chat-ui-execution-history-run-status.status-error {
   color: var(--color-red);
 }
+
+/* Workflow history and event trigger modals */
+
+.chat-ui-workflow-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+/* History Modal Styles */
+.chat-ui-workflow-history-modal {
+  padding: 20px;
+  min-width: 700px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-ui-workflow-history-container {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-ui-workflow-history-list-panel {
+  width: 250px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-ui-workflow-history-list-panel h3 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.chat-ui-workflow-history-list-header {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chat-ui-workflow-history-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.chat-ui-workflow-history-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chat-ui-workflow-history-select-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.chat-ui-workflow-history-select-all:hover {
+  color: var(--text-normal);
+}
+
+.chat-ui-workflow-history-select-all input {
+  margin: 0;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+.chat-ui-workflow-history-delete-selected-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  background-color: var(--background-modifier-error);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chat-ui-workflow-history-delete-selected-btn:hover {
+  filter: brightness(1.1);
+}
+
+.chat-ui-workflow-history-checkbox {
+  margin: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.chat-ui-workflow-history-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chat-ui-workflow-history-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-ui-workflow-history-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.chat-ui-workflow-history-list {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+}
+
+.chat-ui-workflow-history-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 24px;
+}
+
+.chat-ui-workflow-history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+}
+
+.chat-ui-workflow-history-item:hover {
+  background-color: var(--background-secondary);
+}
+
+.chat-ui-workflow-history-item.is-selected {
+  background-color: var(--background-secondary-alt);
+  border-left: 3px solid var(--interactive-accent);
+}
+
+.chat-ui-workflow-history-item:last-child {
+  border-bottom: none;
+}
+
+.chat-ui-workflow-history-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.chat-ui-workflow-history-time {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.chat-ui-workflow-history-duration {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.chat-ui-workflow-history-status-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* History Detail Panel */
+.chat-ui-workflow-history-detail-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-ui-workflow-history-detail-panel h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.chat-ui-workflow-history-detail {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 12px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.chat-ui-workflow-detail-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chat-ui-workflow-detail-row {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.chat-ui-workflow-detail-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-ui-workflow-detail-step {
+  background-color: var(--background-secondary);
+  border-radius: 6px;
+  padding: 10px;
+  border-left: 3px solid var(--background-modifier-border);
+}
+
+.chat-ui-workflow-detail-step.workflow-step-success {
+  border-left-color: var(--color-green);
+}
+
+.chat-ui-workflow-detail-step.chat-ui-workflow-step-error {
+  border-left-color: var(--color-red);
+}
+
+.chat-ui-workflow-step-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.chat-ui-workflow-step-type {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.chat-ui-workflow-step-status {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.chat-ui-workflow-step-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.chat-ui-workflow-step-error {
+  margin-top: 8px;
+  color: var(--text-error);
+  font-size: 12px;
+}
+
+.chat-ui-workflow-detail-actions {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  display: flex;
+  gap: 8px;
+}
+
+.chat-ui-workflow-detail-delete-btn {
+  color: var(--text-error);
+}
+
+/* Mobile Styles for Workflow History Modal */
+.is-mobile .chat-ui-workflow-history-modal {
+  min-width: unset;
+  padding: 12px;
+}
+
+.is-mobile .chat-ui-workflow-history-container {
+  flex-direction: column;
+}
+
+.is-mobile .chat-ui-workflow-history-list-panel {
+  width: 100%;
+  max-height: 40vh;
+}
+
+.is-mobile .chat-ui-workflow-history-detail-panel {
+  min-height: 200px;
+}
+
+.is-mobile .chat-ui-workflow-history-list-panel h3,
+.is-mobile .chat-ui-workflow-history-detail-panel h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.is-mobile .chat-ui-workflow-history-item {
+  padding: 8px 10px;
+}
+
+.is-mobile .chat-ui-workflow-history-time {
+  font-size: 11px;
+}
+
+.is-mobile .chat-ui-workflow-history-duration,
+.is-mobile .chat-ui-workflow-history-status-text {
+  font-size: 10px;
+}
+
+.is-mobile .chat-ui-workflow-detail-row {
+  font-size: 12px;
+}
+
+.is-mobile .chat-ui-workflow-detail-actions {
+  flex-wrap: wrap;
+}
+
+.chat-ui-modal-resizable .modal-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Drag handle for moving the modal */
+.chat-ui-modal-resizable .modal-drag-handle {
+  cursor: move;
+  padding: 8px 12px;
+  margin: -12px -12px 12px -12px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+  user-select: none;
+}
+
+.chat-ui-modal-resizable .modal-drag-handle h2 {
+  margin: 0;
+}
+
+/* Workflow history detail states */
+
+.chat-ui-workflow-detail-step.chat-ui-workflow-step-skipped {
+  border-left-color: var(--color-yellow);
+}

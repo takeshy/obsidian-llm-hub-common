@@ -7,3 +7,5 @@ export * from "./editHistory.js";
 export * from "./editHistoryStore.js";
 export * from "./diffUtils.js";
 export * from "./classPrefix.js";
+export * from "./cryptoCache.js";
+export * from "./events.js";

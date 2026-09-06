@@ -5,3 +5,5 @@ export * from "./workflowToMermaid.js";
 export * from "./multiBlockMigration.js";
 export * from "./codeblockSync.js";
 export * from "./nodeLabels.js";
+export * from "./history.js";
+export * from "./triggers.js";
