@@ -152,7 +152,8 @@ export function reverseApplyDiff(content: string, diffStr: string, options?: { s
   return result.content;
 }
 
-export type DiffWithOrigin = { diff: string; origin: "local" | "remote" };
+/** `origin` marks a diff that came from a remote push; entries without it are local edits. */
+export type DiffWithOrigin = { diff: string; origin?: "local" | "remote" };
 
 /**
  * Reconstruct file content at a specific point in merged history.
