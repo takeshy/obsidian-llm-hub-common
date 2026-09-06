@@ -12,3 +12,4 @@ export * from "./events.js";
 export * from "./vaultScope.js";
 export * from "./sandbox.js";
 export * from "./globMatcher.js";
+export * from "./provider.js";

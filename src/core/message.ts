@@ -84,6 +84,13 @@ export interface WebSearchSource {
   url: string;
 }
 
+/** A web source tied to the span of the response it supports. */
+export interface WebSearchCitation extends WebSearchSource {
+  /** Character offsets in the streamed plain-text response. */
+  startIndex: number;
+  endIndex: number;
+}
+
 export interface GeneratedImage {
   mimeType: string;
   data: string;  // Base64 encoded image data
