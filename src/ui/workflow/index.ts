@@ -15,6 +15,7 @@ export * from "../preferences.js";
 export * from "./WorkflowGenerationModal.js";
 export * from "./AIWorkflowModal.js";
 export * from "../ConfirmModal.js";
+export * from "../SlashCommandModal.js";
 export * from "../EditHistoryModal.js";
 export * from "../HTMLPreviewModal.js";
 export * from "./McpAppModal.js";
