@@ -16,6 +16,7 @@ export * from "./WorkflowGenerationModal.js";
 export * from "./AIWorkflowModal.js";
 export * from "../ConfirmModal.js";
 export * from "../EditHistoryModal.js";
+export * from "../HTMLPreviewModal.js";
 export * from "./DialogPromptModal.js";
 export * from "./WorkflowSelectorModal.js";
 export { default as WorkflowPanel } from "./WorkflowPanel.js";
