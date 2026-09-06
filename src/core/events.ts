@@ -10,6 +10,7 @@ export interface EventMap {
   "workspace-state-loaded": [state: unknown];
   "rag-setting-changed": [name: string | null];
   "search-selection-changed": [selection: SearchSelection];
+  "web-search-changed": [enabled: boolean];
   "chat-activated": [];
   "file-restored": [path: string];
   "execution-history-saved": [workflowPath: string];
