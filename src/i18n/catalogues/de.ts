@@ -1125,4 +1125,5 @@ export const de = {
   "workflow.preview.regenerate": "Neu generieren",
   "workflow.running": "Wird ausgeführt...",
   "workflowSelector.selectWorkflow": "Workflow auswählen",
+  "message.ragCitationOpen": "Zum Öffnen an dieser Stelle klicken",
 };

@@ -1125,4 +1125,5 @@ export const zh = {
   "workflow.preview.regenerate": "重新生成",
   "workflow.running": "运行中...",
   "workflowSelector.selectWorkflow": "选择工作流",
+  "message.ragCitationOpen": "点击在该位置打开",
 };

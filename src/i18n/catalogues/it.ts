@@ -1125,4 +1125,5 @@ export const it = {
   "workflow.preview.regenerate": "Rigenera",
   "workflow.running": "Esecuzione...",
   "workflowSelector.selectWorkflow": "Seleziona workflow",
+  "message.ragCitationOpen": "Fai clic per aprire in quel punto",
 };

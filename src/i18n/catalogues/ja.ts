@@ -1235,4 +1235,5 @@ export const ja = {
   "workflow.preview.regenerate": "再生成",
   "workflow.running": "実行中...",
   "workflowSelector.selectWorkflow": "ワークフローを選択",
+  "message.ragCitationOpen": "クリックして該当位置を開く",
 };

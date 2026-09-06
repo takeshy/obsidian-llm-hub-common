@@ -1235,4 +1235,5 @@ export const en = {
   "workflow.preview.regenerate": "Regenerate",
   "workflow.running": "Running...",
   "workflowSelector.selectWorkflow": "Select workflow",
+  "message.ragCitationOpen": "Click to open at location",
 };

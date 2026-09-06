@@ -1125,4 +1125,5 @@ export const ko = {
   "workflow.preview.regenerate": "다시 생성",
   "workflow.running": "실행 중...",
   "workflowSelector.selectWorkflow": "워크플로우 선택",
+  "message.ragCitationOpen": "클릭하여 해당 위치에서 열기",
 };

@@ -15,3 +15,4 @@ export * from "./globMatcher.js";
 export * from "./provider.js";
 export * from "./mcpTypes.js";
 export * from "./tracingHooks.js";
+export * from "./webUrl.js";
