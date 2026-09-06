@@ -3,10 +3,13 @@ export type McpTransport = "http" | "stdio";
 export type McpFraming = "content-length" | "newline";
 
 export interface McpServerConfig {
+  /** Some hosts key servers by id, others by name; both are accepted. */
+  id?: string;
   name: string;           // Server display name
-  transport: McpTransport; // "http" (Streamable HTTP) or "stdio" (local process)
+  /** Optional: stdio-only hosts leave it out. */
+  transport?: McpTransport; // "http" (Streamable HTTP) or "stdio" (local process)
   // HTTP transport fields
-  url: string;            // Streamable HTTP endpoint URL (used for HTTP transport)
+  url?: string;            // Streamable HTTP endpoint URL (used for HTTP transport)
   headers?: Record<string, string>;  // Optional headers for authentication (HTTP only)
   // Stdio transport fields (desktop only)
   command?: string;        // Executable command (e.g., "npx", "uvx", "/path/to/server")
