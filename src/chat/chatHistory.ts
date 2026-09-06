@@ -191,6 +191,11 @@ export function parseMarkdownToMessages(content: string): { messages: Message[];
 						if (meta.modelDisplayName) message.modelDisplayName = meta.modelDisplayName as string;
 						if (meta.llmContent) message.llmContent = meta.llmContent as string;
 						if (meta.toolCalls) message.toolCalls = meta.toolCalls as Message["toolCalls"];
+						// Chats saved before tool calls were stored in full kept only their names.
+						else if (Array.isArray(meta.toolCallNames)) {
+							message.toolCalls = (meta.toolCallNames as string[]).map(name => ({ id: "", name, args: {} }));
+						}
+						if (meta.ragCitations) message.ragCitations = meta.ragCitations as Message["ragCitations"];
 						if (meta.toolResults) message.toolResults = meta.toolResults as Message["toolResults"];
 						if (meta.ragUsed) message.ragUsed = meta.ragUsed as boolean;
 						if (meta.ragSources) message.ragSources = meta.ragSources as string[];
