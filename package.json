@@ -47,6 +47,11 @@
       "types": "./skills.d.ts",
       "import": "./dist/skills/index.js",
       "default": "./dist/skills/index.js"
+    },
+    "./plugin": {
+      "types": "./plugin.d.ts",
+      "import": "./dist/plugin/index.js",
+      "default": "./dist/plugin/index.js"
     }
   },
   "files": [
@@ -62,7 +67,8 @@
     "i18n.d.ts",
     "workflow.d.ts",
     "modals.d.ts",
-    "skills.d.ts"
+    "skills.d.ts",
+    "plugin.d.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -76,9 +82,13 @@
     "lucide-react": "^0.503.0",
     "obsidian": "^1.13.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.38.0"
   },
   "devDependencies": {
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.38.6",
     "@types/diff": "^7.0.2",
     "@types/node": "^20.19.43",
     "@types/react": "^18.3.12",
@@ -93,6 +103,12 @@
   },
   "peerDependenciesMeta": {
     "obsidian": {
+      "optional": true
+    },
+    "@codemirror/state": {
+      "optional": true
+    },
+    "@codemirror/view": {
       "optional": true
     }
   },

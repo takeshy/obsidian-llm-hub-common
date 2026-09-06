@@ -11,3 +11,4 @@ export * from "./cryptoCache.js";
 export * from "./events.js";
 export * from "./vaultScope.js";
 export * from "./sandbox.js";
+export * from "./globMatcher.js";
