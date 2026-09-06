@@ -98,7 +98,8 @@ export function parseAgentPluginMcp<T extends McpServerConfig = McpServerConfig>
   for (const [serverName, item] of Object.entries(raw.mcpServers)) {
     const skip = (reason: string) => warnings.push(`MCP server ${serverName} was skipped: ${reason}`);
     if (!record(item) || typeof item.type !== "string") { skip("invalid entry"); continue; }
-    const common = { name: stableName(pluginName, serverName), enabled: false, toolHints: [], agentPlugin: { pluginName, serverName } };
+    // Hosts that key servers by id expect this shape; the others ignore the field.
+    const common = { id: `agent-plugin:${stableName(pluginName, serverName)}`, name: stableName(pluginName, serverName), enabled: false, toolHints: [], agentPlugin: { pluginName, serverName } };
     if (item.type === "streamable-http") {
       try {
         if (typeof item.url !== "string") throw new Error(); const url = new URL(item.url); const loopback = url.hostname === "localhost" || url.hostname === "[::1]" || /^127(?:\.\d{1,3}){3}$/.test(url.hostname);
