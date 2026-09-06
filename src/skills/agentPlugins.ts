@@ -24,7 +24,20 @@ const record = (value: unknown): value is Record<string, unknown> => !!value && 
 
 export interface AgentPluginManifest { $schema: string; name: string; version?: string; description?: string }
 export interface AgentPluginSkill { name: string; description: string; path: string; content: string; pluginName: string }
-export interface AgentPluginPreview { manifest: AgentPluginManifest; repo: string; version: string; sourceType: "release" | "branch"; sourceRef: string; commitSha: string; skills: AgentPluginSkill[]; mcpServers: McpServerConfig[]; warnings: string[]; files: Record<string, ArrayBuffer>; executables: string[] }
+export interface AgentPluginPreview<T extends McpServerConfig = McpServerConfig> {
+  manifest: AgentPluginManifest;
+  repo: string;
+  version: string;
+  sourceType: "release" | "branch";
+  sourceRef: string;
+  commitSha: string;
+  skills: AgentPluginSkill[];
+  /** Servers declared by the plugin, in whatever record shape the host stores. */
+  mcpServers: T[];
+  warnings: string[];
+  files: Record<string, ArrayBuffer>;
+  executables: string[];
+}
 
 function safePath(path: string): boolean {
   return !!path && !path.startsWith("/") && !path.includes("\\") && path.split("/").every(part => !!part && part !== "." && part !== "..");
@@ -96,7 +109,7 @@ async function github<T>(url: string, optional = false): Promise<T | null> {
 }
 export function normalizeAgentPluginRepo(input: string): string | null { const match = input.trim().replace(/\.git$/, "").match(/^(?:https?:\/\/github\.com\/)?([A-Za-z0-9_-]+\/[A-Za-z0-9._-]+)\/?$/); return match?.[1] ?? null; }
 
-export async function previewAgentPlugin(input: string): Promise<AgentPluginPreview> {
+export async function previewAgentPlugin<T extends McpServerConfig = McpServerConfig>(input: string): Promise<AgentPluginPreview<T>> {
   const repo = normalizeAgentPluginRepo(input); if (!repo) throw new Error("Use owner/repository or a GitHub URL.");
   const [release, repository] = await Promise.all([github<{ tag_name?: string }>(`https://api.github.com/repos/${repo}/releases/latest`, true), github<{ default_branch?: string }>(`https://api.github.com/repos/${repo}`)]);
   const sourceType = release?.tag_name ? "release" as const : "branch" as const; const sourceRef = release?.tag_name || repository?.default_branch || "main";
@@ -109,7 +122,7 @@ export async function previewAgentPlugin(input: string): Promise<AgentPluginPrev
   if (pairs.reduce((total, [, bytes]) => total + bytes.byteLength, 0) > 50 * 1024 * 1024) throw new Error("Agent Plugin package exceeds 50 MiB.");
   const files = Object.fromEntries(pairs); const manifest = parseAgentPluginManifest(text(files["plugin.json"])); const warnings: string[] = []; const skills: AgentPluginSkill[] = [];
   for (const [path, bytes] of Object.entries(files)) if (/^skills\/[^/]+\/SKILL\.md$/.test(path)) try { skills.push(parseAgentPluginSkill(path, text(bytes), manifest.name)); } catch (e) { warnings.push(`${path} was skipped: ${String(e)}`); }
-  const mcpServers = files["mcp.json"] ? parseAgentPluginMcp(text(files["mcp.json"]), manifest.name, "${PLUGIN_ROOT}", "${PLUGIN_DATA}").servers : [];
+  const mcpServers = files["mcp.json"] ? parseAgentPluginMcp<T>(text(files["mcp.json"]), manifest.name, "${PLUGIN_ROOT}", "${PLUGIN_DATA}").servers : [];
   return { manifest, repo, version: manifest.version || sourceRef, sourceType, sourceRef, commitSha: commit.sha, skills, mcpServers, warnings, files, executables: entries.filter(v => v.mode === "100755").map(v => v.path) };
 }
 
