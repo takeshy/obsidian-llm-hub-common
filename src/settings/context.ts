@@ -8,8 +8,8 @@ export interface SettingsContext<TPlugin> {
   plugin: TPlugin;
   /** Redraws the settings tab after a change that alters what is shown. */
   display: () => void;
-  /** Mutable flag a long-running sync watches for cancellation. */
-  syncCancelRef: { value: boolean };
+  /** Mutable flag a long-running sync watches for cancellation, where the host runs one. */
+  syncCancelRef?: { value: boolean };
 }
 
 /** The plugin surface shared settings sections rely on. */
