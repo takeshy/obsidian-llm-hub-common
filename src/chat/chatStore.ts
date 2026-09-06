@@ -5,6 +5,7 @@ import { formatError } from "../core/error.js";
 import { t } from "../i18n/index.js";
 import type { Message } from "../core/message.js";
 import type { ChatHistory, CliSessionInfo } from "./chatUtils.js";
+import { generateChatId } from "./chatId.js";
 import {
   messagesToMarkdown,
   messagesToCompactMarkdown,
@@ -28,10 +29,6 @@ export interface ChatStorageHost {
   getMaxSavedChatHistories(): number;
   /** Undefined writes plaintext Markdown. */
   getEncryption(): EncryptionConfig | undefined;
-}
-
-export function generateChatId(): string {
-  return `chat_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
 /**

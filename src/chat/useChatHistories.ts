@@ -8,7 +8,6 @@ import {
   chatTitleFromMessages,
   decryptChat,
   ensureFolderExists,
-  generateChatId,
   mergeChatHistory,
   pruneExpiredChats,
   readChatHistories,
@@ -17,6 +16,7 @@ import {
   writeChatNote,
   type ChatStorageHost,
 } from "./chatStore.js";
+import { generateChatId } from "./chatId.js";
 
 export type SaveNoteState = "idle" | "saving" | "saved";
 
