@@ -16,6 +16,7 @@ export * from "./provider.js";
 export * from "./thinkTagParser.js";
 export * from "./localLlmStream.js";
 export * from "./toolCallParser.js";
+export * from "./openAiMessages.js";
 export * from "./vaultTools.js";
 export * from "./searchSelection.js";
 export * from "./ragSettingStore.js";
