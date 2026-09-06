@@ -4,3 +4,4 @@ export * from "./RagSettingNameModal.js";
 export * from "./encryptionSettings.js";
 export * from "./externalSkillSettings.js";
 export * from "./editHistorySettings.js";
+export * from "./workspaceSettings.js";
