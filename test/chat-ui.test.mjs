@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import React, { useState, createRef } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions } from "../dist/index.js";
+import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons } from "../dist/index.js";
 const h = React.createElement;
 const render = element => { let tree; act(() => { tree = TestRenderer.create(element); }); return tree; };
 const buttons = tree => tree.root.findAllByType("button");
@@ -106,5 +109,150 @@ test("model search supports labels and providers; composing Enter never selects"
   act(() => input.props.onKeyDown({ key: "Enter", nativeEvent: { isComposing: false }, preventDefault() {} }));
   assert.deepEqual(selected, ["b"]);
   assert.equal(tree.root.findAllByType("input").length, 0);
+  act(() => tree.unmount());
+});
+
+test("vault tool menu renders a description per mode and ignores disabled modes", () => {
+  const chosen = [];
+  const options = [
+    { id: "all", label: "Vault: all", description: "Find, read and modify notes", selected: true },
+    { id: "readOnly", label: "Vault: read only", description: "Search and read without writing" },
+    { id: "none", label: "Vault: off", description: "Disable all built-in vault tools", disabled: true },
+  ];
+  const tree = render(h(VaultToolMenu, { classPrefix: "llm-hub", options, onSelect: id => chosen.push(id) },
+    h("div", { className: "llm-hub-vault-tool-separator" })));
+  const items = tree.root.findAll(node => node.props.className?.split(" ")[0] === "llm-hub-vault-tool-item");
+  assert.deepEqual(items.map(item => item.props.className), [
+    "llm-hub-vault-tool-item selected",
+    "llm-hub-vault-tool-item",
+    "llm-hub-vault-tool-item disabled",
+  ]);
+  const descriptions = tree.root.findAll(node => node.props.className === "llm-hub-vault-tool-item-desc");
+  assert.deepEqual(descriptions.map(desc => desc.props.children), options.map(option => option.description));
+  act(() => items[1].props.onClick());
+  assert.equal(items[2].props.onClick, undefined);
+  assert.deepEqual(chosen, ["readOnly"]);
+  assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-vault-tool-separator").length, 1);
+  act(() => tree.unmount());
+});
+
+test("shared markup check reports host copies of library UI and honors the allowlist", async () => {
+  const { findSharedMarkup, sharedStyledClasses } = await import("../scripts/check-markup.mjs");
+  const dir = await mkdtemp(join(tmpdir(), "chat-ui-markup-"));
+  try {
+    await writeFile(join(dir, "Host.tsx"), [
+      'const menu = <div className="llm-hub-vault-tool-menu" />;',
+      'const own = <div className="llm-hub-host-only-thing" />;',
+      'const btn = <button className="llm-hub-vault-tool-btn" />;',
+    ].join("\n"));
+    assert.ok((await sharedStyledClasses()).has("vault-tool-menu"));
+    const findings = await findSharedMarkup({ dir, classPrefix: "llm-hub" });
+    assert.deepEqual(findings.map(finding => [finding.className, finding.line]), [["llm-hub-vault-tool-menu", 1], ["llm-hub-vault-tool-btn", 3]]);
+    const allowed = await findSharedMarkup({ dir, classPrefix: "llm-hub", allow: ["vault-tool-menu", "vault-tool-btn"] });
+    assert.deepEqual(allowed, []);
+    assert.deepEqual(await findSharedMarkup({ dir, classPrefix: "gemini-helper" }), []);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test("chip selector shows active chips, links only openable ones and toggles from the chip", () => {
+  const toggled = [];
+  const opened = [];
+  const choices = [
+    { id: "skills/writing", name: "Writing", description: "Editing helpers", chipTitle: "Editing helpers", open: { title: "open Writing", onOpen: () => opened.push("Writing") } },
+    { id: "builtin/search", name: "Search", description: "Bundled skill", chipTitle: "Bundled skill", badge: "built-in" },
+  ];
+  const ownerDocument = { addEventListener() {}, removeEventListener() {}, body: {} };
+  const props = { classPrefix: "llm-hub", ownerDocument, icon: h("svg", null), addLabel: "add skill", choices, activeIds: ["skills/writing", "builtin/search"], onToggle: id => toggled.push(id) };
+  const tree = render(h(ChipSelector, props));
+  const chipNames = tree.root.findAll(node => node.props.className?.startsWith("llm-hub-skill-chip-name"));
+  assert.deepEqual(chipNames.map(chip => chip.props.className), ["llm-hub-skill-chip-name llm-hub-tool-clickable", "llm-hub-skill-chip-name is-static"]);
+  act(() => chipNames[0].props.onClick());
+  assert.deepEqual(opened, ["Writing"]);
+  assert.equal(chipNames[1].props.onClick, undefined);
+  act(() => buttons(tree)[0].props.onClick());
+  assert.deepEqual(toggled, ["skills/writing"]);
+  assert.equal(buttons(tree).at(-1).props.title, "add skill");
+  act(() => tree.update(h(ChipSelector, { ...props, activeIds: [] })));
+  assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-skill-chip").length, 0);
+  act(() => tree.update(h(ChipSelector, { ...props, choices: [] })));
+  assert.equal(tree.toJSON(), null);
+  act(() => tree.update(h(ChipSelector, props)));
+  assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-skill-icon").length, 1);
+  act(() => tree.unmount());
+});
+
+test("mcp controls list servers, disable in place and mute every toggle at once", () => {
+  const toggled = [], disabled = [];
+  const servers = [
+    { id: "notes", name: "Notes", enabled: true, hint: "3 tools", toolsTitle: "read, write, list" },
+    { id: "web", name: "Web", enabled: false, hint: "", toolsTitle: "" },
+  ];
+  const toggles = render(h(McpServerToggles, { classPrefix: "llm-hub", servers, onToggle: (id, enabled) => toggled.push([id, enabled]) }));
+  const inputs = toggles.root.findAllByType("input");
+  assert.deepEqual(inputs.map(input => input.props.checked), [true, false]);
+  assert.equal(toggles.root.findAll(node => node.props.className === "llm-hub-mcp-tool-hint").length, 1);
+  act(() => inputs[1].props.onChange({ target: { checked: true } }));
+  assert.deepEqual(toggled, [["web", true]]);
+  act(() => toggles.update(h(McpServerToggles, { classPrefix: "llm-hub", servers, onToggle() {}, disabled: true })));
+  const muted = toggles.root.findAll(node => node.props.className?.startsWith("llm-hub-mcp-server-item"));
+  assert.deepEqual(muted.map(item => item.props.className), ["llm-hub-mcp-server-item is-disabled", "llm-hub-mcp-server-item is-disabled"]);
+  assert.deepEqual(toggles.root.findAllByType("input").map(input => input.props.checked), [false, false]);
+  act(() => toggles.unmount());
+
+  const chips = render(h(EnabledMcpServers, { classPrefix: "llm-hub", servers: [{ id: "notes", name: "Notes", title: "Notes is enabled", removeTitle: "disable Notes" }], onDisable: id => disabled.push(id) }));
+  act(() => buttons(chips)[0].props.onClick());
+  assert.deepEqual(disabled, ["notes"]);
+  act(() => chips.update(h(EnabledMcpServers, { classPrefix: "llm-hub", servers: [], onDisable() {} })));
+  assert.equal(chips.toJSON(), null);
+  act(() => chips.unmount());
+});
+
+test("vault tool button marks a narrowed scope and holds the menu it opens", () => {
+  let opened = 0;
+  const props = { classPrefix: "llm-hub", title: "vault tools", active: false, containerRef: createRef(), onClick: () => opened++ };
+  const tree = render(h(VaultToolButton, props, h("div", { className: "llm-hub-vault-tool-menu" })));
+  assert.equal(buttons(tree)[0].props.className, "llm-hub-vault-tool-btn");
+  act(() => buttons(tree)[0].props.onClick());
+  assert.equal(opened, 1);
+  act(() => tree.update(h(VaultToolButton, { ...props, active: true, disabled: true })));
+  assert.equal(buttons(tree)[0].props.className, "llm-hub-vault-tool-btn active");
+  assert.equal(buttons(tree)[0].props.disabled, true);
+  assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-vault-tool-menu").length, 0);
+  act(() => tree.unmount());
+});
+
+test("attachment chips link only where the host provides a destination", () => {
+  const opened = [], removed = [];
+  const attachments = [
+    { type: "pdf", name: "spec.pdf" },
+    { type: "text", name: "note.md", open: { title: "view source", onOpen: () => opened.push("note.md") } },
+  ];
+  const tree = render(h(Attachments, { classPrefix: "llm-hub", attachments, pending: true, removeLabel: "remove", onRemove: index => removed.push(index) }));
+  const chips = tree.root.findAll(node => node.props.className?.startsWith("llm-hub-pending-attachment") && node.type === "span");
+  assert.deepEqual(chips.map(chip => chip.props.className), ["llm-hub-pending-attachment", "llm-hub-pending-attachment llm-hub-clickable"]);
+  assert.equal(chips[0].props.onClick, undefined);
+  act(() => chips[1].props.onClick());
+  assert.deepEqual(opened, ["note.md"]);
+  act(() => buttons(tree)[0].props.onClick({ stopPropagation() {} }));
+  assert.deepEqual(removed, [0]);
+  act(() => tree.unmount());
+});
+
+test("input buttons wire the paperclip to the hidden file input and keep host buttons beside it", () => {
+  let picked = 0;
+  const selected = [];
+  const inputRef = createRef();
+  const attach = { title: "attach", accept: ".md,.pdf", inputRef, onOpenPicker: () => picked++, onSelect: event => selected.push(event.target.files) };
+  const tree = render(h(InputButtons, { classPrefix: "llm-hub", attach }, h("button", { title: "vault tools" })));
+  const file = tree.root.findByType("input");
+  assert.equal(file.props.className, "llm-hub-hidden-input");
+  assert.equal(file.props.accept, ".md,.pdf");
+  act(() => file.props.onChange({ target: { files: ["note.md"] } }));
+  assert.deepEqual(selected, [["note.md"]]);
+  assert.deepEqual(buttons(tree).map(button => button.props.title), ["attach", "vault tools"]);
+  act(() => buttons(tree)[0].props.onClick());
+  assert.equal(picked, 1);
+  act(() => tree.update(h(InputButtons, { classPrefix: "llm-hub", attach: { ...attach, disabled: true } })));
+  assert.equal(buttons(tree)[0].props.disabled, true);
   act(() => tree.unmount());
 });

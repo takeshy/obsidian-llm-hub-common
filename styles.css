@@ -596,6 +596,15 @@
   color: var(--text-on-accent);
 }
 
+.chat-ui-vault-tool-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chat-ui-vault-tool-item.disabled:hover {
+  background: transparent;
+}
+
 .chat-ui-vault-tool-item-desc {
   margin-top: 2px;
   color: var(--text-muted);

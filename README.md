@@ -7,18 +7,30 @@ plugin discovery.
 
 ## Ownership
 
-The library owns message lists, welcome cards, bubble headers, thinking display,
-usage display, attachment chips, tool indicators, composer controls, autocomplete,
-model search, history lists and chat/input layouts. Its inputs are presentation
-data, callbacks and React slots. It does not import Obsidian, a plugin class, an
-LLM SDK, settings, translation modules or persistence code.
+Every piece of chat UI belongs here. If the shared stylesheet styles it, this library renders it:
+message lists, welcome cards, bubble headers, thinking display, usage display, attachment chips,
+tool indicators, composer controls, autocomplete, model search, history lists, chat/input layouts
+and the vault tool menu. Hosts keep only behavior: streaming and cancellation, tool execution, RAG
+retrieval, Markdown rendering, history storage/encryption, file handling, provider settings and
+their translations. Their `ChatView` remains the Obsidian integration point, and `Chat.tsx`,
+`InputArea.tsx` and `MessageBubble.tsx` are thin adapters that hold state and pass callbacks.
 
-Hosts own streaming and cancellation, tool execution, RAG citation resolution,
-Markdown rendering and cleanup, history storage/encryption, file handling,
-provider-specific settings, CLI terminals, and their translations. Their existing
-`ChatView` remains the Obsidian integration point. `Chat.tsx`, `InputArea.tsx` and
-`MessageBubble.tsx` are host controllers/adapters; provider extensions enter via
-slots instead of plugin-name branches in this library.
+Plugin features are unified rather than branched. When the same feature exists in more than one
+generation across the plugins, the newest one wins and the others adopt it; a shared component does
+not grow an option to preserve an older variant. Options exist only for capabilities a host cannot
+have at all.
+
+Two rules keep the three plugins from drifting apart again, and both are enforced, not documented:
+
+- **Missing text is a type error.** Presentation props that carry meaning are required, never
+  optional, and the library ships no default strings. `VaultToolOption.description` is the model:
+  a host cannot render a mode without explaining it. Hosts map their own i18n keys into these props,
+  so key-naming differences between plugins stay in the host adapter.
+- **Duplicated markup fails a test.** `obsidian-llm-hub-chat-ui/check-markup` scans a plugin's
+  sources for classes the shared stylesheet defines. Each plugin runs it in
+  `src/ui/components/sharedMarkup.test.ts` with an allowlist of UI it still renders itself. That
+  allowlist only shrinks: a second test fails once an entry no longer appears, and new entries are
+  never added to make a component pass.
 
 `react` and `lucide-react` are peer dependencies, so consumers bundle their own
 single React instance. The package ships compiled ESM and TypeScript declarations.

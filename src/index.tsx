@@ -1,5 +1,5 @@
-import { Fragment, type ReactNode, type Ref, type TextareaHTMLAttributes, type MouseEvent } from "react";
-import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown } from "lucide-react";
+import { Fragment, type ChangeEvent, type ReactNode, type Ref, type TextareaHTMLAttributes, type MouseEvent } from "react";
+import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, Database, Wrench, X, Paperclip } from "lucide-react";
 
 export interface ChatMessage {
   role: string;
@@ -7,7 +7,8 @@ export interface ChatMessage {
   timestamp: number;
   thinking?: string;
 }
-export interface StyleProps { classPrefix: string }
+export type { StyleProps } from "./types.js";
+import type { StyleProps } from "./types.js";
 
 /** The host owns lifecycle, persistence and provider execution. */
 export function ChatLayout({ className, children }: { className: string; children: ReactNode }) {
@@ -96,12 +97,13 @@ export function MessageContent({ classPrefix: p, contentRef, thinking, thinkingL
   </>;
 }
 
-export interface AttachmentDisplay { type: string; name: string }
+/** `open` is set for attachments that lead somewhere, such as a RAG source note. */
+export interface AttachmentDisplay { type: string; name: string; open?: { title: string; onOpen: () => void } }
 const attachmentIcons: Record<string, string> = { image: "🖼️", pdf: "📄", text: "📃", audio: "🎵", video: "🎬" };
-export function Attachments({ classPrefix: p, attachments, pending, removeLabel, onRemove, onOpen }: StyleProps & { attachments?: readonly AttachmentDisplay[]; pending?: boolean; removeLabel?: string; onRemove?: (index: number) => void; onOpen?: (index: number) => void }) {
+export function Attachments({ classPrefix: p, attachments, pending, removeLabel, onRemove }: StyleProps & { attachments?: readonly AttachmentDisplay[]; pending?: boolean; removeLabel?: string; onRemove?: (index: number) => void }) {
   if (!attachments?.length) return null;
   const itemClass = `${p}-${pending ? "pending-" : ""}attachment`;
-  return <div className={`${itemClass}s`}>{attachments.map((item, index) => <span key={index} className={itemClass} onClick={onOpen ? () => onOpen(index) : undefined}>
+  return <div className={`${itemClass}s`}>{attachments.map((item, index) => <span key={index} className={[itemClass, item.open && `${p}-clickable`].filter(Boolean).join(" ")} onClick={item.open?.onOpen} title={item.open?.title}>
     {attachmentIcons[item.type]} {item.name}
     {onRemove && <button className={`${itemClass}-remove`} onClick={(event) => { event.stopPropagation(); onRemove(index); }} title={removeLabel}>×</button>}
   </span>)}</div>;
@@ -172,6 +174,64 @@ export function InputArea({ classPrefix: p, className, collapsed, beforeInput, a
   </div>;
 }
 
+/** The hidden file input, the paperclip that opens it, and the row of accessory buttons beside it. */
+export function InputButtons({ classPrefix: p, attach, children }: StyleProps & { attach: { title: string; accept: string; inputRef: Ref<HTMLInputElement>; disabled?: boolean; onOpenPicker: () => void; onSelect: (event: ChangeEvent<HTMLInputElement>) => void }; children?: ReactNode }) {
+  return <>
+    <input ref={attach.inputRef} type="file" multiple accept={attach.accept} onChange={attach.onSelect} className={`${p}-hidden-input`} />
+    <div className={`${p}-input-buttons`}>
+      <button className={`${p}-attachment-btn`} onClick={attach.onOpenPicker} disabled={attach.disabled} title={attach.title}><Paperclip size={18} /></button>
+      {children}
+    </div>
+  </>;
+}
+
+/** Trigger for the vault tool menu; the host owns the open state and outside-click handling. */
+export function VaultToolButton({ classPrefix: p, title, active, disabled, onClick, containerRef, children }: StyleProps & { title: string; active: boolean; disabled?: boolean; onClick: () => void; containerRef: Ref<HTMLDivElement>; children?: ReactNode }) {
+  return <div className={`${p}-vault-tool-container`} ref={containerRef}>
+    <button className={[`${p}-vault-tool-btn`, active && "active"].filter(Boolean).join(" ")} onClick={onClick} disabled={disabled} title={title}><Database size={18} /></button>
+    {children}
+  </div>;
+}
+
+/** `hint` and `toolsTitle` are required so every server says what it brings. */
+export interface McpServerChoice { id: string; name: string; enabled: boolean; hint: string; toolsTitle: string }
+
+export function McpServerToggles({ classPrefix: p, servers, onToggle, disabled }: StyleProps & { servers: readonly McpServerChoice[]; onToggle: (id: string, enabled: boolean) => void; disabled?: boolean }) {
+  return <>{servers.map(server => <label key={server.id} className={[`${p}-mcp-server-item`, disabled && "is-disabled"].filter(Boolean).join(" ")} title={server.toolsTitle}>
+    <input type="checkbox" checked={!disabled && server.enabled} onChange={event => onToggle(server.id, event.target.checked)} disabled={disabled} />
+    <span className={`${p}-mcp-server-name`}>{server.name}</span>
+    {server.hint && <span className={`${p}-mcp-tool-hint`}>{server.hint}</span>}
+  </label>)}</>;
+}
+
+export interface EnabledMcpServer { id: string; name: string; title: string; removeTitle: string }
+
+/** Chips for the servers currently in play, each removable without opening the menu. */
+export function EnabledMcpServers({ classPrefix: p, servers, onDisable, disabled }: StyleProps & { servers: readonly EnabledMcpServer[]; onDisable: (id: string) => void; disabled?: boolean }) {
+  if (servers.length === 0) return null;
+  return <div className={`${p}-enabled-mcp-servers`}>{servers.map(server => <span key={server.id} className={`${p}-enabled-mcp-server`} title={server.title}>
+    <Wrench size={12} aria-hidden="true" />
+    <span className={`${p}-enabled-mcp-server-name`}>{server.name}</span>
+    <button type="button" className={`${p}-enabled-mcp-server-remove`} onClick={() => onDisable(server.id)} disabled={disabled} title={server.removeTitle} aria-label={server.removeTitle}><X size={10} aria-hidden="true" /></button>
+  </span>)}</div>;
+}
+
+/** `description` is required so a host cannot ship a mode whose meaning is unexplained. */
+export interface VaultToolOption<T extends string = string> { id: T; label: ReactNode; description: ReactNode; selected?: boolean; disabled?: boolean }
+
+/** Vault tool mode list; hosts own the trigger button, menu visibility and mode values. */
+export function VaultToolMenu<T extends string>({ classPrefix: p, options, onSelect, children }: StyleProps & { options: readonly VaultToolOption<T>[]; onSelect: (id: T) => void; children?: ReactNode }) {
+  return <div className={`${p}-vault-tool-menu`}>
+    {options.map(option => <div key={option.id}
+      className={[`${p}-vault-tool-item`, option.selected && "selected", option.disabled && "disabled"].filter(Boolean).join(" ")}
+      onClick={option.disabled ? undefined : () => onSelect(option.id)}>
+      <div>{option.label}</div>
+      <div className={`${p}-vault-tool-item-desc`}>{option.description}</div>
+    </div>)}
+    {children}
+  </div>;
+}
+
 export function ToolIndicator({ classPrefix: p, icon, label, detail, onClick, workflowAction }: StyleProps & { icon: ReactNode; label: string; detail: string; onClick: () => void; workflowAction?: { label: string; title: string; onClick: () => void } }) {
   return <span className={`${p}-tool-indicator-group`}>
     <span className={`${p}-tool-indicator ${p}-tool-clickable`} onClick={onClick} title={detail}>{icon} {label}</span>
@@ -180,6 +240,7 @@ export function ToolIndicator({ classPrefix: p, icon, label, detail, onClick, wo
 }
 
 export { ModelSelector, filterModelOptions, type ModelOption, type ModelSelectorProps } from "./ModelSelector.js";
+export { ChipSelector, type ChipChoice, type ChipSelectorProps } from "./ChipSelector.js";
 
 export function CollapsedInput({ classPrefix: p, label, onExpand }: StyleProps & { label: string; onExpand: () => void }) {
   return <div className={`${p}-collapsed-bar`}><button className={`${p}-expand-btn`} onClick={onExpand} title={label}><ChevronUp size={18} /></button></div>;
