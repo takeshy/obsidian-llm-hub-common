@@ -401,4 +401,5 @@ export const zh = {
   "workflow.generation.yourRequest": "您的请求：",
   "workflow.preview.referenceHistory": "参考执行历史",
   "workflow.preview.stepsSelected": "已选择{{count}}个步骤",
+
 };

@@ -404,4 +404,5 @@ export const ja = {
   "workflow.generation.yourRequest": "依頼内容:",
   "workflow.preview.referenceHistory": "実行履歴を参照",
   "workflow.preview.stepsSelected": "{{count}}ステップ選択中",
+
 };

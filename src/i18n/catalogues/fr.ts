@@ -401,4 +401,5 @@ export const fr = {
   "workflow.generation.yourRequest": "Votre demande :",
   "workflow.preview.referenceHistory": "Référencer l'historique d'exécution",
   "workflow.preview.stepsSelected": "{{count}} étape(s) sélectionnée(s)",
+
 };

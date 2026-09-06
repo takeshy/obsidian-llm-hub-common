@@ -1,5 +1,7 @@
 import type { StreamChunkUsage } from "../core/usage.js";
+import type { App } from "obsidian";
 import type { EncryptionConfig } from "./history.js";
+import type { ExecutionContext, PromptCallbacks, WorkflowNode } from "./types.js";
 
 /**
  * What shared workflow code needs from the plugin around it. Everything here is host-specific by
@@ -20,9 +22,31 @@ export interface WorkflowAttachment {
   text?: string;
 }
 
+/** What a node handler needs from the executor to do its work. */
+export interface NodeRequest {
+  node: WorkflowNode;
+  context: ExecutionContext;
+  app: App;
+  callbacks?: PromptCallbacks;
+  abortSignal?: AbortSignal;
+}
+
+export interface CommandNodeRequest extends NodeRequest {
+  traceId: string | null;
+}
+
+export interface CommandNodeResult {
+  usedModel?: string;
+  mcpAppInfo?: unknown;
+  usage?: StreamChunkUsage;
+  elapsedMs?: number;
+}
+
 /** Optional tracing hooks; hosts without an observability backend leave this out. */
 export interface WorkflowTracing {
   traceStart(name: string, payload?: Record<string, unknown>): string | null;
+  spanStart(traceId: string | null, name: string, payload?: Record<string, unknown>): string | null;
+  spanEnd(spanId: string | null, payload?: Record<string, unknown>): void;
   traceEnd(traceId: string | null, payload?: Record<string, unknown>): void;
   score(traceId: string | null, params: { name: string; value: number; comment?: string }): void;
 }
@@ -30,6 +54,8 @@ export interface WorkflowTracing {
 /** A no-op used when the host has no tracing, so shared code can call it unconditionally. */
 export const noTracing: WorkflowTracing = {
   traceStart: () => null,
+  spanStart: () => null,
+  spanEnd: () => {},
   traceEnd: () => {},
   score: () => {},
 };
@@ -78,6 +104,14 @@ export interface WorkflowHost {
   streamChat(request: WorkflowChatRequest): AsyncIterable<WorkflowChatChunk>;
   /** Observability, for hosts that have it wired up. */
   tracing?: WorkflowTracing;
+  /** Runs a command node: the model call with the host's tools, RAG and MCP wiring. */
+  runCommandNode(request: CommandNodeRequest): Promise<CommandNodeResult>;
+  /** Runs an MCP tool node, for hosts with MCP support. */
+  runMcpNode?(request: NodeRequest): Promise<unknown>;
+  /** Runs a shell node, for hosts that allow shell commands. */
+  runShellNode?(request: NodeRequest): Promise<void>;
+  /** Runs a RAG index sync node, for hosts with a local index. */
+  runRagSyncNode?(request: NodeRequest): Promise<void>;
 }
 
 const noHost: WorkflowHost = {
@@ -94,6 +128,9 @@ const noHost: WorkflowHost = {
   getPluginVersion: () => "",
   // eslint-disable-next-line require-yield
   streamChat: async function* () {
+    throw new Error("No workflow host is configured: call configureWorkflowHost() during plugin load.");
+  },
+  runCommandNode: () => {
     throw new Error("No workflow host is configured: call configureWorkflowHost() during plugin load.");
   },
 };

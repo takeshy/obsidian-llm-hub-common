@@ -401,4 +401,5 @@ export const de = {
   "workflow.generation.yourRequest": "Ihre Anfrage:",
   "workflow.preview.referenceHistory": "Ausführungsverlauf referenzieren",
   "workflow.preview.stepsSelected": "{{count}} Schritt(e) ausgewählt",
+
 };

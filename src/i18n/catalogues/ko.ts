@@ -401,4 +401,5 @@ export const ko = {
   "workflow.generation.yourRequest": "요청 내용:",
   "workflow.preview.referenceHistory": "실행 이력 참조",
   "workflow.preview.stepsSelected": "{{count}}개 단계 선택됨",
+
 };
