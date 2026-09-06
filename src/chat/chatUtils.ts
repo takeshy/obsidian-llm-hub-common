@@ -96,8 +96,13 @@ export function isRetryableRateLimitError(error: unknown): boolean {
 	);
 }
 
-export function buildErrorMessage(error: unknown): string {
+/**
+ * @param apiPlan A host's plan name, when it has free and paid tiers with different rate-limit
+ * advice. Hosts without tiers leave it out.
+ */
+export function buildErrorMessage(error: unknown, apiPlan?: string): string {
 	if (isRateLimitError(error)) {
+		if (apiPlan === "free") return t("chat.rateLimitFree");
 		const message = formatError(error);
 		// Preserve quota/billing details returned by the provider. A generic
 		// "try another model until tomorrow" message is incorrect for monthly
