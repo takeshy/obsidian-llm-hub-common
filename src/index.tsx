@@ -355,6 +355,79 @@ export function VaultToolMenu<T extends string>({ classPrefix: p, options, onSel
   </div>;
 }
 
+export interface VaultToolModeChoice<T extends string> { id: T; label: string; description: string }
+
+/**
+ * The Vault tool button and the menu it opens: the access modes, the MCP
+ * servers this chat may use, and how much history rides along.
+ *
+ * Composing it once is what keeps the modes consistent. Rendering them twice —
+ * as menu items and again as <option>s for a second panel — is how one of them
+ * lost its restriction in one plugin while the other panel kept it, and how a
+ * host ended up hiding the history limit as soon as a server was configured.
+ */
+export function VaultToolControl<T extends string>({
+  classPrefix: p, containerRef, title, open, onToggle, onOpen,
+  modes, mode, onModeChange, lockedTo, disabled, mcp, historyLimit,
+}: StyleProps & {
+  containerRef: Ref<HTMLDivElement>;
+  title: string;
+  open: boolean;
+  onToggle: (open: boolean) => void;
+  /** Runs when the menu is opened, for a host that refreshes what it shows. */
+  onOpen?: () => void;
+  /** Least restricted first: the button reads as inactive only on the first. */
+  modes: readonly VaultToolModeChoice<T>[];
+  mode: T;
+  onModeChange: (mode: T) => void;
+  /** The only mode selectable right now; the rest are shown but not choosable. */
+  lockedTo?: T;
+  disabled?: boolean;
+  mcp?: { label: string; servers: readonly McpServerChoice[]; onToggle: (id: string, enabled: boolean) => void };
+  historyLimit?: { label: string; value: number; onChange: (count: number) => void };
+}) {
+  const narrowed = mode !== modes[0]?.id || !!mcp?.servers.some(server => !server.enabled);
+  return <VaultToolButton
+    classPrefix={p}
+    containerRef={containerRef}
+    title={title}
+    active={narrowed}
+    disabled={disabled}
+    onClick={() => {
+      const next = !open;
+      onToggle(next);
+      if (next) onOpen?.();
+    }}
+  >
+    {open && <VaultToolMenu<T>
+      classPrefix={p}
+      options={modes.map(choice => ({
+        ...choice,
+        selected: mode === choice.id,
+        disabled: lockedTo !== undefined && choice.id !== lockedTo,
+      }))}
+      onSelect={next => { onModeChange(next); onToggle(false); }}
+    >
+      {mcp && mcp.servers.length > 0 && (
+        <VaultToolSection classPrefix={p} label={mcp.label}>
+          <McpServerToggles
+            classPrefix={p}
+            servers={mcp.servers}
+            onToggle={mcp.onToggle}
+            disabled={lockedTo !== undefined}
+          />
+        </VaultToolSection>
+      )}
+      {historyLimit && <HistoryLimit
+        classPrefix={p}
+        label={historyLimit.label}
+        value={historyLimit.value}
+        onChange={historyLimit.onChange}
+      />}
+    </VaultToolMenu>}
+  </VaultToolButton>;
+}
+
 /** A source the reader can open: a note, a web result, a skill file. */
 export interface SourceLink { label: string; title: string; onOpen: () => void }
 

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import React, { useState, createRef } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection, ChatLayout, HeaderButton, SidebarWidthButton, SaveNoteButton } from "../dist/index.js";
+import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection, ChatLayout, HeaderButton, SidebarWidthButton, SaveNoteButton, VaultToolControl } from "../dist/index.js";
 const h = React.createElement;
 const render = element => { let tree; act(() => { tree = TestRenderer.create(element); }); return tree; };
 const buttons = tree => tree.root.findAllByType("button");
@@ -367,5 +367,84 @@ test("chat shell composes its own class names and header buttons", () => {
   assert.equal(tree.toJSON().props.className, "llm-hub-chat");
   assert.equal(buttons(tree)[0].props.disabled, true);
   assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-spin").length, 1);
+  act(() => tree.unmount());
+});
+
+const vaultModes = [
+  { id: "all", label: "All", description: "every tool" },
+  { id: "noSearch", label: "No discovery", description: "no vault-wide scans" },
+  { id: "readOnly", label: "Read only", description: "no writes" },
+  { id: "none", label: "Off", description: "no vault tools" },
+];
+
+test("vault tool control locks every mode but the one it is held to", () => {
+  const chosen = [];
+  const props = {
+    classPrefix: "llm-hub", containerRef: createRef(), title: "vault tools", open: true,
+    onToggle() {}, modes: vaultModes, mode: "none", onModeChange: mode => chosen.push(mode),
+    lockedTo: "none",
+  };
+  const tree = render(h(VaultToolControl, props));
+  // "-item-desc" shares the prefix, so match the item class exactly.
+  const items = tree.root.findAll(node => typeof node.props.className === "string"
+    && /^llm-hub-vault-tool-item( |$)/.test(node.props.className));
+  // Rendering the modes twice is how one of them lost this restriction before.
+  assert.deepEqual(items.map(item => item.props.className.includes("disabled")), [true, true, true, false]);
+  act(() => items[0].props.onClick?.());
+  assert.deepEqual(chosen, []);
+  act(() => items[3].props.onClick());
+  assert.deepEqual(chosen, ["none"]);
+  act(() => tree.unmount());
+});
+
+test("vault tool control keeps the history limit whether or not servers are configured", () => {
+  const base = {
+    classPrefix: "llm-hub", containerRef: createRef(), title: "vault tools", open: true,
+    onToggle() {}, modes: vaultModes, mode: "all", onModeChange() {},
+    historyLimit: { label: "history", value: 3, onChange() {} },
+  };
+  const selects = tree => tree.root.findAllByType("select");
+  const tree = render(h(VaultToolControl, base));
+  assert.equal(selects(tree).length, 1);
+  act(() => tree.update(h(VaultToolControl, {
+    ...base,
+    mcp: { label: "servers", onToggle() {}, servers: [{ id: "a", name: "a", enabled: true, hint: "", toolsTitle: "" }] },
+  })));
+  // The second panel a host used to swap in here had no history row at all.
+  assert.equal(selects(tree).length, 1);
+  assert.equal(tree.root.findAllByType("input").length, 1);
+  act(() => tree.unmount());
+});
+
+test("vault tool button reports a narrowed scope from the mode or a disabled server", () => {
+  const base = {
+    classPrefix: "llm-hub", containerRef: createRef(), title: "vault tools", open: false,
+    onToggle() {}, modes: vaultModes, mode: "all", onModeChange() {},
+  };
+  const tree = render(h(VaultToolControl, base));
+  assert.equal(buttons(tree)[0].props.className, "llm-hub-vault-tool-btn");
+  act(() => tree.update(h(VaultToolControl, { ...base, mode: "readOnly" })));
+  assert.equal(buttons(tree)[0].props.className, "llm-hub-vault-tool-btn active");
+  act(() => tree.update(h(VaultToolControl, {
+    ...base,
+    mcp: { label: "servers", onToggle() {}, servers: [{ id: "a", name: "a", enabled: false, hint: "", toolsTitle: "" }] },
+  })));
+  assert.equal(buttons(tree)[0].props.className, "llm-hub-vault-tool-btn active");
+  act(() => tree.unmount());
+});
+
+test("vault tool control tells the host when the menu opens", () => {
+  let opens = 0, toggles = [];
+  const props = {
+    classPrefix: "llm-hub", containerRef: createRef(), title: "vault tools", open: false,
+    onToggle: next => toggles.push(next), onOpen: () => opens++,
+    modes: vaultModes, mode: "all", onModeChange() {},
+  };
+  const tree = render(h(VaultToolControl, props));
+  act(() => buttons(tree)[0].props.onClick());
+  assert.deepEqual([toggles, opens], [[true], 1]);
+  act(() => tree.update(h(VaultToolControl, { ...props, open: true })));
+  act(() => buttons(tree)[0].props.onClick());
+  assert.deepEqual([toggles, opens], [[true, false], 1]);
   act(() => tree.unmount());
 });
