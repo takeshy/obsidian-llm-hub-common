@@ -17,6 +17,16 @@
     "./check-markup": {
       "types": "./check-markup.d.ts",
       "default": "./scripts/check-markup.mjs"
+    },
+    "./core": {
+      "types": "./core.d.ts",
+      "import": "./dist/core/index.js",
+      "default": "./dist/core/index.js"
+    },
+    "./obsidian": {
+      "types": "./obsidian.d.ts",
+      "import": "./dist/obsidian/index.js",
+      "default": "./dist/obsidian/index.js"
     }
   },
   "files": [
@@ -24,29 +34,40 @@
     "scripts/styles.mjs",
     "scripts/check-markup.mjs",
     "check-markup.d.ts",
+    "core.d.ts",
+    "obsidian.d.ts",
     "styles.css",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "node --test test/*.test.mjs",
+    "test": "vitest run && node --test test/*.test.mjs",
     "prepack": "npm run build && npm test",
     "sync-plugins": "node scripts/sync-plugins.mjs",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test:unit": "vitest run"
   },
   "peerDependencies": {
     "lucide-react": "^0.503.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "obsidian": "^1.13.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.7",
     "lucide-react": "^0.503.0",
+    "obsidian": "^1.13.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-test-renderer": "^18.3.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  },
+  "peerDependenciesMeta": {
+    "obsidian": {
+      "optional": true
+    }
   }
 }
