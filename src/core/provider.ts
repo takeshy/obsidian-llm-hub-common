@@ -55,8 +55,17 @@ export interface ToolPropertyDefinition {
  * that cannot produce a field simply never sets it.
  */
 export interface StreamChunk {
+  /**
+   * `replace_text` overwrites the accumulated text with `content` instead of
+   * appending to it: a provider that has to strip inline tool-call JSON back
+   * out of what it already streamed says so this way.
+   *
+   * `incomplete_tool_call` reports that a tool call arrived truncated, so the
+   * caller can retry the round rather than continue without it.
+   */
   type: "text" | "thinking" | "tool_call" | "tool_result" | "error" | "done"
-    | "rag_used" | "web_search_used" | "image_generated" | "session_id";
+    | "rag_used" | "web_search_used" | "image_generated" | "session_id"
+    | "replace_text" | "incomplete_tool_call";
   content?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
