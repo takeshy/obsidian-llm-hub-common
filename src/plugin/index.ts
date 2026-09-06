@@ -5,3 +5,4 @@ export * from "./encryptionManager.js";
 export * from "./workflowManager.js";
 export * from "../ui/CryptView.js";
 export * from "../ui/selectionHighlight.js";
+export { default as CryptEditor } from "../ui/CryptEditor.js";
