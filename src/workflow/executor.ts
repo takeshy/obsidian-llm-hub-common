@@ -41,7 +41,7 @@ import { ExecutionHistoryManager, EncryptionConfig } from "./history.js";
 import { isEncryptedFile } from "../core/index.js";
 import { workflowHost, workflowTracing } from "./host.js";
 import { formatError } from "../core/index.js";
-import { VAULT_TOOL_SCOPE_DENIED_MSG, isFileAllowedForVaultTools, isPathInAllowedVaultFolders } from "../core/vaultScope.js";
+import { VAULT_TOOL_SCOPE_DENIED_MSG, assertVaultToolPathAllowed, isFileAllowedForVaultTools, isPathInAllowedVaultFolders } from "../core/vaultScope.js";
 
 const MAX_ITERATIONS = 1000; // Prevent infinite loops
 
@@ -67,6 +67,8 @@ export interface ExecuteOptions {
   startNodeId?: string;
   initialVariables?: Map<string, string | number>;
   vaultToolAllowedFolders?: string[];
+  /** Restricts where sub-workflow definitions may be loaded from; unset allows the whole vault. */
+  workflowDefinitionRoot?: string;
 }
 
 export interface ExecuteResult {
@@ -1019,8 +1021,10 @@ export class WorkflowExecutor {
               workflowPath: string,
               inputVariables: Map<string, string | number>
             ): Promise<Map<string, string | number>> => {
-              assertWorkflowPathAllowed(context, workflowPath);
-              // Read workflow file
+              const definitionFolders = options?.workflowDefinitionRoot
+                ? [options.workflowDefinitionRoot]
+                : undefined;
+              assertVaultToolPathAllowed(workflowPath, definitionFolders);
               const file = this.app.vault.getAbstractFileByPath(workflowPath);
               if (!file) {
                 // Try with .md extension
