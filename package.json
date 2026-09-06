@@ -27,6 +27,11 @@
       "types": "./obsidian.d.ts",
       "import": "./dist/obsidian/index.js",
       "default": "./dist/obsidian/index.js"
+    },
+    "./i18n": {
+      "types": "./i18n.d.ts",
+      "import": "./dist/i18n/index.js",
+      "default": "./dist/i18n/index.js"
     }
   },
   "files": [
@@ -38,7 +43,8 @@
     "obsidian.d.ts",
     "styles.css",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "i18n.d.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
