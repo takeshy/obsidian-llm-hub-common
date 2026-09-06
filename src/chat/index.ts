@@ -1,4 +1,5 @@
 export * from "./chatHistory.js";
+export * from "./commandVariables.js";
 export * from "./chatUtils.js";
 export * from "./contextSkills.js";
 export * from "./localFileLink.js";

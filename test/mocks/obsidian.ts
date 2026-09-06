@@ -66,3 +66,6 @@ export const MarkdownRenderer = {
 };
 export function setIcon(_el: unknown, _icon: string): void {}
 export const Platform = { isMobile: false, isDesktop: true };
+
+// Only ever used as the argument to getActiveViewOfType; tests stub the lookup itself.
+export class MarkdownView extends Component {}
