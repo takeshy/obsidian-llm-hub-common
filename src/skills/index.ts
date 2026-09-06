@@ -6,3 +6,5 @@ export * from "./runtimeSkills.js";
 export * from "./externalSkills.js";
 export * from "./agentPlugins.js";
 export * from "./pathAccess.js";
+export * from "./okfLoader.js";
+export * from "./okfDocumentTool.js";
