@@ -17,6 +17,6 @@ export * from "./AIWorkflowModal.js";
 export * from "../ConfirmModal.js";
 export * from "./DialogPromptModal.js";
 export * from "./WorkflowSelectorModal.js";
-export * from "./WorkflowPanel.js";
+export { default as WorkflowPanel } from "./WorkflowPanel.js";
 export * from "../passwordPrompt.js";
 export * from "../htmlPreview.js";
