@@ -51,6 +51,7 @@ export interface ToolCall {
 export interface ToolResult {
   toolCallId: string;
   result: unknown;
+  attachments?: Attachment[];  // in-memory only (not persisted to chat history)
 }
 
 export interface Attachment {
