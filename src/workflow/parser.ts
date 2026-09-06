@@ -12,9 +12,20 @@ export interface WorkflowCodeBlock {
   parseError?: string; // YAML parse error message if parsing failed
 }
 
-// Match workflow code blocks - supports both "hub-workflow" (new) and "workflow" (legacy)
 // 3+ backticks, end marker must match opening count
-const BLOCK_REGEX = /^(`{3,})[ \t]*(?:hub-workflow|workflow)[^\n]*\r?\n([\s\S]*?)\r?\n\1\s*$/gm;
+// Vaults hold blocks written by every plugin generation, so all of the tags parse.
+const BLOCK_REGEX = /^(`{3,})[ \t]*(?:hub-workflow|llm-workflow|workflow)[^\n]*\r?\n([\s\S]*?)\r?\n\1\s*$/gm;
+
+let blockLanguage = "workflow";
+
+/**
+ * The fence tag this host writes. Existing notes keep whichever tag wrote them, so a host must
+ * declare its own rather than inherit a default: llm-hub and gemini-helper use "hub-workflow",
+ * local-llm-hub uses "llm-workflow".
+ */
+export function configureWorkflowBlockLanguage(language: string): void {
+  blockLanguage = language;
+}
 
 // Known workflow node property names — used to detect end of block scalar content.
 // Without this whitelist, JavaScript code like "monday: value" inside code: |
@@ -181,7 +192,7 @@ export function findWorkflowBlocks(content: string): WorkflowCodeBlock[] {
 
 export function serializeWorkflowBlock(data: Record<string, unknown>): string {
   const yamlText = stringifyYaml(data).trimEnd();
-  return `\`\`\`hub-workflow\n${yamlText}\n\`\`\``;
+  return `\`\`\`${blockLanguage}\n${yamlText}\n\`\`\``;
 }
 
 export function replaceWorkflowBlock(

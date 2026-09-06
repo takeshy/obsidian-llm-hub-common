@@ -1,5 +1,11 @@
-import { describe, it, expect } from "vitest";
-import { findWorkflowBlocks, normalizeYamlText, parseWorkflowFromMarkdown } from "./parser.js";
+import { describe, it, expect, vi } from "vitest";
+import { stringifyYaml } from "obsidian";
+
+vi.mock("obsidian", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("obsidian")>()),
+  stringifyYaml: vi.fn(),
+}));
+import { configureWorkflowBlockLanguage, findWorkflowBlocks, normalizeYamlText, parseWorkflowFromMarkdown, serializeWorkflowBlock } from "./parser.js";
 
 describe("normalizeYamlText", () => {
   describe("list marker conversion", () => {
@@ -388,5 +394,24 @@ nodes: []
 \`\`\``;
 
     expect(findWorkflowBlocks(content)).toHaveLength(1);
+  });
+});
+
+describe("workflow block fences", () => {
+  const yaml = "name: demo\nnodes: []\n";
+
+  it("parses every fence tag the plugins have written", () => {
+    for (const tag of ["hub-workflow", "llm-workflow", "workflow"]) {
+      const blocks = findWorkflowBlocks(`\`\`\`${tag}\n${yaml}\`\`\``);
+      expect(blocks, tag).toHaveLength(1);
+    }
+  });
+
+  it("writes the tag this host declared", () => {
+    vi.mocked(stringifyYaml).mockReturnValue(yaml);
+    configureWorkflowBlockLanguage("llm-workflow");
+    expect(serializeWorkflowBlock({ name: "demo" })).toContain("```llm-workflow");
+    configureWorkflowBlockLanguage("hub-workflow");
+    expect(serializeWorkflowBlock({ name: "demo" })).toContain("```hub-workflow");
   });
 });
