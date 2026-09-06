@@ -453,4 +453,5 @@ export const zh = {
   "workflowSelector.searchPlaceholder": "搜索文件...",
   "workflowSelector.selectFileToPreview": "选择文件进行预览",
   "workflowSelector.title": "运行工作流",
+
 };

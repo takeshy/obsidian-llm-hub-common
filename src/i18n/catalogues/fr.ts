@@ -453,4 +453,5 @@ export const fr = {
   "workflowSelector.searchPlaceholder": "Rechercher des fichiers...",
   "workflowSelector.selectFileToPreview": "Sélectionnez un fichier pour prévisualiser",
   "workflowSelector.title": "Exécuter le Workflow",
+
 };

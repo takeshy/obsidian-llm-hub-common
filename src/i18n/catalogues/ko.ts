@@ -453,4 +453,5 @@ export const ko = {
   "workflowSelector.searchPlaceholder": "파일 검색...",
   "workflowSelector.selectFileToPreview": "미리보기할 파일 선택",
   "workflowSelector.title": "워크플로우 실행",
+
 };

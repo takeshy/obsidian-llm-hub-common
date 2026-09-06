@@ -456,4 +456,5 @@ export const ja = {
   "workflowSelector.searchPlaceholder": "ファイルを検索...",
   "workflowSelector.selectFileToPreview": "プレビューするファイルを選択",
   "workflowSelector.title": "ワークフローを実行",
+
 };

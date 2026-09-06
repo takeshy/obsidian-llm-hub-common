@@ -453,4 +453,5 @@ export const it = {
   "workflowSelector.searchPlaceholder": "Cerca file...",
   "workflowSelector.selectFileToPreview": "Seleziona un file per l'anteprima",
   "workflowSelector.title": "Esegui workflow",
+
 };

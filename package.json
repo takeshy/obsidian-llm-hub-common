@@ -42,6 +42,11 @@
       "types": "./modals.d.ts",
       "import": "./dist/ui/workflow/index.js",
       "default": "./dist/ui/workflow/index.js"
+    },
+    "./skills": {
+      "types": "./skills.d.ts",
+      "import": "./dist/skills/index.js",
+      "default": "./dist/skills/index.js"
     }
   },
   "files": [
@@ -56,7 +61,8 @@
     "LICENSE",
     "i18n.d.ts",
     "workflow.d.ts",
-    "modals.d.ts"
+    "modals.d.ts",
+    "skills.d.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -74,6 +80,7 @@
   },
   "devDependencies": {
     "@types/diff": "^7.0.2",
+    "@types/node": "^20.19.43",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.7",
     "lucide-react": "^0.503.0",
