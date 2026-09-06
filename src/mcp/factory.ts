@@ -14,6 +14,15 @@ export function configureMcpStdioClient(factory: McpStdioClientFactory): void {
   createStdioClient = factory;
 }
 
+/**
+ * Whether this host can start a local process for a server. The settings UI asks
+ * before offering the stdio transport, so what the form offers and what the
+ * factory accepts cannot disagree.
+ */
+export function hasMcpStdioClient(): boolean {
+  return !!createStdioClient;
+}
+
 /** Create the client a server config asks for. */
 export function createMcpClient(config: McpServerConfig): IMcpClient {
   if (config.transport === "stdio" || (!config.url && config.command)) {
