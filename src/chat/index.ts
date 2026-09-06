@@ -10,3 +10,5 @@ export * from "./localFileLink.js";
 export * from "./noDiscoveryPrompt.js";
 export * from "../core/message.js";
 export * from "../core/mcpTypes.js";
+export * from "./attachmentFiles.js";
+export * from "./composerAutocomplete.js";

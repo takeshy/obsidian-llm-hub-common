@@ -1,4 +1,10 @@
 import { App, Modal, Notice, Platform, parseYaml, TFile, setIcon, MarkdownRenderer, Component } from "obsidian";
+import {
+  acceptedAttachmentTypes,
+  fileToAttachment,
+  isAttachmentRejection,
+  type AttachmentKind,
+} from "../../chat/attachmentFiles.js";
 import { getLocale, t } from "../../i18n/index.js";
 import { cls } from "../../core/classPrefix.js";
 import { formatError } from "../../core/error.js";
@@ -27,12 +33,9 @@ export interface AIWorkflowModalOptions {
   appendInstructions?: string;
 }
 
-// Supported file types for attachments
-const SUPPORTED_TYPES = {
-  image: ["image/png", "image/jpeg", "image/gif", "image/webp"],
-  pdf: ["application/pdf"],
-  text: ["text/plain", "text/markdown", "text/csv", "application/json"],
-};
+// A workflow prompt takes the kinds every provider reads; audio and video are
+// for the chat composer, where a host says whether its models accept them.
+const ATTACHMENT_KINDS: readonly AttachmentKind[] = ["image", "pdf", "text"];
 
 export type AIWorkflowMode = "create" | "modify";
 
@@ -2259,7 +2262,7 @@ ${formattedSteps}
 
   // File attachment methods
   private getAllAcceptedTypes(): string {
-    return [...SUPPORTED_TYPES.image, ...SUPPORTED_TYPES.pdf, ...SUPPORTED_TYPES.text, ".md", ".txt"].join(",");
+    return acceptedAttachmentTypes(ATTACHMENT_KINDS);
   }
 
   private async handleFileSelect(e: Event): Promise<void> {
@@ -2278,40 +2281,8 @@ ${formattedSteps}
   }
 
   private async processFile(file: File): Promise<WorkflowAttachment | null> {
-    const mimeType = file.type;
-
-    // Images
-    if (SUPPORTED_TYPES.image.includes(mimeType)) {
-      const data = await this.fileToBase64(file);
-      return { name: file.name, type: "image", mimeType, data };
-    }
-
-    // PDF
-    if (SUPPORTED_TYPES.pdf.includes(mimeType)) {
-      const data = await this.fileToBase64(file);
-      return { name: file.name, type: "pdf", mimeType, data };
-    }
-
-    // Text
-    if (SUPPORTED_TYPES.text.includes(mimeType) || file.name.endsWith(".md") || file.name.endsWith(".txt")) {
-      const data = await this.fileToBase64(file);
-      return { name: file.name, type: "text", mimeType: mimeType || "text/plain", data };
-    }
-
-    return null;
-  }
-
-  private fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(",")[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+    const result = await fileToAttachment(file, ATTACHMENT_KINDS);
+    return isAttachmentRejection(result) ? null : result as WorkflowAttachment;
   }
 
   private renderAttachments(): void {
