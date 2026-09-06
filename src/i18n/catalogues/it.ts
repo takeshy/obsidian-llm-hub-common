@@ -495,4 +495,8 @@ export const it = {
   "settings.encryptionSetupBtn": "Configura chiavi di crittografia",
   "settings.encryptionSetupFailed": "Impossibile configurare la crittografia: {{error}}",
   "settings.encryptionSetupSuccess": "Chiavi di crittografia generate con successo",
+  "chat.errorOccurred": "Spiacente, si è verificato un errore: {{message}}",
+  "chat.rateLimitPaid": "Questo modello potrebbe aver raggiunto il limite. Prova un altro modello fino a domani.",
+  "chat.unknownError": "Errore sconosciuto",
+  "chat.yesterday": "Ieri",
 };

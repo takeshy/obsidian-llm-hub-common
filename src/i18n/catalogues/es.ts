@@ -495,4 +495,8 @@ export const es = {
   "settings.encryptionSetupBtn": "Configurar claves de cifrado",
   "settings.encryptionSetupFailed": "Error al configurar cifrado: {{error}}",
   "settings.encryptionSetupSuccess": "Claves de cifrado generadas exitosamente",
+  "chat.errorOccurred": "Lo siento, ocurrió un error: {{message}}",
+  "chat.rateLimitPaid": "Este modelo puede tener límite de tasa. Prueba otro modelo hasta mañana.",
+  "chat.unknownError": "Error desconocido",
+  "chat.yesterday": "Ayer",
 };

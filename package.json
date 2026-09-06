@@ -57,6 +57,11 @@
       "types": "./settings.d.ts",
       "import": "./dist/settings/index.js",
       "default": "./dist/settings/index.js"
+    },
+    "./chat": {
+      "types": "./chat.d.ts",
+      "import": "./dist/chat/index.js",
+      "default": "./dist/chat/index.js"
     }
   },
   "files": [
@@ -74,7 +79,8 @@
     "modals.d.ts",
     "skills.d.ts",
     "plugin.d.ts",
-    "settings.d.ts"
+    "settings.d.ts",
+    "chat.d.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

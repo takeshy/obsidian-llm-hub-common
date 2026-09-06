@@ -525,4 +525,8 @@ export const en = {
   "settings.externalSkillsRepository.desc": "Skills are imported from the official repository {{repo}} and copied into the configured skills folder. Each skill must include a manifest.json.",
   "settings.importSkills.done": "Imported {{skills}} skill(s), {{files}} file(s)",
   "settings.importSkills.failed": "Failed to import skills: {{error}}",
+  "chat.errorOccurred": "Sorry, an error occurred: {{message}}",
+  "chat.rateLimitPaid": "This model may be rate limited. Please try a different model until tomorrow.",
+  "chat.unknownError": "Unknown error",
+  "chat.yesterday": "Yesterday",
 };

@@ -525,4 +525,8 @@ export const ja = {
   "settings.externalSkillsRepository.desc": "スキルは公式リポジトリ {{repo}} から取り込み、設定したスキルフォルダにコピーします。各スキルには manifest.json が必須です。",
   "settings.importSkills.done": "{{skills}}個のスキル、{{files}}個のファイルを取り込みました",
   "settings.importSkills.failed": "スキルの取り込みに失敗しました: {{error}}",
+  "chat.errorOccurred": "エラーが発生しました: {{message}}",
+  "chat.rateLimitPaid": "このモデルはレート制限されている可能性があります。明日まで別のモデルを試してください。",
+  "chat.unknownError": "不明なエラー",
+  "chat.yesterday": "昨日",
 };

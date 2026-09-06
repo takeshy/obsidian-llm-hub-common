@@ -495,4 +495,8 @@ export const fr = {
   "settings.encryptionSetupBtn": "Générer les clés de chiffrement",
   "settings.encryptionSetupFailed": "Échec de la configuration du chiffrement : {{error}}",
   "settings.encryptionSetupSuccess": "Clés de chiffrement générées avec succès",
+  "chat.errorOccurred": "Désolé, une erreur s'est produite : {{message}}",
+  "chat.rateLimitPaid": "Ce modèle peut être limité en débit. Essayez un autre modèle jusqu'à demain.",
+  "chat.unknownError": "Erreur inconnue",
+  "chat.yesterday": "Hier",
 };

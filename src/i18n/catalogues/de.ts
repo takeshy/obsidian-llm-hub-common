@@ -495,4 +495,8 @@ export const de = {
   "settings.encryptionSetupBtn": "Verschlüsselungsschlüssel erstellen",
   "settings.encryptionSetupFailed": "Verschlüsselung einrichten fehlgeschlagen: {{error}}",
   "settings.encryptionSetupSuccess": "Verschlüsselungsschlüssel erfolgreich erstellt",
+  "chat.errorOccurred": "Entschuldigung, ein Fehler ist aufgetreten: {{message}}",
+  "chat.rateLimitPaid": "Dieses Modell könnte ratenbegrenzt sein. Versuchen Sie bis morgen ein anderes Modell.",
+  "chat.unknownError": "Unbekannter Fehler",
+  "chat.yesterday": "Gestern",
 };

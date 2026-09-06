@@ -495,4 +495,8 @@ export const zh = {
   "settings.encryptionSetupBtn": "设置加密密钥",
   "settings.encryptionSetupFailed": "加密设置失败：{{error}}",
   "settings.encryptionSetupSuccess": "加密密钥已成功生成",
+  "chat.errorOccurred": "抱歉，发生错误：{{message}}",
+  "chat.rateLimitPaid": "此模型可能已达到速率限制。请尝试使用其他模型直到明天。",
+  "chat.unknownError": "未知错误",
+  "chat.yesterday": "昨天",
 };

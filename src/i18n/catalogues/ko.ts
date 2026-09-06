@@ -495,4 +495,8 @@ export const ko = {
   "settings.encryptionSetupBtn": "암호화 키 생성",
   "settings.encryptionSetupFailed": "암호화 설정 실패: {{error}}",
   "settings.encryptionSetupSuccess": "암호화 키가 성공적으로 생성되었습니다",
+  "chat.errorOccurred": "죄송합니다, 오류가 발생했습니다: {{message}}",
+  "chat.rateLimitPaid": "이 모델이 속도 제한될 수 있습니다. 내일까지 다른 모델을 시도하세요.",
+  "chat.unknownError": "알 수 없는 오류",
+  "chat.yesterday": "어제",
 };
