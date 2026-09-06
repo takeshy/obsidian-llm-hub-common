@@ -2820,3 +2820,869 @@
   width: 100%;
   padding: 12px;
 }
+
+/* Edit confirmation, bulk confirmations and diff rendering */
+
+.chat-ui-edit-additional-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-normal);
+  box-sizing: border-box;
+}
+
+.chat-ui-edit-additional-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.chat-ui-edit-additional-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Resizable Modal */
+.chat-ui-resizable-modal {
+  position: relative;
+}
+
+/* Drag Handle */
+.chat-ui-drag-handle {
+  cursor: move;
+  user-select: none;
+}
+
+.chat-ui-drag-handle button {
+  cursor: pointer;
+}
+
+/* Resize Handles */
+.chat-ui-resize-handle {
+  position: absolute;
+  z-index: 100;
+}
+
+.chat-ui-resize-n {
+  top: -4px;
+  left: 10px;
+  right: 10px;
+  height: 8px;
+  cursor: n-resize;
+}
+
+.chat-ui-resize-s {
+  bottom: -4px;
+  left: 10px;
+  right: 10px;
+  height: 8px;
+  cursor: s-resize;
+}
+
+.chat-ui-resize-e {
+  top: 10px;
+  right: -4px;
+  bottom: 10px;
+  width: 8px;
+  cursor: e-resize;
+}
+
+.chat-ui-resize-w {
+  top: 10px;
+  left: -4px;
+  bottom: 10px;
+  width: 8px;
+  cursor: w-resize;
+}
+
+.chat-ui-resize-ne {
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  cursor: ne-resize;
+}
+
+.chat-ui-resize-nw {
+  top: -4px;
+  left: -4px;
+  width: 14px;
+  height: 14px;
+  cursor: nw-resize;
+}
+
+.chat-ui-resize-se {
+  bottom: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  cursor: se-resize;
+}
+
+.chat-ui-resize-sw {
+  bottom: -4px;
+  left: -4px;
+  width: 14px;
+  height: 14px;
+  cursor: sw-resize;
+}
+
+/* ===============================================
+   Edit Confirmation Modal Styles
+   =============================================== */
+
+.chat-ui-edit-confirm-modal {
+  width: min(1100px, calc(100vw - 32px));
+  height: min(700px, calc(100vh - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+}
+
+.chat-ui-edit-confirm-modal .modal-content {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.chat-ui-edit-confirm-header {
+  flex-shrink: 0;
+  padding: 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  cursor: move;
+}
+
+.chat-ui-edit-confirm-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.chat-ui-edit-confirm-title-row h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.chat-ui-edit-confirm-mode {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.chat-ui-edit-confirm-title-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-ui-edit-confirm-fullscreen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat-ui-edit-confirm-fullscreen-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.chat-ui-edit-confirm-fullscreen-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.chat-ui-edit-confirm-modal.is-fullscreen {
+  position: fixed !important;
+  top: 8px !important;
+  left: 8px !important;
+  width: calc(100vw - 16px) !important;
+  height: calc(100vh - 16px) !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+.chat-ui-edit-confirm-modal.is-fullscreen .chat-ui-resize-handle {
+  display: none;
+}
+
+.chat-ui-edit-confirm-path {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.chat-ui-edit-confirm-path strong {
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+}
+
+.chat-ui-edit-confirm-preview {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.chat-ui-edit-confirm-preview-label {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.chat-ui-edit-confirm-preview-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.chat-ui-edit-confirm-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.chat-ui-edit-confirm-actions button {
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat-ui-edit-confirm-open-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.chat-ui-edit-confirm-open-file input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.chat-ui-edit-confirm-open-file label {
+  cursor: pointer;
+}
+
+/* Edit Confirmation Additional Request */
+.chat-ui-edit-additional-container {
+  flex-shrink: 0;
+  padding: 0 16px 12px;
+}
+
+.chat-ui-edit-additional-label {
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.chat-ui-edit-additional-container[open] .chat-ui-edit-additional-label {
+  margin-bottom: 8px;
+}
+
+.chat-ui-edit-additional-hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-warning, var(--text-accent));
+}
+
+.chat-ui-edit-confirm-modal .chat-ui-edit-additional-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-normal);
+  box-sizing: border-box;
+  min-height: 64px;
+  max-height: 18vh;
+}
+
+.chat-ui-edit-confirm-modal .chat-ui-edit-additional-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.chat-ui-edit-confirm-modal .chat-ui-edit-additional-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ===============================================
+   Bulk Edit/Delete Confirmation Modal Styles
+   =============================================== */
+
+.chat-ui-bulk-confirm-modal {
+  width: 700px;
+  height: 600px;
+  max-width: 90vw;
+  max-height: 85vh;
+}
+
+.chat-ui-bulk-confirm-modal .modal-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.chat-ui-bulk-delete-modal .chat-ui-edit-confirm-title-row h3 {
+  color: var(--text-error);
+}
+
+/* Selection controls */
+.chat-ui-bulk-selection-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chat-ui-bulk-selection-controls button {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.chat-ui-bulk-selection-controls button:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* File list container */
+.chat-ui-bulk-list-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Individual file row */
+.chat-ui-bulk-file-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.chat-ui-bulk-file-row:hover {
+  border-color: var(--interactive-accent);
+}
+
+.chat-ui-bulk-file-row input[type="checkbox"] {
+  margin-top: 4px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* File info */
+.chat-ui-bulk-file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-ui-bulk-file-path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.chat-ui-bulk-file-path > span:first-child {
+  font-family: var(--font-monospace);
+  font-size: 13px;
+  color: var(--text-normal);
+  word-break: break-all;
+}
+
+.chat-ui-bulk-file-mode {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  flex-shrink: 0;
+}
+
+/* Expand/collapse button */
+.chat-ui-bulk-expand-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chat-ui-bulk-expand-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* Content preview */
+.chat-ui-bulk-preview {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.chat-ui-bulk-preview .chat-ui-edit-confirm-preview-label {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 8px;
+  background: var(--background-primary);
+}
+
+.chat-ui-bulk-preview .chat-ui-edit-confirm-preview-content {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+/* Action buttons - ensure proper spacing */
+.chat-ui-bulk-confirm-modal .chat-ui-edit-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.chat-ui-bulk-confirm-modal .chat-ui-edit-confirm-actions button {
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.chat-ui-bulk-confirm-modal .chat-ui-edit-confirm-actions button:not(.mod-cta):not(.mod-warning) {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+}
+
+.chat-ui-bulk-confirm-modal .chat-ui-edit-confirm-actions button:not(.mod-cta):not(.mod-warning):hover {
+  background: var(--background-modifier-hover);
+}
+
+.chat-ui-bulk-confirm-modal .chat-ui-edit-confirm-actions button.mod-cta {
+  background: var(--interactive-accent);
+  border: none;
+  color: var(--text-on-accent);
+}
+
+.chat-ui-bulk-confirm-modal .chat-ui-edit-confirm-actions button.mod-warning {
+  background: var(--text-error);
+  border: none;
+  color: white;
+}
+
+/* ===============================================
+   Diff View Styles
+   =============================================== */
+
+.chat-ui-diff-view {
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  background: var(--background-primary);
+  border-radius: 4px;
+}
+
+.chat-ui-diff-line {
+  display: flex;
+  white-space: pre;
+  min-height: 1.5em;
+}
+
+.chat-ui-diff-gutter {
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+  user-select: none;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.chat-ui-diff-content {
+  flex: 1;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Unchanged lines */
+.chat-ui-diff-unchanged {
+  background: transparent;
+}
+
+.chat-ui-diff-unchanged .chat-ui-diff-gutter {
+  color: var(--text-faint);
+}
+
+/* Added lines */
+.chat-ui-diff-added {
+  background: rgba(0, 200, 83, 0.15);
+}
+
+.chat-ui-diff-added .chat-ui-diff-gutter {
+  color: var(--color-green);
+  background: rgba(0, 200, 83, 0.25);
+}
+
+.chat-ui-diff-added .chat-ui-diff-content {
+  color: var(--text-normal);
+}
+
+/* Removed lines */
+.chat-ui-diff-removed {
+  background: rgba(255, 100, 100, 0.15);
+}
+
+.chat-ui-diff-removed .chat-ui-diff-gutter {
+  color: var(--color-red);
+  background: rgba(255, 100, 100, 0.25);
+}
+
+.chat-ui-diff-removed .chat-ui-diff-content {
+  color: var(--text-normal);
+}
+
+/* ===============================================
+   Line Numbers
+   =============================================== */
+
+.chat-ui-diff-linenum {
+  flex-shrink: 0;
+  width: 40px;
+  text-align: right;
+  padding-right: 4px;
+  color: var(--text-faint);
+  user-select: none;
+  font-size: 11px;
+}
+
+/* ===============================================
+   View Toggle (Unified / Split)
+   =============================================== */
+
+.chat-ui-diff-view-toggle {
+  display: inline-flex;
+  gap: 0;
+  margin-left: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.chat-ui-diff-view-toggle-btn {
+  padding: 2px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  background: var(--background-primary);
+  color: var(--text-muted);
+  border: none;
+  border-right: 1px solid var(--background-modifier-border);
+  line-height: 1.4;
+}
+
+.chat-ui-diff-view-toggle-btn:last-child {
+  border-right: none;
+}
+
+.chat-ui-diff-view-toggle-btn.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.chat-ui-diff-view-toggle-btn:hover:not(.is-active) {
+  background: var(--background-modifier-hover);
+}
+
+/* ===============================================
+   Split (Side-by-Side) View
+   =============================================== */
+
+.chat-ui-diff-split .chat-ui-diff-split-row {
+  display: flex;
+  border-bottom: 1px solid var(--background-modifier-border-focus);
+}
+
+.chat-ui-diff-split-cell {
+  width: 50%;
+  min-width: 0;
+  display: flex;
+  white-space: pre;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 1.5em;
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.chat-ui-diff-split-cell .chat-ui-diff-content {
+  flex: 0 0 auto;
+  min-width: calc(100% - 72px);
+}
+
+.chat-ui-diff-split-left {
+  border-right: 1px solid var(--background-modifier-border);
+}
+
+.chat-ui-diff-split-filler {
+  background: var(--background-secondary-alt, var(--background-secondary));
+}
+
+/* ===============================================
+   Word-Level Diff Highlighting
+   =============================================== */
+
+.chat-ui-diff-word-added {
+  background: rgba(0, 200, 83, 0.35);
+  border-radius: 2px;
+}
+
+.chat-ui-diff-word-removed {
+  background: rgba(255, 100, 100, 0.35);
+  border-radius: 2px;
+}
+
+/* ===============================================
+   Click-to-Comment on Diff Lines
+   =============================================== */
+
+.chat-ui-diff-commentable {
+  cursor: pointer;
+}
+
+.chat-ui-diff-commentable:hover {
+  filter: brightness(0.95);
+}
+
+.chat-ui-diff-has-comment .chat-ui-diff-gutter::after {
+  content: "\25CF";
+  font-size: 8px;
+  color: var(--interactive-accent);
+  margin-left: 2px;
+}
+
+.chat-ui-diff-comment-preview {
+  padding: 4px 12px 4px 108px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-family: var(--font-interface);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.chat-ui-diff-split .chat-ui-diff-comment-preview {
+  padding-left: 12px;
+}
+
+.chat-ui-diff-comment-editor {
+  padding: 8px 12px 8px 108px;
+  background: var(--background-secondary);
+  border-top: 1px solid var(--background-modifier-border);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chat-ui-diff-split .chat-ui-diff-comment-editor {
+  padding-left: 12px;
+}
+
+.chat-ui-diff-comment-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.chat-ui-diff-comment-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.chat-ui-diff-comment-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  justify-content: flex-end;
+}
+
+.chat-ui-diff-comment-actions button {
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* ===============================================
+   Apply with Comments Confirmation Dialog
+   =============================================== */
+
+.chat-ui-diff-confirm-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: inherit;
+}
+
+.chat-ui-diff-confirm-dialog {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.chat-ui-diff-confirm-dialog p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--text-normal);
+  line-height: 1.5;
+}
+
+.chat-ui-diff-confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.chat-ui-diff-confirm-dialog-actions button {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat-ui-diff-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.chat-ui-diff-line {
+  white-space: pre;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Diff rendering (dark theme) */
+
+/* Dark theme adjustments */
+.theme-dark .chat-ui-diff-added {
+  background: rgba(0, 200, 83, 0.12);
+}
+
+.theme-dark .chat-ui-diff-added .chat-ui-diff-gutter {
+  background: rgba(0, 200, 83, 0.2);
+}
+
+.theme-dark .chat-ui-diff-removed {
+  background: rgba(255, 100, 100, 0.12);
+}
+
+.theme-dark .chat-ui-diff-removed .chat-ui-diff-gutter {
+  background: rgba(255, 100, 100, 0.2);
+}
+
+.theme-dark .chat-ui-diff-word-added {
+  background: rgba(0, 200, 83, 0.25);
+}
+
+.theme-dark .chat-ui-diff-word-removed {
+  background: rgba(255, 100, 100, 0.25);
+}
+
+.theme-dark .chat-ui-diff-commentable:hover {
+  filter: brightness(1.15);
+}
+
+/* Diff Modal Styles */
+.chat-ui-diff-modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-ui-diff-modal h2 {
+  margin: 0;
+}
