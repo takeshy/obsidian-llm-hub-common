@@ -59,7 +59,12 @@ function resolveCwd(value: string, root: string, data: string): string | null {
   return null;
 }
 
-export function parseAgentPluginMcp(value: string, pluginName: string, root: string, data: string): { servers: McpServerConfig[]; warnings: string[] } {
+/**
+ * Reads an agent plugin's mcp.json. Generic over the host's server record, which is stricter than
+ * the shared shape: the host decides what a stored server must carry.
+ */
+export function parseAgentPluginMcp<T extends McpServerConfig = McpServerConfig>(value: string, pluginName: string, root: string, data: string): { servers: T[]; warnings: string[] } {
+  // The entries are built from mcp.json and handed back as the host's own record type.
   let raw: unknown; try { raw = JSON.parse(value); } catch { throw new Error("mcp.json must be valid JSON"); }
   if (!record(raw) || raw.$schema !== AGENT_PLUGIN_MCP_SCHEMA || !record(raw.mcpServers)) throw new Error("mcp.json has an invalid v1.0.0 schema");
   const servers: McpServerConfig[] = [], warnings: string[] = [];
@@ -82,7 +87,7 @@ export function parseAgentPluginMcp(value: string, pluginName: string, root: str
     const cwd = resolveCwd(typeof item.cwd === "string" ? item.cwd : "${PLUGIN_ROOT}", root, data); if (!cwd) { skip("unsafe cwd"); continue; }
     servers.push({ ...common, transport: "stdio", url: "", command: item.command.startsWith("./") ? `${root}/${item.command.slice(2)}` : item.command, args: (args as string[]).map(v => expand(v, root, data)), env: Object.fromEntries(Object.entries(env).map(([k, v]) => [k, expand(v, root, data)])), cwd, pluginRoot: root, pluginData: data, framing: "content-length" });
   }
-  return { servers, warnings };
+  return { servers: servers as T[], warnings };
 }
 
 async function github<T>(url: string, optional = false): Promise<T | null> {
