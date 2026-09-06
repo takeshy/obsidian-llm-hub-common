@@ -12,3 +12,6 @@ export * from "./lineDiff.js";
 export * from "./DiffRenderer.js";
 export * from "./EditConfirmationModal.js";
 export * from "../preferences.js";
+export * from "./WorkflowGenerationModal.js";
+export * from "./AIWorkflowModal.js";
+export * from "../ConfirmModal.js";

@@ -3686,3 +3686,866 @@
 .chat-ui-diff-modal h2 {
   margin: 0;
 }
+
+/* AI workflow generation modals */
+
+.chat-ui-autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.chat-ui-autocomplete-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.chat-ui-autocomplete-item.active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.chat-ui-autocomplete-item.active .chat-ui-autocomplete-name {
+  color: var(--text-on-accent);
+}
+
+.chat-ui-autocomplete-item.active .chat-ui-autocomplete-desc {
+  color: var(--text-on-accent);
+  opacity: 0.8;
+}
+
+/* Mobile styles for autocomplete */
+.is-mobile .chat-ui-autocomplete-item {
+  padding: 12px;
+  min-height: 48px;
+}
+
+/* AI Workflow Modal */
+.chat-ui-ai-workflow-modal {
+  min-width: 500px;
+}
+
+.chat-ui-ai-workflow-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.chat-ui-ai-workflow-name-input,
+.chat-ui-ai-workflow-path-input {
+  width: 100%;
+  min-width: 360px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.chat-ui-ai-workflow-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+/* AI Workflow textarea container for mention autocomplete */
+.chat-ui-ai-workflow-textarea-container {
+  position: relative;
+}
+
+.chat-ui-ai-workflow-textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.chat-ui-ai-workflow-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+/* AI Workflow mention autocomplete - fixed position to avoid clipping */
+.chat-ui-ai-workflow-mention-autocomplete {
+  position: fixed;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10000;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.chat-ui-ai-workflow-mention-autocomplete.is-hidden {
+  display: none;
+}
+
+.chat-ui-ai-workflow-existing {
+  margin-bottom: 16px;
+}
+
+.chat-ui-ai-workflow-existing summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.chat-ui-ai-workflow-yaml-preview {
+  max-height: 200px;
+  overflow: auto;
+  padding: 8px;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.chat-ui-ai-workflow-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.chat-ui-ai-workflow-model-select {
+  flex: 1;
+}
+
+.chat-ui-ai-workflow-status {
+  min-height: 24px;
+  margin-bottom: 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.chat-ui-ai-workflow-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Paste response section */
+.chat-ui-ai-workflow-paste-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.chat-ui-ai-workflow-paste-section.is-hidden {
+  display: none;
+}
+
+/* AI Workflow attachment */
+.chat-ui-ai-workflow-attachment-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.chat-ui-ai-workflow-attach-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: var(--background-modifier-hover);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat-ui-ai-workflow-attach-btn:hover {
+  background: var(--background-modifier-active);
+}
+
+.chat-ui-ai-workflow-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chat-ui-ai-workflow-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  background: var(--background-secondary);
+  border-radius: 4px;
+}
+
+.chat-ui-ai-workflow-attachment-remove {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+.chat-ui-ai-workflow-attachment-remove:hover {
+  color: var(--text-error);
+}
+
+/* AI Workflow modal drag handle */
+.chat-ui-ai-workflow-modal .modal-drag-handle {
+  cursor: move;
+  margin: -16px -16px 16px -16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chat-ui-ai-workflow-modal .modal-drag-handle h2 {
+  margin: 0;
+}
+
+/* AI Workflow confirmation checkbox row */
+.chat-ui-ai-workflow-confirm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.chat-ui-ai-workflow-confirm-row input[type="checkbox"] {
+  margin: 0;
+}
+
+.chat-ui-ai-workflow-confirm-row label {
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* AI Workflow execution history row */
+.chat-ui-ai-workflow-execution-history-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.chat-ui-ai-workflow-execution-history-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.chat-ui-ai-workflow-execution-history-btn:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+}
+
+.chat-ui-ai-workflow-execution-history-info {
+  font-size: 13px;
+  color: var(--text-accent);
+  font-weight: 500;
+}
+
+.chat-ui-ai-workflow-execution-history-info.is-hidden {
+  display: none;
+}
+
+/* AI Workflow confirmation modal */
+.chat-ui-ai-workflow-confirm-modal {
+  min-width: 700px;
+  max-width: 90vw;
+}
+
+.chat-ui-ai-workflow-confirm-modal .chat-ui-edit-confirm-preview-label {
+  flex-shrink: 0;
+}
+
+.chat-ui-ai-workflow-confirm-diff {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.chat-ui-ai-workflow-confirm-modal .chat-ui-workflow-preview-additional {
+  flex-shrink: 0;
+}
+
+.chat-ui-ai-workflow-confirm-modal .chat-ui-ai-workflow-buttons {
+  flex-shrink: 0;
+}
+
+.chat-ui-ai-workflow-explanation {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.chat-ui-ai-workflow-explanation h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--text-accent);
+}
+
+.chat-ui-ai-workflow-explanation p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* Mobile: AI Workflow Modal */
+.is-mobile .chat-ui-ai-workflow-modal {
+  min-width: unset;
+  width: 95vw;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.is-mobile .chat-ui-ai-workflow-modal .modal-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 16px;
+}
+
+.is-mobile .chat-ui-ai-workflow-modal .modal-drag-handle {
+  flex-shrink: 0;
+  padding: 12px;
+  margin: -12px -12px 12px -12px;
+}
+
+.is-mobile .chat-ui-ai-workflow-modal .modal-drag-handle h2 {
+  font-size: 16px;
+}
+
+.is-mobile .chat-ui-ai-workflow-name-input,
+.is-mobile .chat-ui-ai-workflow-path-input {
+  min-width: 0;
+  width: 100%;
+}
+
+.is-mobile .chat-ui-ai-workflow-textarea {
+  min-height: 80px;
+  max-height: 120px;
+}
+
+.is-mobile .chat-ui-ai-workflow-model-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.is-mobile .chat-ui-ai-workflow-model-select {
+  width: 100%;
+}
+
+.is-mobile .chat-ui-ai-workflow-attachment-row {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.is-mobile .chat-ui-ai-workflow-buttons {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.is-mobile .chat-ui-ai-workflow-buttons button {
+  width: 100%;
+  padding: 12px;
+}
+
+.is-mobile .chat-ui-ai-workflow-hint {
+  font-size: 11px;
+}
+
+/* Mobile: AI Workflow Confirmation Modal */
+.is-mobile .chat-ui-ai-workflow-confirm-modal {
+  min-width: unset;
+}
+
+/* ===============================================
+   Workflow Generation Modal Styles
+   =============================================== */
+
+.chat-ui-workflow-generation-modal {
+  min-width: 500px;
+}
+
+.chat-ui-workflow-generation-modal-content {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fixed (non-flexing) sections */
+.chat-ui-workflow-generation-modal-content > .modal-drag-handle,
+.chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-request,
+.chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-history-info,
+.chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-phase-indicator,
+.chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-status,
+.chat-ui-workflow-generation-buttons button.is-hidden {
+  display: none;
+}
+
+.chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-buttons,
+.chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-plan-confirm {
+  flex-shrink: 0;
+}
+
+.chat-ui-workflow-generation-modal-content .modal-drag-handle {
+  cursor: move;
+  margin: -16px -16px 16px -16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chat-ui-workflow-generation-modal-content .modal-drag-handle h2 {
+  margin: 0;
+}
+
+.chat-ui-workflow-generation-model-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 0.75em;
+  font-weight: normal;
+  background: var(--background-modifier-success);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.chat-ui-workflow-generation-request {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.chat-ui-workflow-generation-request h3 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chat-ui-workflow-generation-request-content {
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.chat-ui-workflow-generation-history-info {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.chat-ui-workflow-generation-history-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: var(--background-modifier-success);
+  color: var(--text-on-accent);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Phase indicator for plan & review mode */
+.chat-ui-workflow-generation-phase-indicator {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 0;
+}
+
+.chat-ui-workflow-generation-phase-step {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--background-modifier-border);
+  transition: all 0.2s ease;
+}
+
+.chat-ui-workflow-generation-phase-step.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.chat-ui-workflow-generation-phase-step.is-completed {
+  background: var(--background-modifier-success);
+  color: var(--text-on-accent);
+  border-color: var(--background-modifier-success);
+}
+
+/* Header row: title + copy button */
+.chat-ui-workflow-generation-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+
+.chat-ui-workflow-generation-section-header h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Markdown-rendered plan — override plain-text styling for a readable document view.
+   Uses high specificity to win against .chat-ui-workflow-generation-plan / .chat-ui-workflow-generation-context-content. */
+.chat-ui-workflow-generation-plan-rendered.chat-ui-workflow-generation-plan-rendered {
+  font-family: var(--font-text, inherit);
+  font-size: var(--font-ui-medium, 14px);
+  line-height: 1.6;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  color: var(--text-normal);
+}
+
+.chat-ui-workflow-generation-plan {
+  flex: 1;
+  min-height: 40px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: var(--background-primary);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Review section */
+.chat-ui-workflow-generation-review {
+  flex: 1;
+  min-height: 40px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: var(--background-primary);
+  font-size: 12px;
+  line-height: 1.5;
+  font-family: var(--font-monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Plan confirmation UI */
+.chat-ui-workflow-generation-plan-confirm {
+  margin-top: 12px;
+}
+
+.chat-ui-workflow-generation-plan-confirm-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.chat-ui-workflow-generation-plan-feedback-input {
+  width: 100%;
+  min-height: 60px;
+  resize: vertical;
+  font-size: 13px;
+}
+
+.chat-ui-workflow-generation-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: var(--background-modifier-hover);
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.chat-ui-workflow-generation-loading-dots {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.chat-ui-workflow-generation-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Workflow Generation Modal - Mobile */
+.is-mobile .chat-ui-workflow-generation-request {
+  flex-shrink: 0;
+  max-height: 60px;
+  overflow-y: auto;
+}
+
+.is-mobile .chat-ui-workflow-generation-status {
+  flex-shrink: 0;
+}
+
+.is-mobile .chat-ui-workflow-generation-buttons {
+  flex-shrink: 0;
+  padding-top: 8px;
+}
+
+.is-mobile .chat-ui-workflow-generation-buttons button {
+  width: 100%;
+  padding: 10px;
+}
+
+/* Single scrollable middle region holds explanation + diff + generation context.
+   Textarea and buttons sit below it, always visible at the bottom of the modal.
+   Uses block layout (not flex) so the diff view's internal structure renders
+   cleanly without flex-child constraints. Spacing is handled by child margins. */
+.chat-ui-ai-workflow-confirm-scrollable {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.chat-ui-ai-workflow-confirm-scrollable > * + * {
+  margin-top: 12px;
+}
+
+.chat-ui-ai-workflow-confirm-modal .chat-ui-ai-workflow-explanation,
+.chat-ui-ai-workflow-confirm-modal .chat-ui-ai-workflow-explanation *,
+.chat-ui-ai-workflow-confirm-modal .chat-ui-ai-workflow-confirm-diff-wrapper,
+.chat-ui-ai-workflow-confirm-modal .chat-ui-ai-workflow-confirm-diff-wrapper * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.chat-ui-ai-workflow-confirm-diff-wrapper {
+  min-height: 0;
+}
+
+/* Shown in place of a diff when old/new content is identical. */
+.chat-ui-ai-workflow-confirm-no-changes {
+  padding: 10px 14px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  background: var(--background-secondary);
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 6px;
+}
+
+/* Read-only display of the user's original request shown at the top of
+   the confirm modal so the user remembers what was asked. */
+.chat-ui-ai-workflow-confirm-user-request {
+  padding: 8px 12px;
+  background: var(--background-secondary);
+  border-left: 3px solid var(--interactive-accent);
+  border-radius: 4px;
+}
+
+.chat-ui-ai-workflow-confirm-user-request-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.chat-ui-ai-workflow-confirm-user-request-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chat-ui-ai-workflow-confirm-modal .chat-ui-workflow-preview-additional,
+.chat-ui-ai-workflow-confirm-modal .chat-ui-ai-workflow-buttons {
+  flex-shrink: 0;
+}
+
+/* Parse-failure recovery — raw response shown inside the generation modal
+   when the LLM output cannot be parsed as workflow YAML. */
+.chat-ui-workflow-generation-parse-failure {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--background-modifier-error-border, var(--background-modifier-error));
+  border-radius: 6px;
+  background: var(--background-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-ui-workflow-generation-parse-failure h3 {
+  margin: 0;
+  color: var(--text-error);
+}
+
+.chat-ui-workflow-generation-parse-failure-body {
+  max-height: 40vh;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  background: var(--background-primary);
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.chat-ui-workflow-generation-parse-failure-error {
+  margin: 0;
+  padding: 6px 8px;
+  background: var(--background-modifier-error);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-monospace);
+  color: var(--text-error);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+/* AI workflow generation modals (sections, states and mobile) */
+
+.chat-ui-autocomplete-item.active .chat-ui-preview-btn {
+  color: var(--text-on-accent);
+}
+
+/* Plan section grows when active */
+.chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-plan-section:not(.is-collapsed):not(.is-hidden) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-plan-section:not(.is-collapsed):not(.is-hidden) .chat-ui-workflow-generation-plan {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+/* Review section grows when visible */
+.chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-review-section:not(.is-hidden) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-review-section:not(.is-hidden) .chat-ui-workflow-generation-review {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+/* Plan section */
+/* Plan and Review sections share a card-style layout */
+.chat-ui-workflow-generation-plan-section,
+.chat-ui-workflow-generation-review-section {
+  margin-bottom: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-ui-workflow-generation-plan-section.is-hidden,
+.chat-ui-workflow-generation-review-section.is-hidden {
+  display: none;
+}
+
+.chat-ui-workflow-generation-plan-section.is-collapsed {
+  display: none;
+}
+
+.chat-ui-workflow-generation-loading-dots .dot {
+  width: 6px;
+  height: 6px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  animation: workflow-dot-pulse 1.4s ease-in-out infinite;
+}
+
+.chat-ui-workflow-generation-loading-dots .dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.chat-ui-workflow-generation-loading-dots .dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.is-mobile .chat-ui-workflow-generation-modal-content,
+.is-mobile .chat-ui-workflow-preview-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.is-mobile .chat-ui-workflow-generation-modal-content .modal-drag-handle,
+.is-mobile .chat-ui-workflow-preview-modal-content .modal-drag-handle {
+  flex-shrink: 0;
+  cursor: default;
+}
+
+/* Reduce content height when textarea is focused on mobile */
+.is-mobile .chat-ui-workflow-preview-modal-content.textarea-focused .modal-drag-handle {
+  display: none;
+}
+
+.is-mobile .chat-ui-workflow-preview-modal-content.textarea-focused .chat-ui-workflow-preview-nodes {
+  max-height: 30vh;
+  min-height: 60px;
+  flex: 0 0 auto;
+}
+
+.is-mobile .chat-ui-workflow-preview-modal-content.textarea-focused {
+  height: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
+}
+
+.is-mobile .chat-ui-workflow-preview-modal-content.textarea-focused .chat-ui-workflow-preview-additional-input {
+  height: 60px;
+  min-height: 60px;
+  max-height: 60px;
+  resize: none;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.is-mobile .chat-ui-workflow-preview-modal-content.textarea-focused .chat-ui-workflow-preview-buttons {
+  flex-shrink: 0;
+  margin-top: 8px;
+}
