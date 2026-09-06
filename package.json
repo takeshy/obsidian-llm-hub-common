@@ -67,6 +67,11 @@
       "types": "./vault.d.ts",
       "import": "./dist/vault/index.js",
       "default": "./dist/vault/index.js"
+    },
+    "./mcp": {
+      "types": "./mcp.d.ts",
+      "import": "./dist/mcp/index.js",
+      "default": "./dist/mcp/index.js"
     }
   },
   "files": [
@@ -77,6 +82,7 @@
     "core.d.ts",
     "dist",
     "i18n.d.ts",
+    "mcp.d.ts",
     "modals.d.ts",
     "obsidian.d.ts",
     "plugin.d.ts",
