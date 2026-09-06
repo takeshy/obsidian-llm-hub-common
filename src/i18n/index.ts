@@ -52,6 +52,9 @@ export function t(key: string, vars?: TranslationVars): string {
 }
 
 import { en } from "./catalogues/en.js";
+
+/** Keys this package defines. Hosts union it with their own so shared strings stay callable. */
+export type SharedTranslationKey = keyof typeof en;
 import { ja } from "./catalogues/ja.js";
 import { es } from "./catalogues/es.js";
 import { fr } from "./catalogues/fr.js";
