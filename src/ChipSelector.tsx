@@ -36,13 +36,13 @@ export function ChipSelector({ classPrefix: p, ownerDocument, icon, addLabel, ch
 
   /** Position the dropdown above the selector, matching its full width. */
   const updatePosition = useCallback(() => {
-    const dropdown = dropdownRef.current, selector = selectorRef.current;
-    if (!dropdown || !selector) return;
+    const dropdown = dropdownRef.current, selector = selectorRef.current, view = ownerDocument.defaultView;
+    if (!dropdown || !selector || !view) return;
     const rect = selector.getBoundingClientRect();
     dropdown.style.left = `${rect.left}px`;
     dropdown.style.width = `${rect.width}px`;
-    dropdown.style.bottom = `${window.innerHeight - rect.top + 4}px`;
-  }, []);
+    dropdown.style.bottom = `${view.innerHeight - rect.top + 4}px`;
+  }, [ownerDocument]);
 
   useEffect(() => {
     if (!showDropdown) return;
@@ -50,12 +50,13 @@ export function ChipSelector({ classPrefix: p, ownerDocument, icon, addLabel, ch
       if (selectorRef.current && !selectorRef.current.contains(event.target as Node)
         && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setShowDropdown(false);
     };
+    const view = ownerDocument.defaultView;
     ownerDocument.addEventListener("mousedown", handleClick);
-    window.requestAnimationFrame(updatePosition);
-    window.addEventListener("resize", updatePosition);
+    view?.requestAnimationFrame(updatePosition);
+    view?.addEventListener("resize", updatePosition);
     return () => {
       ownerDocument.removeEventListener("mousedown", handleClick);
-      window.removeEventListener("resize", updatePosition);
+      view?.removeEventListener("resize", updatePosition);
     };
   }, [showDropdown, updatePosition, ownerDocument]);
 

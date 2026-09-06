@@ -6,7 +6,7 @@ import { join } from "node:path";
 import React, { useState, createRef } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons } from "../dist/index.js";
+import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit } from "../dist/index.js";
 const h = React.createElement;
 const render = element => { let tree; act(() => { tree = TestRenderer.create(element); }); return tree; };
 const buttons = tree => tree.root.findAllByType("button");
@@ -254,5 +254,61 @@ test("input buttons wire the paperclip to the hidden file input and keep host bu
   assert.equal(picked, 1);
   act(() => tree.update(h(InputButtons, { classPrefix: "llm-hub", attach: { ...attach, disabled: true } })));
   assert.equal(buttons(tree)[0].props.disabled, true);
+  act(() => tree.unmount());
+});
+
+test("search selector summarises the active sources and drops web search for hosts without it", () => {
+  const picked = [], webToggles = [];
+  const ownerDocument = { addEventListener() {}, removeEventListener() {} };
+  const labels = { webSearch: "Web search", rag: name => `RAG: ${name}`, ragNone: "RAG: none", none: "No search" };
+  const props = {
+    classPrefix: "llm-hub", ownerDocument, labels,
+    webSearch: { checked: false, disabled: false, onChange: checked => webToggles.push(checked) },
+    rag: { settings: ["notes", "papers"], selected: null, disabled: false, onSelect: name => picked.push(name) },
+  };
+  const tree = render(h(SearchSelector, props));
+  const button = () => buttons(tree)[0];
+  assert.equal(button().props.children[0], "No search");
+  act(() => button().props.onClick());
+  const options = tree.root.findAllByType("input");
+  assert.deepEqual(options.map(input => input.props.type), ["checkbox", "radio", "radio", "radio"]);
+  act(() => options[0].props.onChange({ target: { checked: true } }));
+  assert.deepEqual(webToggles, [true]);
+  act(() => options[3].props.onChange());
+  assert.deepEqual(picked, ["papers"]);
+  act(() => tree.update(h(SearchSelector, { ...props, webSearch: { ...props.webSearch, checked: true }, rag: { ...props.rag, selected: "papers" } })));
+  assert.equal(button().props.children[0], "Web search + papers");
+  act(() => tree.update(h(SearchSelector, { ...props, webSearch: undefined, rag: { ...props.rag, selected: "notes" } })));
+  assert.equal(button().props.children[0], "RAG: notes");
+  assert.deepEqual(tree.root.findAllByType("input").map(input => input.props.type), ["radio", "radio", "radio"]);
+  act(() => tree.unmount());
+});
+
+test("model row wraps the picker and its dropdowns, labelling the row only when asked", () => {
+  const chosen = [];
+  const dropdown = h(ModelDropdown, { classPrefix: "llm-hub", value: "high", title: "Reasoning effort", className: "llm-hub-effort-select",
+    options: [{ value: "low", label: "low" }, { value: "high", label: "high" }], onChange: value => chosen.push(value) });
+  const tree = render(h(ModelRow, { classPrefix: "llm-hub" }, dropdown));
+  const select = tree.root.findByType("select");
+  assert.equal(select.props.className, "llm-hub-model-dropdown llm-hub-effort-select");
+  assert.equal(select.props.value, "high");
+  assert.deepEqual(select.props.children.map(option => option.props.value), ["low", "high"]);
+  act(() => select.props.onChange({ target: { value: "low" } }));
+  assert.deepEqual(chosen, ["low"]);
+  assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-model-label").length, 0);
+  act(() => tree.update(h(ModelRow, { classPrefix: "llm-hub", label: "Model" }, dropdown)));
+  assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-model-label").length, 1);
+  act(() => tree.unmount());
+});
+
+test("history limit offers every count up to the cap and reports numbers, not strings", () => {
+  const chosen = [];
+  const tree = render(h(HistoryLimit, { classPrefix: "llm-hub", label: "History", value: 4, max: 9, onChange: count => chosen.push(count) }));
+  const select = tree.root.findByType("select");
+  assert.equal(select.props.children.length, 10);
+  assert.equal(select.props.value, 4);
+  act(() => select.props.onChange({ target: { value: "7" } }));
+  assert.deepEqual(chosen, [7]);
+  assert.equal(tree.root.findAll(node => node.props.className === "llm-hub-vault-tool-separator").length, 1);
   act(() => tree.unmount());
 });

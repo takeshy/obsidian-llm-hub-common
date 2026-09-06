@@ -1,4 +1,4 @@
-import { Fragment, type ChangeEvent, type ReactNode, type Ref, type TextareaHTMLAttributes, type MouseEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type ChangeEvent, type ReactNode, type Ref, type TextareaHTMLAttributes, type MouseEvent } from "react";
 import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, Database, Wrench, X, Paperclip } from "lucide-react";
 
 export interface ChatMessage {
@@ -174,6 +174,86 @@ export function InputArea({ classPrefix: p, className, collapsed, beforeInput, a
   </div>;
 }
 
+export interface ModelDropdownOption { value: string; label: string }
+
+/** The small select used beside the model picker for effort, variants and the like. */
+export function ModelDropdown({ classPrefix: p, value, options, onChange, title, disabled, className }: StyleProps & { value: string; options: readonly ModelDropdownOption[]; onChange: (value: string) => void; title: string; disabled?: boolean; className?: string }) {
+  return <select className={[`${p}-model-dropdown`, className].filter(Boolean).join(" ")} value={value}
+    onChange={event => onChange(event.target.value)} disabled={disabled} title={title} aria-label={title}>
+    {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+  </select>;
+}
+
+/** The row under the composer: model picker, its dropdowns and the search selector. */
+export function ModelRow({ classPrefix: p, label, children }: StyleProps & { label?: ReactNode; children: ReactNode }) {
+  return <div className={`${p}-model-selector`}>
+    {label !== undefined && <label className={`${p}-model-label`}>{label}</label>}
+    {children}
+  </div>;
+}
+
+export interface SearchSelectorProps extends StyleProps {
+  /** Obsidian popout windows own their document, so hosts pass `activeDocument`. */
+  ownerDocument: Document;
+  labels: { webSearch: string; rag: (name: string) => string; ragNone: string; none: string };
+  /** Left out by hosts without a web search provider; RAG-only plugins pass nothing. */
+  webSearch?: { checked: boolean; disabled: boolean; onChange: (checked: boolean) => void };
+  rag: { settings: readonly string[]; selected: string | null; disabled: boolean; onSelect: (name: string | null) => void };
+  disabled?: boolean;
+}
+
+/** One control for web search and RAG selection; RAG is off when nothing is selected. */
+export function SearchSelector({ classPrefix: p, ownerDocument, labels, webSearch, rag, disabled }: SearchSelectorProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (event: Event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      buttonRef.current?.focus();
+    };
+    ownerDocument.addEventListener("mousedown", handleClick);
+    ownerDocument.addEventListener("keydown", handleEscape);
+    // Land on the first choice the user can actually change.
+    ownerDocument.defaultView?.setTimeout(() => menuRef.current?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus(), 0);
+    return () => {
+      ownerDocument.removeEventListener("mousedown", handleClick);
+      ownerDocument.removeEventListener("keydown", handleEscape);
+    };
+  }, [open, ownerDocument]);
+
+  const summary = webSearch?.checked && rag.selected ? `${labels.webSearch} + ${rag.selected}`
+    : webSearch?.checked ? labels.webSearch
+    : rag.selected ? labels.rag(rag.selected)
+    : labels.none;
+  const option = (key: string, label: string, input: ReactNode, muted: boolean) =>
+    <label key={key} className={[`${p}-search-selector-option`, muted && "disabled"].filter(Boolean).join(" ")}>{input}<span>{label}</span></label>;
+
+  return <div className={`${p}-search-selector`} ref={containerRef}>
+    <button ref={buttonRef} type="button" className={`${p}-model-dropdown ${p}-rag-select ${p}-search-selector-button`}
+      onClick={() => setOpen(!open)} disabled={disabled} aria-haspopup="menu" aria-expanded={open}>
+      {summary}<ChevronDown size={13} aria-hidden="true" />
+    </button>
+    {open && <div className={`${p}-search-selector-menu`} role="menu" ref={menuRef}>
+      {webSearch && <>
+        {option("web", labels.webSearch, <input type="checkbox" checked={webSearch.checked} disabled={webSearch.disabled}
+          onChange={event => webSearch.onChange(event.target.checked)} />, webSearch.disabled)}
+        <div className={`${p}-search-selector-separator`} />
+      </>}
+      {option("rag-none", labels.ragNone, <input type="radio" name={`${p}-rag-setting`} checked={rag.selected === null}
+        disabled={rag.disabled} onChange={() => rag.onSelect(null)} />, rag.disabled)}
+      {rag.settings.map(name => option(`rag-${name}`, labels.rag(name), <input type="radio" name={`${p}-rag-setting`}
+        checked={rag.selected === name} disabled={rag.disabled} onChange={() => rag.onSelect(name)} />, rag.disabled))}
+    </div>}
+  </div>;
+}
+
 /** The hidden file input, the paperclip that opens it, and the row of accessory buttons beside it. */
 export function InputButtons({ classPrefix: p, attach, children }: StyleProps & { attach: { title: string; accept: string; inputRef: Ref<HTMLInputElement>; disabled?: boolean; onOpenPicker: () => void; onSelect: (event: ChangeEvent<HTMLInputElement>) => void }; children?: ReactNode }) {
   return <>
@@ -191,6 +271,19 @@ export function VaultToolButton({ classPrefix: p, title, active, disabled, onCli
     <button className={[`${p}-vault-tool-btn`, active && "active"].filter(Boolean).join(" ")} onClick={onClick} disabled={disabled} title={title}><Database size={18} /></button>
     {children}
   </div>;
+}
+
+/** How many earlier messages ride along with the next send; 0 means only the new one. */
+export function HistoryLimit({ classPrefix: p, label, value, onChange, max = 99 }: StyleProps & { label: string; value: number; onChange: (count: number) => void; max?: number }) {
+  return <>
+    <div className={`${p}-vault-tool-separator`} />
+    <label className={`${p}-vault-tool-checkbox`}>
+      <span>{label}</span>
+      <select value={value} onChange={event => onChange(Number(event.target.value))}>
+        {Array.from({ length: max + 1 }, (_, count) => <option key={count} value={count}>{count}</option>)}
+      </select>
+    </label>
+  </>;
 }
 
 /** `hint` and `toolsTitle` are required so every server says what it brings. */
