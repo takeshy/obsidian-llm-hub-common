@@ -10,3 +10,4 @@ export * from "./triggers.js";
 export * from "./host.js";
 export * from "./executor.js";
 export * from "./handlers/index.js";
+export * from "./spec.js";

@@ -52,8 +52,8 @@ export type WorkflowNodeType =
   | "script"
   | "shell";
 
-/** All valid workflow node type values. Single source of truth for validation. */
-const WORKFLOW_NODE_TYPES: ReadonlySet<string> = new Set<WorkflowNodeType>([
+/** All valid workflow node type values. Single source of truth for validation and docs. */
+export const WORKFLOW_NODE_TYPES: ReadonlySet<string> = new Set<WorkflowNodeType>([
   "variable", "set", "if", "while", "command", "http", "json",
   "note", "note-read", "note-search", "note-list", "folder-list",
   "open", "dialog", "prompt-file", "prompt-selection",
