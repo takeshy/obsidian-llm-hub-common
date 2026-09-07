@@ -146,6 +146,8 @@ test("shared markup check reports host copies of library UI and honors the allow
       'const btn = <button className="llm-hub-vault-tool-btn" />;',
     ].join("\n"));
     assert.ok((await sharedStyledClasses()).has("vault-tool-menu"));
+    assert.ok((await sharedStyledClasses()).has("search-selector-menu"));
+    assert.ok((await sharedStyledClasses()).has("search-selector-option"));
     const findings = await findSharedMarkup({ dir, classPrefix: "llm-hub" });
     assert.deepEqual(findings.map(finding => [finding.className, finding.line]), [["llm-hub-vault-tool-menu", 1], ["llm-hub-vault-tool-btn", 3]]);
     const allowed = await findSharedMarkup({ dir, classPrefix: "llm-hub", allow: ["vault-tool-menu", "vault-tool-btn"] });
