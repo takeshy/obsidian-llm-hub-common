@@ -1,6 +1,7 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { Message } from "../core/message.js";
 import { tracing } from "../core/tracingHooks.js";
+import type { CliSessionInfo } from "./chatUtils.js";
 import type { StreamSession } from "./useChatStreamSessions.js";
 
 /** The chat view state a turn moves while it runs. */
@@ -35,6 +36,12 @@ export interface ChatTurnOutcome {
   metadata?: Record<string, unknown>;
   /** Defaults to a completed turn, or to an abandoned one when there is no message. */
   status?: { value: number; comment: string };
+  /**
+   * The CLI session to record with the chat. Null clears the one it had, which
+   * is what a turn served by something other than a CLI has to say; leaving it
+   * out keeps whatever the chat already carries.
+   */
+  cliSession?: CliSessionInfo | null;
 }
 
 export interface ChatTurnStart<C> {
@@ -115,7 +122,7 @@ export async function runChatTurn<C = void>(ui: ChatTurnUi, request: ChatTurnReq
     const outcome: ChatTurnOutcome = "role" in result ? { message: result } : result;
 
     if (outcome.message) {
-      await session.saveResult([...history, userMessage, outcome.message]);
+      await session.saveResult([...history, userMessage, outcome.message], outcome.cliSession);
       tracing.traceEnd(traceId, {
         output: outcome.output ?? outcome.message.content,
         metadata: outcome.metadata,
