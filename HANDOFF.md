@@ -126,8 +126,9 @@ b82fe2f feat(chat): own the rate limit retry loop
 
 ### 5.2 `core/gemini.ts`（着手済み）
 
-hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ2112行・2269行で、
+hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれぞれ2112行・2269行で、
 777行の差分まで広がっていたため、一括移動ではなく純粋な単位から共有する。
+2026-09-08時点ではそれぞれ1463行・1456行まで縮小済み。
 
 - Gemini の thinking level / config / 選択肢判定を
   `src/core/geminiThinking.ts` へ移動済み。`reasoningEffort: "default"` は legacy toggle
@@ -179,7 +180,36 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
 - Interactions tool loopの `function_result`、tool返却添付の`user_input`、上限通知の
   text `user_input` step構築を `src/core/geminiInteractions.ts` へ移動済み。
   tool実行・添付dedupe・上限判定は各pluginに残す。
-- 残りは tool loop、Interactions API の実行本体、画像生成など。
+
+#### 5.2.1 残り（優先順）
+
+1. **Interactions main streamのevent reducer**
+   - `interaction.created`、`step.start/delta/stop`、status/usage/errorを1 round分の
+     状態へ反映する部分。text/thinking/tool call/searchのyieldとtracingが絡むため、
+     reducerは純粋処理、yield/tracingはplugin callbackに分ける。
+   - helperのnative File Search（annotation/context収集）とhubのGenerateContent
+     事前取得はpolicyとして注入し、同一実装へ押し込まない。
+2. **Interactions function tool execution loop**
+   - tool callの表示、実行、trace、result/添付収集、次round input生成はほぼ同じ。
+   - hubは固定上限、helperはユーザー承認による上限延長があるため、warning/延長/
+     最終回答への遷移をpolicy callbackにしてから共通化する。
+3. **GenerateContent function tool loop**
+   - stream消費、parts保存、tool実行、functionResponse生成が重複。
+   - helper側のRAG前処理と上限延長、tool混在設定の差を先にoption/policyへ分離する。
+4. **通常chat / chatStream**
+   - 現在の両実装は実質同一。SDK呼び出しとtracingを注入する小さなrunnerへ移せる。
+5. **generateWorkflowStream / deepResearchStream / generateImageStream**
+   - 本体はほぼ同一（コメント・整形程度の差）。polling、usage、画像parts解析を
+     個別helperへ分けた後、runnerを共有する。画像生成は最後に回してよい。
+
+#### 5.2.2 共通化せずplugin側に残すもの
+
+- SDK client生成、hubのproxy patch、desktop/mobile CORS fetch設定。
+- GenerateContent / Interactions APIの選択条件と対応モデル判定。
+- hubのGenerateContent File Search事前取得と、gemini-helperのInteractions native
+  File Search。**local-llm-hubはInteractions streaming共通化の対象外。**
+- gemini-helperのfunction call上限延長UI、hubの固定上限policy。
+- hubだけのprovider検証、各pluginのsingleton初期化引数。
 
 ### 5.3 動作確認（別端末でやってほしいこと）
 
