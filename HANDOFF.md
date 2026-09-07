@@ -152,6 +152,10 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
 - GenerateContent File Search の添付付きrequest構築と、grounding chunksから
   重複を除いたsource/contextを抽出・500文字へ制限する処理も
   `src/core/geminiInteractions.ts` へ移動済み。metadata filterはoptionalで共有する。
+- tool loopのfunction resultを安全にシリアライズし、500文字上限の
+  `[tool_call]` / `[tool_result]` traceへ変換する処理を
+  `src/core/geminiTools.ts` へ移動済み。両API経路で同じserialized resultを再利用し、
+  循環参照時もtrace生成で失敗しない。
 - 残りは tool loop、Interactions API の実行本体、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）

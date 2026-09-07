@@ -39,6 +39,27 @@ export function serializeGeminiFunctionResult(value: unknown): string {
   }
 }
 
+export interface PreparedGeminiToolResult {
+  serializedResult: string;
+  trace: string;
+}
+
+export function prepareGeminiToolResult(
+  name: string,
+  args: Record<string, unknown>,
+  result: unknown,
+  traceResultLimit = 500,
+): PreparedGeminiToolResult {
+  const serializedResult = serializeGeminiFunctionResult(result);
+  const traceResult = serializedResult.length > traceResultLimit
+    ? serializedResult.slice(0, traceResultLimit) + "..."
+    : serializedResult;
+  return {
+    serializedResult,
+    trace: `\n[tool_call: ${name}(${JSON.stringify(args)})]\n[tool_result: ${traceResult}]\n`,
+  };
+}
+
 /** Collect unique HTTP(S) sources from Gemini tool responses and attribution HTML. */
 export function collectGeminiWebSources(value: unknown, sources: WebSearchSource[]): void {
   if (typeof value === "string") {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   collectGeminiWebSources,
+  prepareGeminiToolResult,
   sanitizeGeminiFunctionResult,
   serializeGeminiFunctionResult,
 } from "./geminiTools.js";
@@ -36,5 +37,17 @@ describe("Gemini tool helpers", () => {
       { title: "Result B", url: "https://example.com/b" },
       { title: "Result C", url: "https://example.com/c?a=1&b=2" },
     ]);
+  });
+
+  it("prepares a safe, bounded tool trace and reusable serialized result", () => {
+    const prepared = prepareGeminiToolResult("search", { query: "notes" }, { text: "abcdefgh" }, 5);
+    expect(prepared.serializedResult).toBe('{"text":"abcdefgh"}');
+    expect(prepared.trace).toBe(
+      '\n[tool_call: search({"query":"notes"})]\n[tool_result: {"tex...]\n',
+    );
+
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(prepareGeminiToolResult("read", {}, circular).serializedResult).toBe("null");
   });
 });
