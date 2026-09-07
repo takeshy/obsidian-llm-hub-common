@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import type { McpAppResult, McpAppUiResource } from "../core/message.js";
 import type { McpServerConfig } from "../core/mcpTypes.js";
 import type { IMcpClient } from "../mcp/httpClient.js";
@@ -26,6 +27,9 @@ interface JsonRpcResponse {
     data?: unknown;
   };
 }
+
+interface FloatingFrame { left: number; top: number; width: number; height: number }
+interface PointerStart extends FloatingFrame { x: number; y: number }
 
 interface McpAppRendererProps {
   classPrefix?: string;
@@ -72,11 +76,63 @@ export function McpAppRenderer({
   onToggleExpand,
 }: McpAppRendererProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const appRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<PointerStart | null>(null);
+  const resizeStartRef = useRef<PointerStart | null>(null);
   const [loading, setLoading] = useState(!initialUiResource);
   const [error, setError] = useState<string | null>(null);
   const [uiResource, setUiResource] = useState<McpAppUiResource | null>(initialUiResource || null);
   const [iframeHtml, setIframeHtml] = useState<string | null>(null);
   const clientRef = useRef<IMcpClient | null>(null);
+  const [floatingFrame, setFloatingFrame] = useState<FloatingFrame | null>(null);
+
+  useEffect(() => {
+    if (!expanded) { setFloatingFrame(null); return; }
+    const view = appRef.current?.ownerDocument.defaultView ?? window;
+    const width = Math.max(360, Math.min(960, view.innerWidth * 0.8));
+    const height = Math.max(280, Math.min(720, view.innerHeight * 0.8));
+    setFloatingFrame({
+      left: Math.max(8, (view.innerWidth - width) / 2),
+      top: Math.max(8, (view.innerHeight - height) / 2),
+      width,
+      height,
+    });
+  }, [expanded]);
+
+  const startPointer = (event: ReactPointerEvent<HTMLElement>, target: "drag" | "resize") => {
+    if (!expanded || !appRef.current) return;
+    if (target === "drag" && (event.target as Element).closest("button")) return;
+    const rect = appRef.current.getBoundingClientRect();
+    const start = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    if (target === "drag") dragStartRef.current = start;
+    else resizeStartRef.current = start;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+
+  const moveDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    const start = dragStartRef.current;
+    if (!start) return;
+    const view = event.currentTarget.ownerDocument.defaultView ?? window;
+    const left = Math.min(view.innerWidth - 80, Math.max(8 - start.width + 80, start.left + event.clientX - start.x));
+    const top = Math.min(view.innerHeight - 48, Math.max(8, start.top + event.clientY - start.y));
+    setFloatingFrame({ left, top, width: start.width, height: start.height });
+  };
+
+  const moveResize = (event: ReactPointerEvent<HTMLElement>) => {
+    const start = resizeStartRef.current;
+    if (!start) return;
+    const view = event.currentTarget.ownerDocument.defaultView ?? window;
+    const width = Math.max(360, Math.min(view.innerWidth - start.left - 8, start.width + event.clientX - start.x));
+    const height = Math.max(280, Math.min(view.innerHeight - start.top - 8, start.height + event.clientY - start.y));
+    setFloatingFrame({ left: start.left, top: start.top, width, height });
+  };
+
+  const stopPointer = (event: ReactPointerEvent<HTMLElement>, target: "drag" | "resize") => {
+    if (target === "drag") dragStartRef.current = null;
+    else resizeStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
 
   // Get the UI resource URI from the tool result
   const resourceUri = toolResult._meta?.ui?.resourceUri;
@@ -290,8 +346,10 @@ export function McpAppRenderer({
   }
 
   return (
-    <div className={`${classPrefix}-mcp-app ${expanded ? cls("mcp-app-expanded") : ""}`}>
-      <div className={cls("mcp-app-header")}>
+    <div ref={appRef} className={`${classPrefix}-mcp-app ${expanded ? cls("mcp-app-expanded") : ""}`}
+      style={expanded && floatingFrame ? ({ left: floatingFrame.left, top: floatingFrame.top, width: floatingFrame.width, height: floatingFrame.height } satisfies CSSProperties) : undefined}>
+      <div className={cls("mcp-app-header")} onPointerDown={event => startPointer(event, "drag")}
+        onPointerMove={moveDrag} onPointerUp={event => stopPointer(event, "drag")} onPointerCancel={event => stopPointer(event, "drag")}>
         <span className={cls("mcp-app-indicator")}>
           🖥️ {t("mcpApp.title")}
         </span>
@@ -315,6 +373,9 @@ export function McpAppRenderer({
         data-height={height}
         title="MCP App"
       />
+      {expanded && <div className={cls("mcp-app-resize-handle")} role="separator" aria-label={t("dashboard.dragToResize")}
+        onPointerDown={event => startPointer(event, "resize")} onPointerMove={moveResize}
+        onPointerUp={event => stopPointer(event, "resize")} onPointerCancel={event => stopPointer(event, "resize")} />}
     </div>
   );
 }
