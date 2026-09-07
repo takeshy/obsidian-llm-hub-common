@@ -23,6 +23,7 @@ export * from "./geminiUsage.js";
 export * from "./geminiTools.js";
 export * from "./geminiFetch.js";
 export * from "./geminiInteractions.js";
+export * from "./geminiToolLoop.js";
 export * from "./vaultTools.js";
 export * from "./searchSelection.js";
 export * from "./ragSettingStore.js";
