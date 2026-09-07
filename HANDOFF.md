@@ -168,6 +168,11 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
 - Interactions streamの `step.start` / 複数 `arguments_delta` / `step.stop` から
   function callを復元するaccumulatorを `src/core/geminiToolLoop.ts` へ移動済み。
   streamed JSONが壊れた場合は `step.start` のargumentsへfallbackする。
+- Interactions streamの `text_annotation_delta` からURL・ファイル名等のsourceを
+  抽出する処理、`file_search_result` のsource/context収集、completed stepsからの
+  fallback収集を `src/core/geminiInteractions.ts` へ移動済み。これはInteractionsの
+  イベント解析でありlocal pluginは対象外。hubのRAG事前取得とgemini helperの
+  native File Searchという実行経路の差は維持している。
 - 残りは tool loop、Interactions API の実行本体、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）

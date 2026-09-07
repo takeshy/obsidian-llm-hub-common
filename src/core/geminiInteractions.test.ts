@@ -5,6 +5,9 @@ import {
   buildGeminiGenerateContentTools,
   buildGeminiInteractionTools,
   buildGeminiRagRequest,
+  collectGeminiInteractionAnnotationSources,
+  collectGeminiInteractionFileSearchResult,
+  collectGeminiInteractionStepSources,
   extractGeminiRagContexts,
   messagesToGeminiContents,
 } from "./geminiInteractions.js";
@@ -219,6 +222,43 @@ describe("Gemini Interactions helpers", () => {
         { source: "Note", text: "first excerpt" },
         { source: "vault://other", text: `${longText.replace(/\s+/g, " ").trim().slice(0, 500)}...` },
       ],
+    });
+  });
+
+  it("collects and deduplicates Interactions annotation sources", () => {
+    const sources = ["existing"];
+    collectGeminiInteractionAnnotationSources(sources, [
+      { url: " https://example.com " },
+      { file_name: "Note.md" },
+      { document_uri: "vault://note" },
+      { name: "Place" },
+      { place_id: "place-1" },
+      { source: "existing" },
+      null,
+    ]);
+    expect(sources).toEqual([
+      "existing",
+      "https://example.com",
+      "Note.md",
+      "vault://note",
+      "Place",
+      "place-1",
+    ]);
+  });
+
+  it("collects streamed and completed Interactions File Search sources", () => {
+    const collection = { sources: [] as string[], contexts: [] as Array<{ source: string; text: string }> };
+    collectGeminiInteractionFileSearchResult(collection, { title: " Note ", text: " first   excerpt " });
+    collectGeminiInteractionStepSources(collection, [{
+      type: "model_output",
+      content: [{ type: "text", annotations: [{ file_name: "Other.md" }] }],
+    }, {
+      type: "file_search_result",
+      result: [{ title: "Note", text: "first excerpt" }],
+    }]);
+    expect(collection).toEqual({
+      sources: ["Note", "Other.md"],
+      contexts: [{ source: "Note", text: "first excerpt" }],
     });
   });
 });

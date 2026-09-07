@@ -67,6 +67,89 @@ export interface GeminiRagRequest {
   }>;
 }
 
+export interface GeminiInteractionSourceCollection {
+  sources: string[];
+  contexts: RagContext[];
+}
+
+type GeminiInteractionAnnotationLike = {
+  source?: string;
+  url?: string;
+  file_name?: string;
+  document_uri?: string;
+  name?: string;
+  place_id?: string;
+};
+
+function appendUniqueGeminiSource(sources: string[], source: string): void {
+  if (source && !sources.includes(source)) sources.push(source);
+}
+
+/** Collect citation labels emitted by an Interactions text_annotation_delta. */
+export function collectGeminiInteractionAnnotationSources(
+  sources: string[],
+  annotations: unknown,
+): void {
+  if (!Array.isArray(annotations)) return;
+  for (const annotation of annotations as GeminiInteractionAnnotationLike[]) {
+    const source = String(
+      annotation?.url ??
+      annotation?.file_name ??
+      annotation?.document_uri ??
+      annotation?.name ??
+      annotation?.place_id ??
+      annotation?.source ??
+      "",
+    ).trim();
+    appendUniqueGeminiSource(sources, source);
+  }
+}
+
+/** Collect one streamed File Search result and its bounded display excerpt. */
+export function collectGeminiInteractionFileSearchResult(
+  collection: GeminiInteractionSourceCollection,
+  raw: unknown,
+): void {
+  const result = raw as { title?: string; text?: string } | undefined;
+  const source = String(result?.title ?? "").trim();
+  appendUniqueGeminiSource(collection.sources, source);
+  const normalizedText = String(result?.text ?? "").replace(/\s+/g, " ").trim();
+  if (!source || !normalizedText) return;
+  const text = normalizedText.length > 500
+    ? normalizedText.slice(0, 500) + "..."
+    : normalizedText;
+  if (!collection.contexts.some(context => context.source === source && context.text === text)) {
+    collection.contexts.push({ source, text });
+  }
+}
+
+/** Fallback source collection for completed/non-streaming Interactions step payloads. */
+export function collectGeminiInteractionStepSources(
+  collection: GeminiInteractionSourceCollection,
+  steps: unknown,
+): void {
+  if (!Array.isArray(steps)) return;
+  for (const step of steps as Array<{ type?: string; content?: unknown[]; result?: unknown[] }>) {
+    if (step?.type === "file_search_result" && Array.isArray(step.result)) {
+      for (const result of step.result) collectGeminiInteractionFileSearchResult(collection, result);
+    }
+    if (step?.type !== "model_output" || !Array.isArray(step.content)) continue;
+    for (const content of step.content as Array<{
+      type?: string;
+      result?: unknown[];
+      annotations?: unknown;
+    }>) {
+      // Kept for compatibility with legacy-shaped payloads where results were content.
+      if (content?.type === "file_search_result" && Array.isArray(content.result)) {
+        for (const result of content.result) collectGeminiInteractionFileSearchResult(collection, result);
+      }
+      if (content?.type === "text") {
+        collectGeminiInteractionAnnotationSources(collection.sources, content.annotations);
+      }
+    }
+  }
+}
+
 export function buildGeminiMessageParts(message: Message): GeminiContentPart[] {
   const parts: GeminiContentPart[] = [];
   for (const attachment of message.attachments ?? []) {
