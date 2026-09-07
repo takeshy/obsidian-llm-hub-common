@@ -138,7 +138,9 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
 - Gemini function result の正規化・安全なシリアライズと、tool response / attribution
   HTML からの web source 抽出を `src/core/geminiTools.ts` へ移動済み。循環参照は
   stack overflow にせず安全な `"null"` へフォールバックする。
-- 残りは CORS fetch、tool loop、Interactions API、画像生成など。
+- Interactions API 用の desktop streaming / mobile buffered CORS 回避 fetch を
+  `src/core/geminiFetch.ts` へ移動済み。
+- 残りは tool loop、Interactions API 本体、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）
 

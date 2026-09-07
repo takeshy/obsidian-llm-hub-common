@@ -21,6 +21,7 @@ export * from "./modelListing.js";
 export * from "./geminiThinking.js";
 export * from "./geminiUsage.js";
 export * from "./geminiTools.js";
+export * from "./geminiFetch.js";
 export * from "./vaultTools.js";
 export * from "./searchSelection.js";
 export * from "./ragSettingStore.js";
