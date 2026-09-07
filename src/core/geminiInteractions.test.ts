@@ -4,6 +4,8 @@ import {
   buildGeminiInteractionInput,
   buildGeminiGenerateContentTools,
   buildGeminiInteractionTools,
+  buildGeminiRagRequest,
+  extractGeminiRagContexts,
   messagesToGeminiContents,
 } from "./geminiInteractions.js";
 
@@ -176,5 +178,47 @@ describe("Gemini Interactions helpers", () => {
       { googleSearch: {} },
     ]);
     expect(buildGeminiGenerateContentTools([], false)).toBeUndefined();
+  });
+
+  it("builds an attachment-aware File Search request with metadata filtering", () => {
+    expect(buildGeminiRagRequest("question", ["stores/docs"], 7, "kind = note", [{
+      name: "image.png",
+      type: "image",
+      mimeType: "image/png",
+      data: "image-data",
+    }])).toEqual({
+      parts: [
+        { inlineData: { mimeType: "image/png", data: "image-data" } },
+        { text: "question" },
+      ],
+      tools: [{
+        fileSearch: {
+          fileSearchStoreNames: ["stores/docs"],
+          topK: 7,
+          metadataFilter: "kind = note",
+        },
+      }],
+    });
+  });
+
+  it("deduplicates and truncates retrieved RAG contexts", () => {
+    const longText = "word ".repeat(120);
+    expect(extractGeminiRagContexts({
+      candidates: [{
+        groundingMetadata: {
+          groundingChunks: [
+            { retrievedContext: { title: "Note", text: " first   excerpt " } },
+            { retrievedContext: { title: "Note", text: " first   excerpt " } },
+            { retrievedContext: { uri: "vault://other", text: longText } },
+          ],
+        },
+      }],
+    })).toEqual({
+      sources: ["Note", "vault://other"],
+      contexts: [
+        { source: "Note", text: "first excerpt" },
+        { source: "vault://other", text: `${longText.replace(/\s+/g, " ").trim().slice(0, 500)}...` },
+      ],
+    });
   });
 });

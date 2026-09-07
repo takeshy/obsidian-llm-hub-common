@@ -149,6 +149,9 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
   GenerateContent と Interactions の選択条件はホスト差があるため各 plugin に残す。
 - Interactions API の text / image / audio / video / PDF 添付入力と、ローカル履歴を
   transcript として再生する入力構築を `src/core/geminiInteractions.ts` へ移動済み。
+- GenerateContent File Search の添付付きrequest構築と、grounding chunksから
+  重複を除いたsource/contextを抽出・500文字へ制限する処理も
+  `src/core/geminiInteractions.ts` へ移動済み。metadata filterはoptionalで共有する。
 - 残りは tool loop、Interactions API の実行本体、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）

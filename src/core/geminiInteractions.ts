@@ -1,4 +1,4 @@
-import type { Message } from "./message.js";
+import type { Message, RagContext } from "./message.js";
 import type { ToolDefinition, ToolPropertyDefinition } from "./provider.js";
 
 export interface GeminiContentPart {
@@ -55,6 +55,17 @@ export type GeminiGenerateContentTool =
     }>;
   }
   | { googleSearch: Record<string, never> };
+
+export interface GeminiRagRequest {
+  parts: GeminiContentPart[];
+  tools: Array<{
+    fileSearch: {
+      fileSearchStoreNames: string[];
+      topK: number;
+      metadataFilter?: string;
+    };
+  }>;
+}
 
 export function buildGeminiMessageParts(message: Message): GeminiContentPart[] {
   const parts: GeminiContentPart[] = [];
@@ -117,6 +128,62 @@ export function buildGeminiHistoryReplayInput(
   if (Array.isArray(lastParts)) contents.push(...lastParts);
   else contents.push({ type: "text", text: lastParts });
   return contents;
+}
+
+export function buildGeminiRagRequest(
+  userMessage: string,
+  ragStoreIds: string[],
+  topK: number,
+  metadataFilter?: string,
+  attachments?: Message["attachments"],
+): GeminiRagRequest {
+  const parts: GeminiContentPart[] = [];
+  for (const attachment of attachments ?? []) {
+    parts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
+  }
+  if (userMessage || !attachments?.length) parts.push({ text: userMessage });
+  return {
+    parts,
+    tools: [{
+      fileSearch: {
+        fileSearchStoreNames: ragStoreIds,
+        topK,
+        ...(metadataFilter ? { metadataFilter } : {}),
+      },
+    }],
+  };
+}
+
+export function extractGeminiRagContexts(response: unknown): {
+  sources: string[];
+  contexts: RagContext[];
+} {
+  const candidates = (response as {
+    candidates?: Array<{
+      groundingMetadata?: {
+        groundingChunks?: Array<{
+          retrievedContext?: { title?: string; text?: string; uri?: string };
+        }>;
+      };
+    }>;
+  } | undefined)?.candidates;
+  const chunks = candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+  const sources: string[] = [];
+  const contexts: RagContext[] = [];
+  for (const chunk of chunks) {
+    const retrieved = chunk.retrievedContext;
+    if (!retrieved) continue;
+    const source = String(retrieved.title ?? retrieved.uri ?? "").trim();
+    if (!source) continue;
+    if (!sources.includes(source)) sources.push(source);
+    const normalizedText = String(retrieved.text ?? "").replace(/\s+/g, " ").trim();
+    if (!normalizedText) continue;
+    const text = normalizedText.length > 500 ? normalizedText.slice(0, 500) + "..." : normalizedText;
+    if (!contexts.some(context => context.source === source && context.text === text)) {
+      contexts.push({ source, text });
+    }
+  }
+  return { sources, contexts };
 }
 
 function geminiToolPropertyToJsonSchema(property: ToolPropertyDefinition): Record<string, unknown> {
