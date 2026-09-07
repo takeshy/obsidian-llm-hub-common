@@ -134,6 +134,9 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
   より優先し、モデル既定へ委ねる契約を共有テストで固定した。
 - Gemini の usage metadata 変換、複数 round の集計、stream usage 変換、料金表、
   grounding cost、finish reason のエラー判定を `src/core/geminiUsage.ts` へ移動済み。
+- Gemini function result の正規化・安全なシリアライズと、tool response / attribution
+  HTML からの web source 抽出を `src/core/geminiTools.ts` へ移動済み。循環参照は
+  stack overflow にせず安全な `"null"` へフォールバックする。
 - 残りは CORS fetch、tool loop、Interactions API、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）
