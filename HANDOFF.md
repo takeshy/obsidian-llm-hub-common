@@ -165,6 +165,9 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
 - GenerateContentのpartsをtext/thinking/function call/Google Search tool responseへ
   分類する処理を `src/core/geminiTools.ts` へ移動済み。不正なfunction argsは
   空objectへ正規化し、元partsはthought signature保持のためplugin側でそのまま保存する。
+- Interactions streamの `step.start` / 複数 `arguments_delta` / `step.stop` から
+  function callを復元するaccumulatorを `src/core/geminiToolLoop.ts` へ移動済み。
+  streamed JSONが壊れた場合は `step.start` のargumentsへfallbackする。
 - 残りは tool loop、Interactions API の実行本体、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）

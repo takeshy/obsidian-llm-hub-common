@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  GeminiFunctionCallAccumulator,
   planGeminiFunctionCalls,
   requestGeminiFunctionCallLimitExtension,
 } from "./geminiToolLoop.js";
@@ -56,5 +57,29 @@ describe("Gemini tool loop limits", () => {
       1,
       1,
     )).resolves.toBe(20);
+  });
+
+  it("assembles fragmented function arguments and removes completed calls", () => {
+    const accumulator = new GeminiFunctionCallAccumulator();
+    accumulator.start(2, "call-2", "search");
+    accumulator.appendArguments(2, '{"query":');
+    accumulator.appendArguments(2, '"notes"}');
+    expect(accumulator.finish(2)).toEqual({
+      id: "call-2",
+      name: "search",
+      args: { query: "notes" },
+    });
+    expect(accumulator.finish(2)).toBeNull();
+  });
+
+  it("falls back to step.start arguments when streamed JSON is invalid", () => {
+    const accumulator = new GeminiFunctionCallAccumulator();
+    accumulator.start(1, "call-1", "read", { path: "note.md" });
+    accumulator.appendArguments(1, "{invalid");
+    expect(accumulator.finish(1)).toEqual({
+      id: "call-1",
+      name: "read",
+      args: { path: "note.md" },
+    });
   });
 });

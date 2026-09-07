@@ -53,3 +53,45 @@ export async function requestGeminiFunctionCallLimitExtension(
     : requested ? extensionAmount : 0;
   return acceptedAmount > 0 ? currentLimit + acceptedAmount : currentLimit;
 }
+
+export interface GeminiPendingFunctionCall {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+}
+
+export class GeminiFunctionCallAccumulator {
+  private pending = new Map<number, {
+    id: string;
+    name: string;
+    argsBuffer: string;
+    startArgs: Record<string, unknown>;
+  }>();
+
+  start(index: number, id: string, name: string, args: Record<string, unknown> = {}): void {
+    this.pending.set(index, { id, name, argsBuffer: "", startArgs: args });
+  }
+
+  appendArguments(index: number, argumentsDelta: string): void {
+    const pending = this.pending.get(index);
+    if (pending) pending.argsBuffer += argumentsDelta;
+  }
+
+  finish(index: number): GeminiPendingFunctionCall | null {
+    const pending = this.pending.get(index);
+    if (!pending) return null;
+    this.pending.delete(index);
+    let args = pending.startArgs;
+    if (pending.argsBuffer) {
+      try {
+        const parsed = JSON.parse(pending.argsBuffer) as unknown;
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          args = parsed as Record<string, unknown>;
+        }
+      } catch {
+        // Keep the complete arguments supplied by step.start.
+      }
+    }
+    return { id: pending.id, name: pending.name, args };
+  }
+}
