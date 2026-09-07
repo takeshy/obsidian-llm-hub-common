@@ -1,6 +1,6 @@
 # 引き継ぎ: 3プラグインの共通化リファクタリング
 
-最終更新: 2026-09-07 / 別端末へ引き継ぐ時点の状態。
+最終更新: 2026-09-08 / Interactions main stream reducerの共通化まで完了。
 
 ## 1. このタスク
 
@@ -128,7 +128,7 @@ b82fe2f feat(chat): own the rate limit retry loop
 
 hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれぞれ2112行・2269行で、
 777行の差分まで広がっていたため、一括移動ではなく純粋な単位から共有する。
-2026-09-08時点ではそれぞれ1463行・1456行まで縮小済み。
+2026-09-08時点ではそれぞれ1354行・1316行まで縮小済み。
 
 - Gemini の thinking level / config / 選択肢判定を
   `src/core/geminiThinking.ts` へ移動済み。`reasoningEffort: "default"` は legacy toggle
@@ -181,24 +181,26 @@ hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれ�
   text `user_input` step構築を `src/core/geminiInteractions.ts` へ移動済み。
   tool実行・添付dedupe・上限判定は各pluginに残す。
 
+- Interactions main streamのイベント解析を `src/core/geminiInteractionStream.ts` の
+  純粋reducerへ移動済み。両pluginは同じreducerを使用し、yield/tracing/料金換算は
+  ホストに残す。必須の `native` / `pre-retrieved` policyでFile Searchの差を維持する。
+  status metadataの `total_usage` / `usage` 両方に対応し、completed usageを優先する。
+  hubでもInteractionsのWeb検索ソースを収集してdoneへ渡すよう統一した。
+  分割・交錯するfunction arguments、source dedupe、policy差、error、state非破壊を
+  共有テスト10件で固定し、両pluginに結合テスト3件ずつ追加した。
+
 #### 5.2.1 残り（優先順）
 
-1. **Interactions main streamのevent reducer**
-   - `interaction.created`、`step.start/delta/stop`、status/usage/errorを1 round分の
-     状態へ反映する部分。text/thinking/tool call/searchのyieldとtracingが絡むため、
-     reducerは純粋処理、yield/tracingはplugin callbackに分ける。
-   - helperのnative File Search（annotation/context収集）とhubのGenerateContent
-     事前取得はpolicyとして注入し、同一実装へ押し込まない。
-2. **Interactions function tool execution loop**
+1. **Interactions function tool execution loop**
    - tool callの表示、実行、trace、result/添付収集、次round input生成はほぼ同じ。
    - hubは固定上限、helperはユーザー承認による上限延長があるため、warning/延長/
      最終回答への遷移をpolicy callbackにしてから共通化する。
-3. **GenerateContent function tool loop**
+2. **GenerateContent function tool loop**
    - stream消費、parts保存、tool実行、functionResponse生成が重複。
    - helper側のRAG前処理と上限延長、tool混在設定の差を先にoption/policyへ分離する。
-4. **通常chat / chatStream**
+3. **通常chat / chatStream**
    - 現在の両実装は実質同一。SDK呼び出しとtracingを注入する小さなrunnerへ移せる。
-5. **generateWorkflowStream / deepResearchStream / generateImageStream**
+4. **generateWorkflowStream / deepResearchStream / generateImageStream**
    - 本体はほぼ同一（コメント・整形程度の差）。polling、usage、画像parts解析を
      個別helperへ分けた後、runnerを共有する。画像生成は最後に回してよい。
 
@@ -245,6 +247,17 @@ hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれ�
 - **ライブラリには eslint 設定が無い。** 検証は `build` + `vitest` + `npm test`。
 
 ## 7. 未解決・保留
+
+- **今回のreducer共通化はライブラリとhub/helperでコミット済み・未push。**
+  3pluginのnode_modulesには最新distをコピー済みだが、package.jsonの
+  コミットピンは未更新。次はライブラリpush → sync-plugins → 3plugin再検証 →
+  依存ピン更新のコミットから。
+- 今回の検証: ライブラリbuild + npm test（Vitest 537件 / Node 3件）成功。
+  3pluginは一時コピーでtsc / eslint / Vitest / production build成功。
+  hub 378件成功・12件skip、helper既存114件 + 追加3件成功、local 286件成功・10件skip。
+  hubのproxyFetchテストはローカルlistenとopenssl起動がsandboxで拒否されたため、
+  制限外で全テストを再実行して成功。実API・Obsidian実機確認は未実施。
+
 
 - **gemini のコミット `58f6b87` のメッセージが不正確。** `command.ts` の readOnly
   モードのバグを直したと書いたが、実際は原文がインデント崩れだっただけで挙動は

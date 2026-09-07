@@ -30,3 +30,4 @@ export * from "./ragSettingStore.js";
 export * from "./mcpTypes.js";
 export * from "./tracingHooks.js";
 export * from "./webUrl.js";
+export * from "./geminiInteractionStream.js";
