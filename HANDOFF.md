@@ -124,9 +124,15 @@ b82fe2f feat(chat): own the rate limit retry loop
 
 **実サーバが要る。** この端末には Local LLM が無いため未着手。
 
-### 5.2 `core/gemini.ts`（未着手・一致1738行）
+### 5.2 `core/gemini.ts`（着手済み）
 
-hub と gemini で最大の重複。手元で検証できないので最後に回している。
+hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ2112行・2269行で、
+777行の差分まで広がっていたため、一括移動ではなく純粋な単位から共有する。
+
+- Gemini の thinking level / config / 選択肢判定を
+  `src/core/geminiThinking.ts` へ移動済み。`reasoningEffort: "default"` は legacy toggle
+  より優先し、モデル既定へ委ねる契約を共有テストで固定した。
+- 残りは CORS fetch、usage変換、tool loop、Interactions API、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）
 
