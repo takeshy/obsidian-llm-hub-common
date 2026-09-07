@@ -60,6 +60,30 @@ export function prepareGeminiToolResult(
   };
 }
 
+export function extractGeminiGroundingWebSearch(chunk: unknown): {
+  used: boolean;
+  sources: WebSearchSource[];
+} {
+  const groundingMetadata = (chunk as {
+    candidates?: Array<{
+      groundingMetadata?: {
+        webSearchQueries?: unknown[];
+        groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
+      };
+    }>;
+  } | undefined)?.candidates?.[0]?.groundingMetadata;
+  const sources: WebSearchSource[] = [];
+  for (const groundingChunk of groundingMetadata?.groundingChunks ?? []) {
+    const url = groundingChunk.web?.uri;
+    if (!url || sources.some(source => source.url === url)) continue;
+    sources.push({ title: groundingChunk.web?.title || url, url });
+  }
+  return {
+    used: (groundingMetadata?.webSearchQueries?.length ?? 0) > 0 || sources.length > 0,
+    sources,
+  };
+}
+
 /** Collect unique HTTP(S) sources from Gemini tool responses and attribution HTML. */
 export function collectGeminiWebSources(value: unknown, sources: WebSearchSource[]): void {
   if (typeof value === "string") {

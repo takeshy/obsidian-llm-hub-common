@@ -159,6 +159,9 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
 - function callの残り枠から実行対象・skip数・実行後残数を決めるplannerと、
   callbackによるlimit extensionの正規化を `src/core/geminiToolLoop.ts` へ移動済み。
   warningのタイミングと最終回答への遷移はホスト差があるため各pluginに残す。
+- GenerateContent stream chunkのgrounding metadataからGoogle Search使用有無と
+  重複のないweb sourceを抽出する処理を `src/core/geminiTools.ts` へ移動済み。
+  sourceがないquery-onlyの応答も検索使用として扱う。
 - 残りは tool loop、Interactions API の実行本体、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）

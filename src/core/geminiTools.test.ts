@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   collectGeminiWebSources,
+  extractGeminiGroundingWebSearch,
   prepareGeminiToolResult,
   sanitizeGeminiFunctionResult,
   serializeGeminiFunctionResult,
@@ -49,5 +50,29 @@ describe("Gemini tool helpers", () => {
     const circular: Record<string, unknown> = {};
     circular.self = circular;
     expect(prepareGeminiToolResult("read", {}, circular).serializedResult).toBe("null");
+  });
+
+  it("extracts unique grounding sources and detects query-only searches", () => {
+    expect(extractGeminiGroundingWebSearch({
+      candidates: [{
+        groundingMetadata: {
+          webSearchQueries: ["query"],
+          groundingChunks: [
+            { web: { uri: "https://example.com/a", title: "A" } },
+            { web: { uri: "https://example.com/a", title: "Duplicate" } },
+            { web: { uri: "https://example.com/b" } },
+          ],
+        },
+      }],
+    })).toEqual({
+      used: true,
+      sources: [
+        { title: "A", url: "https://example.com/a" },
+        { title: "https://example.com/b", url: "https://example.com/b" },
+      ],
+    });
+    expect(extractGeminiGroundingWebSearch({
+      candidates: [{ groundingMetadata: { webSearchQueries: ["query"] } }],
+    })).toEqual({ used: true, sources: [] });
   });
 });
