@@ -144,6 +144,9 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
   変換、Interactions API の function / File Search / Google Search tool 構築を
   `src/core/geminiInteractions.ts` へ移動済み。gemini 固有の metadata filter と
   hub 固有の RAG 前処理の差は維持している。
+- GenerateContent API 用の大文字Schema変換と function declarations /
+  Google Search tool 構築も `src/core/geminiInteractions.ts` へ移動済み。
+  GenerateContent と Interactions の選択条件はホスト差があるため各 plugin に残す。
 - 残りは tool loop、Interactions API の実行本体、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）

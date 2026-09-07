@@ -33,6 +33,25 @@ export interface GeminiInteractionToolOptions {
   webSearchEnabled?: boolean;
 }
 
+export interface GeminiGenerateContentSchema {
+  type: string;
+  description?: string;
+  enum?: string[];
+  items?: GeminiGenerateContentSchema;
+  properties?: Record<string, GeminiGenerateContentSchema>;
+  required?: string[];
+}
+
+export type GeminiGenerateContentTool =
+  | {
+    functionDeclarations: Array<{
+      name: string;
+      description: string;
+      parameters: GeminiGenerateContentSchema;
+    }>;
+  }
+  | { googleSearch: Record<string, never> };
+
 export function buildGeminiMessageParts(message: Message): GeminiContentPart[] {
   const parts: GeminiContentPart[] = [];
   for (const attachment of message.attachments ?? []) {
@@ -113,4 +132,66 @@ export function buildGeminiInteractionTools(
   }
   if (options.webSearchEnabled) result.push({ type: "google_search" });
   return result;
+}
+
+function geminiToolPropertyToGenerateContentSchema(
+  property: ToolPropertyDefinition,
+): GeminiGenerateContentSchema {
+  const schema: GeminiGenerateContentSchema = {
+    type: property.type.toUpperCase(),
+    description: property.description,
+    enum: property.enum,
+  };
+  if (property.type === "array" && property.items) {
+    const items = property.items;
+    schema.items = items.type === "object" && items.properties
+      ? {
+        type: "OBJECT",
+        properties: Object.fromEntries(
+          Object.entries(items.properties).map(([key, value]) => [
+            key,
+            geminiToolPropertyToGenerateContentSchema(value),
+          ]),
+        ),
+        required: items.required,
+      }
+      : { type: items.type.toUpperCase() };
+  }
+  if (property.type === "object" && property.properties) {
+    schema.properties = Object.fromEntries(
+      Object.entries(property.properties).map(([key, value]) => [
+        key,
+        geminiToolPropertyToGenerateContentSchema(value),
+      ]),
+    );
+    if (property.required?.length) schema.required = property.required;
+  }
+  return schema;
+}
+
+export function buildGeminiGenerateContentTools(
+  tools: ToolDefinition[],
+  webSearchEnabled = false,
+): GeminiGenerateContentTool[] | undefined {
+  const result: GeminiGenerateContentTool[] = [];
+  if (tools.length > 0) {
+    result.push({
+      functionDeclarations: tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: {
+          type: "OBJECT",
+          properties: Object.fromEntries(
+            Object.entries(tool.parameters.properties).map(([key, value]) => [
+              key,
+              geminiToolPropertyToGenerateContentSchema(value),
+            ]),
+          ),
+          required: tool.parameters.required,
+        },
+      })),
+    });
+  }
+  if (webSearchEnabled) result.push({ googleSearch: {} });
+  return result.length > 0 ? result : undefined;
 }

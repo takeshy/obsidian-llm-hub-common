@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildGeminiGenerateContentTools,
   buildGeminiInteractionTools,
   messagesToGeminiContents,
 } from "./geminiInteractions.js";
@@ -82,5 +83,61 @@ describe("Gemini Interactions helpers", () => {
       },
       { type: "google_search" },
     ]);
+  });
+
+  it("builds GenerateContent declarations with uppercase schema types", () => {
+    expect(buildGeminiGenerateContentTools([{
+      name: "search",
+      description: "Search",
+      parameters: {
+        type: "object",
+        properties: {
+          queries: {
+            type: "array",
+            description: "Queries",
+            items: {
+              type: "object",
+              description: "Query",
+              properties: {
+                text: { type: "string", description: "Text" },
+              },
+              required: ["text"],
+            },
+          },
+        },
+        required: ["queries"],
+      },
+    }], true)).toEqual([
+      {
+        functionDeclarations: [{
+          name: "search",
+          description: "Search",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              queries: {
+                type: "ARRAY",
+                description: "Queries",
+                enum: undefined,
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    text: {
+                      type: "STRING",
+                      description: "Text",
+                      enum: undefined,
+                    },
+                  },
+                  required: ["text"],
+                },
+              },
+            },
+            required: ["queries"],
+          },
+        }],
+      },
+      { googleSearch: {} },
+    ]);
+    expect(buildGeminiGenerateContentTools([], false)).toBeUndefined();
   });
 });
