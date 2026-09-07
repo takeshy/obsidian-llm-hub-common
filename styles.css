@@ -792,11 +792,6 @@
   cursor: pointer;
 }
 
-.chat-ui-rag-select {
-  flex: 0 0 auto;
-  max-width: 150px;
-}
-
 .chat-ui-search-selector {
   position: relative;
   flex: 0 0 auto;
@@ -860,11 +855,6 @@
   height: 1px;
   margin: 4px 2px;
   background: var(--background-modifier-border);
-}
-
-.is-mobile .chat-ui-rag-select {
-  max-width: none;
-  flex: 1 1 100%;
 }
 
 .is-mobile .chat-ui-search-selector {
