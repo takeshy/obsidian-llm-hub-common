@@ -461,7 +461,7 @@ test("vault tool control keeps the history limit whether or not servers are conf
   act(() => tree.unmount());
 });
 
-test("vault tool button reports a narrowed scope from the mode or a disabled server", () => {
+test("vault tool button reports only a narrowed Vault mode, regardless of MCP state", () => {
   const base = {
     classPrefix: "llm-hub", containerRef: createRef(), title: "vault tools", open: false,
     onToggle() {}, modes: vaultModes, mode: "all", onModeChange() {},
@@ -474,7 +474,7 @@ test("vault tool button reports a narrowed scope from the mode or a disabled ser
     ...base,
     mcp: { label: "servers", onToggle() {}, servers: [{ id: "a", name: "a", enabled: false, hint: "", toolsTitle: "" }] },
   })));
-  assert.equal(buttons(tree)[0].props.className, "llm-hub-vault-tool-btn active");
+  assert.equal(buttons(tree)[0].props.className, "llm-hub-vault-tool-btn");
   act(() => tree.unmount());
 });
 

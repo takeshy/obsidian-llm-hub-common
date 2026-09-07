@@ -403,7 +403,7 @@ export function VaultToolControl<T extends string>({
   mcp?: { label: string; servers: readonly McpServerChoice[]; onToggle: (id: string, enabled: boolean) => void };
   historyLimit?: { label: string; value: number; onChange: (count: number) => void };
 }) {
-  const narrowed = mode !== modes[0]?.id || !!mcp?.servers.some(server => !server.enabled);
+  const narrowed = mode !== modes[0]?.id;
   return <VaultToolButton
     classPrefix={p}
     containerRef={containerRef}
