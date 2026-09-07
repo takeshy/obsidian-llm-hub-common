@@ -1,6 +1,6 @@
 # 引き継ぎ: 3プラグインの共通化リファクタリング
 
-最終更新: 2026-09-08 / Interactions main stream reducerの共通化まで完了。
+最終更新: 2026-09-08 / Geminiの残りrunnerとローカルLLM providerの共有化を実装・自動検証済み。
 
 ## 1. このタスク
 
@@ -105,30 +105,34 @@ b82fe2f feat(chat): own the rate limit retry loop
 
 ## 5. 残っている作業
 
-### 5.1 `core/localLlmProvider.ts` のストリーム本体（未着手）
+### 5.1 `core/localLlmProvider.ts` のストリーム本体（実装・自動検証済み）
 
-`ollamaChatStream` / `openaiChatStream` の中身（各200〜260行）。
-純粋・テスト可能な部分（think タグ、インラインツール呼び出し、メッセージ組み立て、
-モデル一覧、StreamSignal）は**すべて共有化済み**で、残りは通信とツールループ。
+hub/localの `ollamaChatStream` / `openaiChatStream` を、共有ライブラリの以下へ集約した。
 
-**アーキテクチャの差があるので単純統合は危険**:
+- `src/core/localLlmTransport.ts`: HTTP status、UTF-8分割受信、末尾の改行なしデータ、
+  abort、idle timeout、リクエスト解放。
+- `src/core/localLlmResponse.ts`: Ollama NDJSON / OpenAI SSE、native thinkingとthinkタグ、
+  分割tool call引数、incomplete tool call、usage、in-band error。
+- `src/core/localLlmProvider.ts`: `runLocalLlmChat`、requestとOllama履歴の構築、
+  inline tool callの復元。OpenAI履歴builderを共用し、画像・tool履歴・reasoningを保持。
+- 既存のrequest errorがdone判定で消える経路と、末尾データを捨てる経路を修正。
+  Content-Lengthを両プロトコルへ付け、受信終了・停止・consumer returnでrequestを解放する。
+- local pluginのToolDefinition/ToolParameterも共有型のre-exportへ変更。
+  `ToolPropertyDefinition.description` はlocalの既存契約に合わせoptionalにした。
+- hub/localのprovider本体は557/673行から74/83行へ縮小。
 
-| | hub | local |
-|---|---|---|
-| ローカルLLMのツール実行 | クラウド用 `openaiChatWithToolsStream` に委譲 | 自前のツールループ |
-| 画像添付（vision） | あり | なし |
-| PDF 添付 | あり（共有 builder 経由で獲得済み） | あり |
-| `reasoning_content` の往復 | 共有 builder 経由で獲得済み | あり |
-| OpenCode プロバイダ | あり | なし |
-| 埋め込みモデル一覧 | あり（別モジュール） | あり |
+hubのOpenCode routing、クラウドOpenAI側へのツール実行委譲、localのChat内のtool実行、
+RAG/model一覧取得のホスト接続は維持する。これらを同じAPIへ強制的に寄せてはいない。
 
-**実サーバが要る。** この端末には Local LLM が無いため未着手。
+検証: 共有unit test 15件 + 実loopback HTTPによるOllama/SSE結合テスト2件。
+**実LLMサーバー・Obsidian上の確認は未実施**。テストサーバーは制御した応答を返すもので、
+実モデルのtool能力やvision対応を検証するものではない。5.3の実機確認は別途必要。
 
-### 5.2 `core/gemini.ts`（着手済み）
+### 5.2 `core/gemini.ts`（列挙した残りrunnerの実装・自動検証済み）
 
 hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれぞれ2112行・2269行で、
 777行の差分まで広がっていたため、一括移動ではなく純粋な単位から共有する。
-2026-09-08時点ではそれぞれ1354行・1316行まで縮小済み。
+2026-09-08時点ではそれぞれ644行・564行まで縮小済み。
 
 - Gemini の thinking level / config / 選択肢判定を
   `src/core/geminiThinking.ts` へ移動済み。`reasoningEffort: "default"` は legacy toggle
@@ -189,20 +193,32 @@ hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれ�
   分割・交錯するfunction arguments、source dedupe、policy差、error、state非破壊を
   共有テスト10件で固定し、両pluginに結合テスト3件ずつ追加した。
 
-#### 5.2.1 残り（優先順）
+#### 5.2.1 今回共有化した残りrunner
 
 1. **Interactions function tool execution loop**
-   - tool callの表示、実行、trace、result/添付収集、次round input生成はほぼ同じ。
-   - hubは固定上限、helperはユーザー承認による上限延長があるため、warning/延長/
-     最終回答への遷移をpolicy callbackにしてから共通化する。
+   - `src/core/geminiInteractionsRunner.ts` の `runGeminiInteractions` がround chaining、
+     yield、usage集計、search、limit最終回答、trace終了を所有する。
+   - 最終回答も共通reducerで処理し、failed/empty streamをdoneとして扱わない。
+   - API error受信時はEOFを待たずiteratorを閉じ、以後のイベントを読まない。
+     直前のusageを保持する回帰テストを追加し、両pluginのadapter結合テストも再検証済み。
 2. **GenerateContent function tool loop**
-   - stream消費、parts保存、tool実行、functionResponse生成が重複。
-   - helper側のRAG前処理と上限延長、tool混在設定の差を先にoption/policyへ分離する。
-3. **通常chat / chatStream**
-   - 現在の両実装は実質同一。SDK呼び出しとtracingを注入する小さなrunnerへ移せる。
-4. **generateWorkflowStream / deepResearchStream / generateImageStream**
-   - 本体はほぼ同一（コメント・整形程度の差）。polling、usage、画像parts解析を
-     個別helperへ分けた後、runnerを共有する。画像生成は最後に回してよい。
+   - `src/core/geminiGenerationRunner.ts` の `runGeminiGenerateContentTools` がstream消費、
+     model parts保存、functionResponse生成、次roundを所有する。thought signatureは元partsのまま保持。
+   - 上限後もモデルがtoolを要求し続ける無限ループを修正。最終requestはtoolsなしで1回だけ。
+   - usage後にsearch invocationが届く場合もgrounding料金を集計する。
+3. **両API共通のtool実行・上限**
+   - `src/core/geminiToolExecution.ts` の `executeGeminiTools` / `GeminiToolBudget`。
+     固定上限と承認延長は必須のunion policy。ツール結果の後に添付を送り、重複を除く。
+     tool実行がthrowした場合もtool spanを閉じる。
+   - `src/core/toolResultAttachments.ts` も共有化し、hub/helperはre-exportのみ。
+4. **通常chat / chatStream、Workflow、Deep Research、画像生成**
+   - `src/core/geminiChatRunners.ts` が全runnerを所有し、SDK呼び出しをhostから注入。
+     research polling/text fallback、image parts、usage、エラー処理を共有した。
+   - Workflowも空streamをエラーに統一。hubのGenerateContent thinking未指定時を
+     helperと同じモデル既定に揃え、両pluginの結合テストで固定した。
+
+共有runnerテスト29件、両pluginのSDK adapter結合テストは各7件。
+残りの公開同期と実機確認は7節・5.3を参照。
 
 #### 5.2.2 共通化せずplugin側に残すもの
 
@@ -248,16 +264,21 @@ hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれ�
 
 ## 7. 未解決・保留
 
-- **今回のreducer共通化はライブラリとhub/helperでコミット済み・未push。**
-  3pluginのnode_modulesには最新distをコピー済みだが、package.jsonの
-  コミットピンは未更新。次はライブラリpush → sync-plugins → 3plugin再検証 →
-  依存ピン更新のコミットから。
-- 今回の検証: ライブラリbuild + npm test（Vitest 537件 / Node 3件）成功。
-  3pluginは一時コピーでtsc / eslint / Vitest / production build成功。
-  hub 378件成功・12件skip、helper既存114件 + 追加3件成功、local 286件成功・10件skip。
-  hubのproxyFetchテストはローカルlistenとopenssl起動がsandboxで拒否されたため、
-  制限外で全テストを再実行して成功。実API・Obsidian実機確認は未実施。
-
+- Gemini runner・local provider共有化の対象は、共有ライブラリと3plugin。
+  直前のreducerコミットはlibrary `80cc4da` / hub `3854a85` / helper `bed876e`。
+  2026-09-08にユーザーから今回分のcommit/push指示を受領。
+- 公開順序はライブラリcommit/push → sync-plugins → 3plugin再検証 → plugin commit/push。
+  公開コミットと依存ピンの確定値は各リポジトリのGit履歴・package.jsonを参照。
+  以降の共有化のローカル検証にpushは不要。
+- 最新の検証: ライブラリbuild + npm test成功（Vitest 583件 + Node test suites）。
+  3pluginのtsc / eslint / Vitest / production build成功。
+  hub 382件成功・12件skip、helper 121件成功、local 286件成功・10件skip。
+  検証用コピーで実行後、実リポジトリへ反映した全ソースとdistが検証コピーに一致することを確認済み。
+- local loopback HTTPテストとhub proxyFetchテストはsocket listenが必要なため、sandbox制限外で実行。
+  検証ログ: `/tmp/gemini-sharing-next/*-tests.log` と `*-validation.log`。
+- **実API・実LLM・Obsidian実機確認は未実施**。実モデル接続先の提示があれば検証可能だが、
+  5.3のUI操作はObsidianが動く環境で必要。この端末ではollama/obsidianコマンドと
+  対応する実行中プロセスがないことを確認した。実モデル接続先の質問は回答待ち。
 
 - **gemini のコミット `58f6b87` のメッセージが不正確。** `command.ts` の readOnly
   モードのバグを直したと書いたが、実際は原文がインデント崩れだっただけで挙動は

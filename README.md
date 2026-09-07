@@ -1,7 +1,7 @@
 # obsidian-llm-hub-common
 
-React chat UI shared by `obsidian-gemini-helper`, `obsidian-llm-hub`, and
-`obsidian-local-llm-hub`. The visual baseline is Local LLM Hub. This is an npm
+Chat UI, workflow execution and core services shared by `obsidian-gemini-helper`,
+`obsidian-llm-hub`, and `obsidian-local-llm-hub`. The visual baseline is Local LLM Hub. This is an npm
 library bundled into each plugin, with no separate Obsidian plugin or runtime
 plugin discovery.
 
@@ -10,10 +10,17 @@ plugin discovery.
 Every piece of chat UI belongs here. If the shared stylesheet styles it, this library renders it:
 message lists, welcome cards, bubble headers, thinking display, usage display, attachment chips,
 tool indicators, composer controls, autocomplete, model search, history lists, chat/input layouts
-and the vault tool menu. Hosts keep only behavior: streaming and cancellation, tool execution, RAG
-retrieval, Markdown rendering, history storage/encryption, file handling, provider settings and
-their translations. Their `ChatView` remains the Obsidian integration point, and `Chat.tsx`,
-`InputArea.tsx` and `MessageBubble.tsx` are thin adapters that hold state and pass callbacks.
+and the vault tool menu. Shared behavior also belongs here: chat-turn lifecycle, provider stream
+processing, tool execution orchestration, workflow execution, history utilities and settings.
+Hosts provide SDK clients, provider routing, RAG retrieval policies, Obsidian integrations and UI
+callbacks. Their `ChatView` remains the Obsidian integration point.
+
+The `core` entry point owns Gemini chat, Interactions and GenerateContent tool loops, workflow
+generation, research polling and image-response processing. SDK calls are injected; native File
+Search and pre-retrieved RAG are explicit policies, as are fixed and user-extendable tool limits.
+Local Ollama/OpenAI-compatible streams share HTTP framing, request construction, thinking/tool
+parsing and inline-tool recovery. OpenCode routing and provider-specific tool execution stay with
+their host. Shared tests cover the protocol contracts and both Gemini plugins test their adapters.
 
 Plugin features are unified rather than branched. When the same feature exists in more than one
 generation across the plugins, the newest one wins and the others adopt it; a shared component does
@@ -51,6 +58,10 @@ npm run build
 npm test
 npm pack
 ```
+
+The local transport integration tests bind temporary loopback HTTP servers. They require local
+socket access but no external API keys or running model. Real-model and Obsidian checks are still
+needed before release.
 
 Each plugin pins a full commit SHA from this GitHub repository:
 

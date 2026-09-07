@@ -39,7 +39,7 @@ export function toOpenAiTool(tool: ToolDefinition): OpenAiToolDefinition {
 
 export interface ToolPropertyDefinition {
   type: string;
-  description: string;
+  description?: string;
   enum?: string[];
   properties?: Record<string, ToolPropertyDefinition>;
   required?: string[];
