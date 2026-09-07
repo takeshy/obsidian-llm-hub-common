@@ -28,6 +28,7 @@ import { ConfirmModal } from "./ConfirmModal.js";
 const SKILLS_FOLDER = "skills";
 
 interface MessageBubbleProps {
+  classPrefix: string;
   message: Message;
   isStreaming?: boolean;
   sourceFileName?: string | null;
@@ -68,6 +69,7 @@ async function confirmAndOpenLocalFile(app: App, path: string): Promise<void> {
 }
 
 export default function MessageBubble({
+  classPrefix,
   message,
   isStreaming,
   sourceFileName,
@@ -500,14 +502,14 @@ export default function MessageBubble({
   };
 
   return (
-    <SharedMessageBubble classPrefix="llm-hub" isUser={isUser} isStreaming={isStreaming}
+    <SharedMessageBubble classPrefix={classPrefix} isUser={isUser} isStreaming={isStreaming}
       roleLabel={getModelDisplayName()} timeLabel={formatTime(message.timestamp)} copied={copied}
       copyLabel={t("message.copyToClipboard")} onCopy={() => { void handleCopy(); }}>
 
       {/* Web search indicator */}
       {message.webSearchUsed && (
         <SourceBadges
-          classPrefix="llm-hub"
+          classPrefix={classPrefix}
           icon="🌐"
           label={t("message.webSearchUsed")}
           sources={(message.webSearchSources ?? []).filter((source) => isSafeWebUrl(source.url)).map((source) => ({
@@ -520,18 +522,18 @@ export default function MessageBubble({
 
       {/* Image generation indicator */}
       {message.imageGenerationUsed && (
-        <SourceBadges classPrefix="llm-hub" icon="🎨" label={t("message.imageGenerated")} />
+        <SourceBadges classPrefix={classPrefix} icon="🎨" label={t("message.imageGenerated")} />
       )}
 
       {/* Skills used indicator — vault skills are clickable to open SKILL.md; built-in skills are displayed as plain labels */}
       {message.skillsUsed && message.skillsUsed.length > 0 && (
-        <SkillsUsedIndicator skillNames={message.skillsUsed} app={app} skillsFolder={skillsFolder} />
+        <SkillsUsedIndicator classPrefix={classPrefix} skillNames={message.skillsUsed} app={app} skillsFolder={skillsFolder} />
       )}
 
       {/* Semantic search indicator with sources */}
       {message.ragUsed && (
         <SourceBadges
-          classPrefix="llm-hub"
+          classPrefix={classPrefix}
           icon="📚"
           label={t("message.rag")}
           // Prefer per-chunk citations; fall back to ragSources for chats saved before
@@ -566,7 +568,7 @@ export default function MessageBubble({
       {/* Tools used indicator */}
       {message.toolCalls && message.toolCalls.length > 0 && (
         <ToolsUsed
-          classPrefix="llm-hub"
+          classPrefix={classPrefix}
           errorHint={message.toolCalls.some(tc => getFailedWorkflowPath(tc, message.toolResults)) ? t("message.workflowErrorHint") : undefined}
         >
             {message.toolCalls.map((toolCall, index) => {
@@ -574,7 +576,7 @@ export default function MessageBubble({
               const failedWorkflowPath = getFailedWorkflowPath(toolCall, message.toolResults);
               const noteTarget = getToolNoteTarget(toolCall, message.toolResults);
               return (
-                <ToolIndicator key={index} classPrefix="llm-hub" icon={icon} label={label}
+                <ToolIndicator key={index} classPrefix={classPrefix} icon={icon} label={label}
                   detail={getToolDetail(toolCall)} onClick={() => {
                       if (noteTarget) {
                         void app.workspace.openLinkText(noteTarget, "", false).catch(() => {
@@ -594,26 +596,26 @@ export default function MessageBubble({
       )}
 
       {/* Attachments display */}
-      <Attachments classPrefix="llm-hub" attachments={message.attachments} />
+      <Attachments classPrefix={classPrefix} attachments={message.attachments} />
 
       {/* Thinking content (collapsible) */}
-      <MessageContent classPrefix="llm-hub" contentRef={contentRef} thinking={message.thinking}
+      <MessageContent classPrefix={classPrefix} contentRef={contentRef} thinking={message.thinking}
         thinkingLabel={t("message.thinking")} thinkingOpen={isStreaming || !message.content}  />
 
       {/* Usage info (tokens, cost, response time) */}
-      <UsageInfo classPrefix="llm-hub" isUser={isUser} isStreaming={isStreaming}
+      <UsageInfo classPrefix={classPrefix} isUser={isUser} isStreaming={isStreaming}
         elapsedMs={message.elapsedMs} usage={message.usage}
         tokensLabel={t("message.tokens")} thinkingTokensLabel={t("message.thinkingTokens")} />
 
       {/* HTML code block actions */}
       {htmlContent && !isStreaming && (
-        <div className="llm-hub-html-actions">
-          <span className="llm-hub-html-indicator">
+        <div className={`${classPrefix}-html-actions`}>
+          <span className={`${classPrefix}-html-indicator`}>
             📊 {t("message.htmlInfographic")}
           </span>
-          <div className="llm-hub-html-buttons">
+          <div className={`${classPrefix}-html-buttons`}>
             <button
-              className="llm-hub-html-btn"
+              className={`${classPrefix}-html-btn`}
               onClick={handlePreviewHtml}
               title={t("message.previewHtml")}
             >
@@ -621,7 +623,7 @@ export default function MessageBubble({
               <span>{t("message.preview")}</span>
             </button>
             <button
-              className="llm-hub-html-btn"
+              className={`${classPrefix}-html-btn`}
               onClick={() => void handleSaveHtml()}
               title={Platform.isMobile ? t("message.saveHtml") : t("message.downloadHtml")}
             >
@@ -634,17 +636,17 @@ export default function MessageBubble({
 
       {/* Generated images display */}
       {message.generatedImages && message.generatedImages.length > 0 && (
-        <div className="llm-hub-generated-images">
+        <div className={`${classPrefix}-generated-images`}>
           {message.generatedImages.map((image, index) => (
-            <div key={index} className="llm-hub-generated-image-container">
+            <div key={index} className={`${classPrefix}-generated-image-container`}>
               <img
                 src={`data:${image.mimeType};base64,${image.data}`}
                 alt={`Generated image ${index + 1}`}
-                className="llm-hub-generated-image"
+                className={`${classPrefix}-generated-image`}
               />
-              <div className="llm-hub-image-actions">
+              <div className={`${classPrefix}-image-actions`}>
                 <button
-                  className="llm-hub-image-btn"
+                  className={`${classPrefix}-image-btn`}
                   onClick={() => void handleCopyImage(image.mimeType, image.data)}
                   title={t("message.copyImage")}
                 >
@@ -652,7 +654,7 @@ export default function MessageBubble({
                   <span>{t("message.copy")}</span>
                 </button>
                 <button
-                  className="llm-hub-image-btn"
+                  className={`${classPrefix}-image-btn`}
                   onClick={() => void handleDownloadImage(image.mimeType, image.data, index)}
                   title={t("message.downloadImage")}
                 >
@@ -667,10 +669,11 @@ export default function MessageBubble({
 
       {/* MCP Apps display */}
       {message.mcpApps && message.mcpApps.length > 0 && (
-        <div className="llm-hub-mcp-apps">
+        <div className={`${classPrefix}-mcp-apps`}>
           {message.mcpApps.map((mcpApp, index) => (
             <McpAppRenderer
               key={index}
+              classPrefix={classPrefix}
               serverUrl={mcpApp.serverUrl}
               serverHeaders={mcpApp.serverHeaders}
               serverConfig={mcpApp.serverConfig}
@@ -804,7 +807,7 @@ export default function MessageBubble({
  * Built-in skills (bundled with the plugin) are rendered as plain chips
  * because they have no vault file to open.
  */
-function SkillsUsedIndicator({ skillNames, app, skillsFolder }: { skillNames: string[]; app: App; skillsFolder?: string }) {
+function SkillsUsedIndicator({ classPrefix, skillNames, app, skillsFolder }: { classPrefix: string; skillNames: string[]; app: App; skillsFolder?: string }) {
   const [skillMap, setSkillMap] = useState<Map<string, { path: string; builtin: boolean }>>(new Map());
 
   useEffect(() => {
@@ -822,7 +825,7 @@ function SkillsUsedIndicator({ skillNames, app, skillsFolder }: { skillNames: st
 
   return (
     <SkillsUsed
-      classPrefix="llm-hub"
+      classPrefix={classPrefix}
       label={t("message.skillsUsed")}
       skills={skillNames.map((skillName) => {
         const info = skillMap.get(skillName);

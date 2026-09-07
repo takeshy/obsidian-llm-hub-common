@@ -28,6 +28,7 @@ interface JsonRpcResponse {
 }
 
 interface McpAppRendererProps {
+  classPrefix?: string;
   // The MCP server URL for callbacks
   serverUrl: string;
   // Optional headers for the MCP server
@@ -58,6 +59,7 @@ interface McpAppRendererProps {
  * for bidirectional communication.
  */
 export function McpAppRenderer({
+  classPrefix = "llm-hub",
   serverUrl,
   serverHeaders,
   serverConfig,
@@ -288,7 +290,7 @@ export function McpAppRenderer({
   }
 
   return (
-    <div className={`llm-hub-mcp-app ${expanded ? cls("mcp-app-expanded") : ""}`}>
+    <div className={`${classPrefix}-mcp-app ${expanded ? cls("mcp-app-expanded") : ""}`}>
       <div className={cls("mcp-app-header")}>
         <span className={cls("mcp-app-indicator")}>
           🖥️ {t("mcpApp.title")}
@@ -309,7 +311,7 @@ export function McpAppRenderer({
         srcDoc={iframeHtml}
         sandbox="allow-scripts allow-forms"
         onLoad={handleIframeLoad}
-        className={`llm-hub-mcp-app-iframe ${expanded ? cls("mcp-app-iframe-expanded") : ""}`}
+        className={`${classPrefix}-mcp-app-iframe ${expanded ? cls("mcp-app-iframe-expanded") : ""}`}
         data-height={height}
         title="MCP App"
       />

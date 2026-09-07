@@ -16,6 +16,9 @@ test("both plugin namespaces receive the same local UI and host mobile overrides
       const result = await readFile(output, "utf8");
       assert.match(result, /input-container.collapsed/);
       assert.match(result, /justify-content: flex-end/);
+      assert.match(result, new RegExp(`\\.${prefix}-message-user \\{[^}]*background: var\\(--interactive-accent\\)`, "s"));
+      assert.match(result, new RegExp(`\\.${prefix}-html-buttons \\{[^}]*gap: 8px`, "s"));
+      assert.match(result, new RegExp(`\\.${prefix}-image-actions \\{[^}]*gap: 8px`, "s"));
       assert.doesNotMatch(result, /@chat-ui-styles|\.chat-ui-/);
       outputs.push(result.replaceAll(`${prefix}-`, "chat-ui-"));
     }
