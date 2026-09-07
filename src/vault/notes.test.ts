@@ -8,6 +8,8 @@ import {
   clearPendingBulkEdit,
   discardEdit,
   findReadableFileByName,
+  getPendingEdit,
+  getPendingBulkEdit,
   proposeBulkEdit,
   proposeEdit,
 } from "./notes.js";
@@ -331,6 +333,40 @@ describe("notes edit history integration", () => {
     resetEditHistoryManager();
     discardEdit({} as App);
     clearPendingBulkEdit();
+  });
+
+  it("keeps applying the approved edit when a new proposal arrives during snapshot I/O", async () => {
+    const vault = new MockVault();
+    vault.addMarkdownFile("a.md", "old a");
+    vault.addMarkdownFile("b.md", "old b");
+    const app = createMockApp(vault);
+    const history = initEditHistoryManager(app, { enabled: true, diff: { contextLines: 3 } });
+    await proposeEdit(app, "a.md", false, "approved a");
+    vi.spyOn(history, "ensureSnapshot").mockImplementationOnce(async () => {
+      await proposeEdit(app, "b.md", false, "unapproved b");
+    });
+    const result = await applyEdit(app, { openFile: false });
+    expect(result).toMatchObject({ success: true, path: "a.md" });
+    expect(vault.getContent("a.md")).toBe("approved a");
+    expect(vault.getContent("b.md")).toBe("old b");
+    expect(getPendingEdit()?.originalPath).toBe("b.md");
+  });
+
+  it("does not discard a newer bulk proposal when the previous application finishes", async () => {
+    const vault = new MockVault();
+    vault.addMarkdownFile("a.md", "old a");
+    vault.addMarkdownFile("b.md", "old b");
+    const app = createMockApp(vault);
+    await proposeBulkEdit(app, [{ fileName: "a.md", newContent: "approved a" }]);
+    const modify = vault.modify.bind(vault);
+    vi.spyOn(vault, "modify").mockImplementationOnce(async (file, content) => {
+      await proposeBulkEdit(app, [{ fileName: "b.md", newContent: "unapproved b" }]);
+      await modify(file, content);
+    });
+    expect((await applyBulkEdit(app, ["a.md"])).applied).toEqual(["a.md"]);
+    expect(vault.getContent("a.md")).toBe("approved a");
+    expect(vault.getContent("b.md")).toBe("old b");
+    expect(getPendingBulkEdit()?.items[0].path).toBe("b.md");
   });
 
   it("records external changes before applyEdit as auto history", async () => {

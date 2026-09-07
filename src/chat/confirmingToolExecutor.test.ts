@@ -31,6 +31,7 @@ vi.mock("../ui/workflow/EditConfirmationModal.js", () => ({
 }));
 
 const { createConfirmingToolExecutor } = await import("./confirmingToolExecutor.js");
+const { promptForConfirmation } = await import("../ui/workflow/EditConfirmationModal.js");
 
 const app = {} as App;
 const pending = (path: string, createdAt: number) =>
@@ -45,6 +46,32 @@ beforeEach(() => {
 });
 
 describe("createConfirmingToolExecutor", () => {
+  it.each(["save", "cancel"])("does not %s a replacement proposal after showing the original", async (action) => {
+    const replacement = pending("Notes/b.md", 2);
+    vi.mocked(promptForConfirmation).mockImplementationOnce(async () => {
+      state.pendingEdit = replacement;
+      return { action: action as "save" | "cancel" };
+    });
+    const wrapper = createConfirmingToolExecutor(async () => {
+      state.pendingEdit = pending("Notes/a.md", 1);
+      return { success: true };
+    }, app, () => false, () => {});
+    const result = await wrapper.executeToolCall("propose_edit", {});
+    expect(result.success).toBe(false);
+    expect(state.applied).toEqual([]);
+    expect(state.discarded).toEqual([]);
+    expect(state.pendingEdit).toBe(replacement);
+  });
+
+  it("recognizes distinct proposals created in the same millisecond", async () => {
+    state.pendingEdit = pending("Notes/a.md", 1);
+    const wrapper = createConfirmingToolExecutor(async () => {
+      state.pendingEdit = pending("Notes/b.md", 1);
+      return { success: true };
+    }, app, () => false, () => {});
+    await wrapper.executeToolCall("propose_edit", {});
+    expect(state.applied).toEqual(["Notes/b.md"]);
+  });
   it("confirms and applies the edit this call created", async () => {
     const base = vi.fn(async () => { state.pendingEdit = pending("Notes/a.md", 1); return { success: true }; });
     const wrapper = createConfirmingToolExecutor(base, app, () => false, () => {});

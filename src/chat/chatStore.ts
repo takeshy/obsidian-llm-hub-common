@@ -124,7 +124,7 @@ export async function readChatHistories(host: ChatStorageHost): Promise<ChatHist
 
 /**
  * Writes one chat. Encryption decides the file name, so the other spelling is removed
- * first — otherwise turning encryption on or off would leave a stale duplicate behind.
+ * after the new file is saved — a failed write must leave the old history recoverable.
  */
 export async function writeChatFile(
   host: ChatStorageHost,
@@ -146,10 +146,10 @@ export async function writeChatFile(
   const filePath = encrypted ? `${basePath}.encrypted` : basePath;
   const oldPath = encrypted ? basePath : `${basePath}.encrypted`;
 
+  await app.vault.adapter.write(filePath, markdown);
   if (await app.vault.adapter.exists(oldPath)) {
     await app.vault.adapter.remove(oldPath);
   }
-  await app.vault.adapter.write(filePath, markdown);
 }
 
 /**

@@ -445,7 +445,8 @@ export function proposeRename(
 export async function applyRename(
   app: App
 ): Promise<{ success: boolean; path?: string; error?: string; message?: string }> {
-  if (!pendingRename) {
+  const proposal = pendingRename;
+  if (!proposal) {
     return {
       success: false,
       error: "No pending rename found.",
@@ -453,21 +454,21 @@ export async function applyRename(
   }
 
   try {
-    const file = app.vault.getAbstractFileByPath(pendingRename.originalPath);
+    const file = app.vault.getAbstractFileByPath(proposal.originalPath);
 
     if (!(file instanceof TFile)) {
-      const path = pendingRename.originalPath;
-      pendingRename = null;
+      const path = proposal.originalPath;
+      if (pendingRename === proposal) pendingRename = null;
       return {
         success: false,
         error: `File "${path}" no longer exists.`,
       };
     }
 
-    const newPath = pendingRename.newPath;
+    const newPath = proposal.newPath;
     await app.fileManager.renameFile(file, newPath);
 
-    pendingRename = null;
+    if (pendingRename === proposal) pendingRename = null;
 
     return {
       success: true,
@@ -475,7 +476,7 @@ export async function applyRename(
       message: `Renamed to "${newPath}".`,
     };
   } catch (error) {
-    pendingRename = null;
+    if (pendingRename === proposal) pendingRename = null;
     return {
       success: false,
       error: `Failed to rename: ${formatError(error)}`,
@@ -671,7 +672,8 @@ export async function applyEdit(
   app: App,
   options?: { openFile?: boolean }
 ): Promise<{ success: boolean; path?: string; error?: string; message?: string }> {
-  if (!pendingEdit) {
+  const proposal = pendingEdit;
+  if (!proposal) {
     return {
       success: false,
       error: "No pending edit found.",
@@ -679,11 +681,11 @@ export async function applyEdit(
   }
 
   try {
-    const file = app.vault.getAbstractFileByPath(pendingEdit.originalPath);
+    const file = app.vault.getAbstractFileByPath(proposal.originalPath);
 
     if (!(file instanceof TFile)) {
-      const path = pendingEdit.originalPath;
-      pendingEdit = null;
+      const path = proposal.originalPath;
+      if (pendingEdit === proposal) pendingEdit = null;
       return {
         success: false,
         error: `File "${path}" no longer exists.`,
@@ -695,27 +697,27 @@ export async function applyEdit(
     if (historyManager) {
       // ensureSnapshot reads the real file to detect external changes
       // between file-open and now, recording them as "auto" diffs.
-      await historyManager.ensureSnapshot(pendingEdit.originalPath);
+      await historyManager.ensureSnapshot(proposal.originalPath);
 
       // Fallback: if ensureSnapshot still didn't establish a snapshot
       // (e.g. settings.enabled was temporarily false, non-.md path edge
       // case, or file read failed silently), seed it from the original
       // content we captured at proposeEdit time so saveEdit has a
       // baseline to diff against.
-      if (historyManager.getSnapshot(pendingEdit.originalPath) === null) {
-        historyManager.setSnapshot(pendingEdit.originalPath, pendingEdit.originalContent);
+      if (historyManager.getSnapshot(proposal.originalPath) === null) {
+        historyManager.setSnapshot(proposal.originalPath, proposal.originalContent);
       }
 
       historyManager.saveEdit({
-        path: pendingEdit.originalPath,
-        modifiedContent: pendingEdit.newContent,
+        path: proposal.originalPath,
+        modifiedContent: proposal.newContent,
         source: "propose_edit",
-        model: pendingEdit.model,
+        model: proposal.model,
       });
     }
 
     // Write the new content to file
-    await app.vault.modify(file, pendingEdit.newContent);
+    await app.vault.modify(file, proposal.newContent);
 
     // Open the file to show changes, unless the caller opted out
     if (options?.openFile ?? true) {
@@ -723,8 +725,8 @@ export async function applyEdit(
       await leaf.openFile(file);
     }
 
-    const appliedPath = pendingEdit.originalPath;
-    pendingEdit = null;
+    const appliedPath = proposal.originalPath;
+    if (pendingEdit === proposal) pendingEdit = null;
 
     return {
       success: true,
@@ -810,7 +812,8 @@ export async function proposeDelete(
 export async function applyDelete(
   app: App
 ): Promise<{ success: boolean; path?: string; error?: string; message?: string }> {
-  if (!pendingDelete) {
+  const proposal = pendingDelete;
+  if (!proposal) {
     return {
       success: false,
       error: "No pending delete found.",
@@ -818,11 +821,11 @@ export async function applyDelete(
   }
 
   try {
-    const file = app.vault.getAbstractFileByPath(pendingDelete.path);
+    const file = app.vault.getAbstractFileByPath(proposal.path);
 
     if (!(file instanceof TFile)) {
-      const path = pendingDelete.path;
-      pendingDelete = null;
+      const path = proposal.path;
+      if (pendingDelete === proposal) pendingDelete = null;
       return {
         success: false,
         error: `File "${path}" no longer exists.`,
@@ -832,8 +835,8 @@ export async function applyDelete(
     // Delete the file (move to trash)
     await app.fileManager.trashFile(file);
 
-    const deletedPath = pendingDelete.path;
-    pendingDelete = null;
+    const deletedPath = proposal.path;
+    if (pendingDelete === proposal) pendingDelete = null;
 
     return {
       success: true,
@@ -954,7 +957,8 @@ export async function applyBulkEdit(
   app: App,
   selectedPaths: string[]
 ): Promise<{ success: boolean; applied: string[]; failed: string[]; message?: string }> {
-  if (!pendingBulkEdit) {
+  const proposal = pendingBulkEdit;
+  if (!proposal) {
     return {
       success: false,
       applied: [],
@@ -967,7 +971,7 @@ export async function applyBulkEdit(
   const failed: string[] = [];
   const historyManager = getEditHistoryManager();
 
-  for (const item of pendingBulkEdit.items) {
+  for (const item of proposal.items) {
     if (!selectedPaths.includes(item.path)) {
       continue;
     }
@@ -999,7 +1003,7 @@ export async function applyBulkEdit(
     }
   }
 
-  pendingBulkEdit = null;
+  if (pendingBulkEdit === proposal) pendingBulkEdit = null;
 
   return {
     success: applied.length > 0,
@@ -1092,7 +1096,8 @@ export async function applyBulkDelete(
   app: App,
   selectedPaths: string[]
 ): Promise<{ success: boolean; deleted: string[]; failed: string[]; message?: string }> {
-  if (!pendingBulkDelete) {
+  const proposal = pendingBulkDelete;
+  if (!proposal) {
     return {
       success: false,
       deleted: [],
@@ -1104,7 +1109,7 @@ export async function applyBulkDelete(
   const deleted: string[] = [];
   const failed: string[] = [];
 
-  for (const item of pendingBulkDelete.items) {
+  for (const item of proposal.items) {
     if (!selectedPaths.includes(item.path)) {
       continue;
     }
@@ -1122,7 +1127,7 @@ export async function applyBulkDelete(
     }
   }
 
-  pendingBulkDelete = null;
+  if (pendingBulkDelete === proposal) pendingBulkDelete = null;
 
   return {
     success: deleted.length > 0,
@@ -1221,7 +1226,8 @@ export async function applyBulkRename(
   app: App,
   selectedPaths: string[]
 ): Promise<{ success: boolean; applied: string[]; failed: string[]; message?: string }> {
-  if (!pendingBulkRename) {
+  const proposal = pendingBulkRename;
+  if (!proposal) {
     return {
       success: false,
       applied: [],
@@ -1233,7 +1239,7 @@ export async function applyBulkRename(
   const applied: string[] = [];
   const failed: string[] = [];
 
-  for (const item of pendingBulkRename.items) {
+  for (const item of proposal.items) {
     if (!selectedPaths.includes(item.originalPath)) {
       continue;
     }
@@ -1251,7 +1257,7 @@ export async function applyBulkRename(
     }
   }
 
-  pendingBulkRename = null;
+  if (pendingBulkRename === proposal) pendingBulkRename = null;
 
   return {
     success: applied.length > 0,

@@ -90,18 +90,29 @@ export async function runChatTurn<C = void>(ui: ChatTurnUi, request: ChatTurnReq
   const session = ui.createStreamSession();
   const history = ui.messages;
 
-  const start = await request.prepare();
-  if (!start) return;
+  // Register before preparation so navigating away can detach this controller too.
+  const abortController = new AbortController();
+  if (session.isActive()) ui.abortControllerRef.current = abortController;
+  let start: ChatTurnStart<C> | null;
+  try {
+    start = await request.prepare();
+  } catch (error) {
+    session.cleanup(abortController);
+    throw error;
+  }
+  if (!start || abortController.signal.aborted) {
+    session.cleanup(abortController);
+    return;
+  }
   const { userMessage } = start;
   const context = start.context as C;
 
-  ui.setMessages(prev => [...prev, userMessage]);
-  ui.setIsLoading(true);
-  ui.setStreamingContent("");
-  ui.setStreamingThinking("");
-
-  const abortController = new AbortController();
-  ui.abortControllerRef.current = abortController;
+  if (session.isActive()) {
+    ui.setMessages(prev => [...prev, userMessage]);
+    ui.setIsLoading(true);
+    ui.setStreamingContent("");
+    ui.setStreamingThinking("");
+  }
 
   const traceId = tracing.traceStart(start.trace.name, {
     sessionId: start.trace.sessionId ?? session.myChatId,
@@ -143,7 +154,10 @@ export async function runChatTurn<C = void>(ui: ChatTurnUi, request: ChatTurnReq
     tracing.traceEnd(traceId, { output: text, metadata: { error: true } });
     tracing.score(traceId, { name: "status", value: 0, comment: text });
   } finally {
-    await request.onSettled?.(turn, context);
-    session.cleanup(abortController);
+    try {
+      await request.onSettled?.(turn, context);
+    } finally {
+      session.cleanup(abortController);
+    }
   }
 }

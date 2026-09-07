@@ -74,6 +74,10 @@ export function createConfirmingToolExecutor(
   // back to the model as a follow-up message.
   const pendingAdditionalRequest: { current: { filePath: string; request: string } | null } = { current: null };
   let cancelled = false;
+  const superseded = () => ({
+    success: false,
+    error: "The proposal changed while awaiting confirmation. Please propose the change again.",
+  });
 
   const executeToolCall = async (name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> => {
     if (cancelled) return { cancelled: true, message: "User cancelled the edit" };
@@ -88,7 +92,7 @@ export function createConfirmingToolExecutor(
 
     if (name === "propose_edit") {
       const pending = getPendingEdit();
-      const hasNewPending = pending && pending.createdAt !== prevPendingEdit?.createdAt;
+      const hasNewPending = pending && pending !== prevPendingEdit;
       if (hasNewPending && !toolCallFailed) {
         if (autoApply()) {
           const applyResult = await applyEdit(app);
@@ -96,7 +100,7 @@ export function createConfirmingToolExecutor(
             processedEdits.push({ originalPath: pending.originalPath, status: "applied" });
             return { ...result, applied: true, message: `Applied changes to "${pending.originalPath}"` };
           }
-          discardEdit(app);
+          if (getPendingEdit() === pending) discardEdit(app);
           processedEdits.push({ originalPath: pending.originalPath, status: "failed" });
           return { ...result, applied: false, error: applyResult.error };
         }
@@ -104,18 +108,19 @@ export function createConfirmingToolExecutor(
         const confirmResult = await promptForConfirmation(
           app, pending.originalPath, pending.newContent, "overwrite", pending.originalContent,
         );
+        if (getPendingEdit() !== pending) return superseded();
         if (confirmResult.action === "save") {
           const applyResult = await applyEdit(app, { openFile: getOpenFileAfterApplyPreference(app) });
           if (applyResult.success) {
             processedEdits.push({ originalPath: pending.originalPath, status: "applied" });
             return { ...result, applied: true, message: `Applied changes to "${pending.originalPath}"` };
           }
-          discardEdit(app);
+          if (getPendingEdit() === pending) discardEdit(app);
           processedEdits.push({ originalPath: pending.originalPath, status: "failed" });
           return { ...result, applied: false, error: applyResult.error };
         }
         if (confirmResult.additionalRequest !== undefined) {
-          discardEdit(app);
+          if (getPendingEdit() === pending) discardEdit(app);
           processedEdits.push({ originalPath: pending.originalPath, status: "discarded" });
           pendingAdditionalRequest.current = {
             filePath: pending.originalPath,
@@ -123,7 +128,7 @@ export function createConfirmingToolExecutor(
           };
           return { ...result, applied: false, message: "User requested changes" };
         }
-        discardEdit(app);
+        if (getPendingEdit() === pending) discardEdit(app);
         processedEdits.push({ originalPath: pending.originalPath, status: "discarded" });
         cancelled = true;
         cancelGeneration();
@@ -133,20 +138,21 @@ export function createConfirmingToolExecutor(
 
     if (name === "propose_delete") {
       const pending = getPendingDelete();
-      const hasNewPending = pending && pending.createdAt !== prevPendingDelete?.createdAt;
+      const hasNewPending = pending && pending !== prevPendingDelete;
       if (hasNewPending && !toolCallFailed) {
         const confirmed = await promptForDeleteConfirmation(app, pending.path, pending.content);
+        if (getPendingDelete() !== pending) return superseded();
         if (confirmed) {
           const deleteResult = await applyDelete(app);
           if (deleteResult.success) {
             processedDeletes.push({ path: pending.path, status: "deleted" });
             return { ...result, deleted: true, message: `Deleted "${pending.path}"` };
           }
-          discardDelete(app);
+          if (getPendingDelete() === pending) discardDelete(app);
           processedDeletes.push({ path: pending.path, status: "failed" });
           return { ...result, deleted: false, error: deleteResult.error };
         }
-        discardDelete(app);
+        if (getPendingDelete() === pending) discardDelete(app);
         processedDeletes.push({ path: pending.path, status: "cancelled" });
         return { ...result, deleted: false, message: "User cancelled the deletion" };
       }
@@ -154,20 +160,21 @@ export function createConfirmingToolExecutor(
 
     if (name === "rename_note") {
       const pendingRn = getPendingRename();
-      const hasNewPending = pendingRn && pendingRn.createdAt !== prevPendingRename?.createdAt;
+      const hasNewPending = pendingRn && pendingRn !== prevPendingRename;
       if (hasNewPending && !toolCallFailed) {
         const confirmed = await promptForRenameConfirmation(app, pendingRn.originalPath, pendingRn.newPath);
+        if (getPendingRename() !== pendingRn) return superseded();
         if (confirmed) {
           const renameResult = await applyRename(app);
           if (renameResult.success) {
             processedRenames.push({ originalPath: pendingRn.originalPath, newPath: pendingRn.newPath, status: "applied" });
             return { ...result, applied: true, message: `Renamed "${pendingRn.originalPath}" to "${pendingRn.newPath}"` };
           }
-          discardRename(app);
+          if (getPendingRename() === pendingRn) discardRename(app);
           processedRenames.push({ originalPath: pendingRn.originalPath, newPath: pendingRn.newPath, status: "failed" });
           return { ...result, applied: false, error: renameResult.error };
         }
-        discardRename(app);
+        if (getPendingRename() === pendingRn) discardRename(app);
         processedRenames.push({ originalPath: pendingRn.originalPath, newPath: pendingRn.newPath, status: "discarded" });
         return { ...result, applied: false, message: "User cancelled the rename" };
       }
@@ -175,9 +182,10 @@ export function createConfirmingToolExecutor(
 
     if (name === "bulk_propose_edit") {
       const pendingBulk = getPendingBulkEdit();
-      const hasNewPending = pendingBulk && pendingBulk.createdAt !== prevPendingBulkEdit?.createdAt;
+      const hasNewPending = pendingBulk && pendingBulk !== prevPendingBulkEdit;
       if (hasNewPending && !toolCallFailed && pendingBulk.items.length > 0) {
         const selectedPaths = await promptForBulkEditConfirmation(app, pendingBulk.items);
+        if (getPendingBulkEdit() !== pendingBulk) return superseded();
         if (selectedPaths.length > 0) {
           const applyResult = await applyBulkEdit(app, selectedPaths);
           for (const path of applyResult.applied) processedEdits.push({ originalPath: path, status: "applied" });
@@ -192,9 +200,10 @@ export function createConfirmingToolExecutor(
 
     if (name === "bulk_propose_delete") {
       const pendingBulk = getPendingBulkDelete();
-      const hasNewPending = pendingBulk && pendingBulk.createdAt !== prevPendingBulkDelete?.createdAt;
+      const hasNewPending = pendingBulk && pendingBulk !== prevPendingBulkDelete;
       if (hasNewPending && !toolCallFailed && pendingBulk.items.length > 0) {
         const selectedPaths = await promptForBulkDeleteConfirmation(app, pendingBulk.items);
+        if (getPendingBulkDelete() !== pendingBulk) return superseded();
         if (selectedPaths.length > 0) {
           const deleteResult = await applyBulkDelete(app, selectedPaths);
           for (const path of deleteResult.deleted) processedDeletes.push({ path, status: "deleted" });
@@ -209,9 +218,10 @@ export function createConfirmingToolExecutor(
 
     if (name === "bulk_propose_rename") {
       const pendingBulk = getPendingBulkRename();
-      const hasNewPending = pendingBulk && pendingBulk.createdAt !== prevPendingBulkRename?.createdAt;
+      const hasNewPending = pendingBulk && pendingBulk !== prevPendingBulkRename;
       if (hasNewPending && !toolCallFailed && pendingBulk.items.length > 0) {
         const selectedPaths = await promptForBulkRenameConfirmation(app, pendingBulk.items);
+        if (getPendingBulkRename() !== pendingBulk) return superseded();
         if (selectedPaths.length > 0) {
           const renameResult = await applyBulkRename(app, selectedPaths);
           for (const path of renameResult.applied) {

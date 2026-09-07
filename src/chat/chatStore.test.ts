@@ -81,6 +81,26 @@ function msg(content: string, role: Message["role"] = "user"): Message {
 }
 
 describe("chatStore", () => {
+  it("keeps the previous encrypted history if writing plaintext fails", async () => {
+    const oldPath = "AI/chats/chat_1.md.encrypted";
+    adapter.files.set(oldPath, "recoverable encrypted history");
+    adapter.write = async () => { throw new Error("disk full"); };
+    await expect(writeChatFile(host, [msg("hello")], "chat_1", 42)).rejects.toThrow("disk full");
+    expect(adapter.files.get(oldPath)).toBe("recoverable encrypted history");
+  });
+
+  it("removes the previous format only after saving the replacement", async () => {
+    const oldPath = "AI/chats/chat_1.md.encrypted";
+    adapter.files.set(oldPath, "old history");
+    const write = adapter.write.bind(adapter);
+    adapter.write = async (path, content) => {
+      expect(adapter.files.has(oldPath)).toBe(true);
+      await write(path, content);
+    };
+    await writeChatFile(host, [msg("hello")], "chat_1", 42);
+    expect(adapter.files.has(oldPath)).toBe(false);
+    expect(adapter.files.get("AI/chats/chat_1.md")).toContain("hello");
+  });
   it("creates every missing folder segment", async () => {
     await ensureFolderExists(host.app, "a/b/c");
     expect([...adapter.folders]).toEqual(["a", "a/b", "a/b/c"]);

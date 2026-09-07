@@ -20,6 +20,34 @@ function harness(overrides: Partial<Parameters<typeof withRateLimitRetry>[1]> = 
 }
 
 describe("withRateLimitRetry", () => {
+  it("does not retry when stopped during backoff", async () => {
+    let aborted = false;
+    const { options } = harness({ isAborted: () => aborted, wait: async () => { aborted = true; } });
+    const run = vi.fn().mockRejectedValueOnce(rateLimited()).mockResolvedValue(undefined);
+    expect(await withRateLimitRetry(run, options)).toBe("aborted");
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("ends the default backoff promptly when stopped", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("window", globalThis);
+    try {
+      let aborted = false;
+      const run = vi.fn(async () => { throw rateLimited(); });
+      const pending = withRateLimitRetry(run, {
+        delays: [60_000], isAborted: () => aborted, onRetry: () => {},
+      });
+      await vi.advanceTimersByTimeAsync(1);
+      aborted = true;
+      await vi.advanceTimersByTimeAsync(100);
+      expect(await pending).toBe("aborted");
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
+  });
   it("returns as soon as an attempt succeeds", async () => {
     const { options, waits } = harness();
     const run = vi.fn(async () => {});

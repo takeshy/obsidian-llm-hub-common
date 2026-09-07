@@ -56,6 +56,58 @@ function harness(history: Message[] = []): Harness {
 describe("runChatTurn", () => {
   beforeEach(() => setTracingHandler(null));
 
+  it("keeps the new chat's UI and controller when preparation finishes after a switch", async () => {
+    const h = harness([user("old history")]);
+    const foreground = new AbortController();
+    h.ui.setStreamingContent = vi.fn();
+    h.ui.setStreamingThinking = vi.fn();
+    await runChatTurn(h.ui, {
+      prepare: async () => {
+        expect(h.ui.abortControllerRef.current).toBeInstanceOf(AbortController);
+        h.detach();
+        h.ui.setMessages([user("new chat")]);
+        h.ui.abortControllerRef.current = foreground;
+        return { userMessage: user("old prompt"), trace: { name: "chat" } };
+      },
+      run: async () => assistant("old answer"),
+    });
+    expect(h.onScreen()).toEqual([user("new chat")]);
+    expect(h.loading).toEqual([]);
+    expect(h.ui.setStreamingContent).not.toHaveBeenCalled();
+    expect(h.ui.setStreamingThinking).not.toHaveBeenCalled();
+    expect(h.ui.abortControllerRef.current).toBe(foreground);
+    expect(h.saved).toEqual([[user("old history"), user("old prompt"), assistant("old answer")]]);
+  });
+
+  it("does not start a provider stopped during preparation", async () => {
+    const h = harness();
+    const run = vi.fn(async () => assistant("hi"));
+    await runChatTurn(h.ui, {
+      prepare: async () => {
+        h.ui.abortControllerRef.current!.abort();
+        return { userMessage: user("hello"), trace: { name: "chat" } };
+      }, run,
+    });
+    expect(run).not.toHaveBeenCalled();
+    expect(h.loading).toEqual([]);
+    expect(h.cleanedUp).toHaveLength(1);
+  });
+
+  it("releases the session if preparation or teardown throws", async () => {
+    for (const phase of ["prepare", "settle"]) {
+      const h = harness();
+      await expect(runChatTurn(h.ui, {
+        prepare: () => {
+          if (phase === "prepare") throw new Error("prepare");
+          return { userMessage: user("hello"), trace: { name: "chat" } };
+        },
+        run: async () => assistant("hi"),
+        onSettled: () => { throw new Error("settle"); },
+      })).rejects.toThrow(phase);
+      expect(h.cleanedUp).toHaveLength(1);
+    }
+  });
+
   it("shows the user's message, then saves it with the answer", async () => {
     const h = harness([user("earlier")]);
     await runChatTurn(h.ui, {

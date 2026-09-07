@@ -10,7 +10,7 @@ export interface RateLimitRetryOptions {
    * and the user is told how long the next try is away.
    */
   onRetry: (info: { attempt: number; total: number; delayMs: number }) => void;
-  /** Overridable for tests; the default waits on a timer. */
+  /** Overridable for tests; the default checks cancellation at most every 100 ms. */
   wait?: (ms: number) => Promise<unknown>;
 }
 
@@ -27,10 +27,11 @@ export interface RateLimitRetryOptions {
  */
 export async function withRateLimitRetry(
   run: () => Promise<void>,
-  { delays, isAborted, onRetry, wait = sleep }: RateLimitRetryOptions,
+  { delays, isAborted, onRetry, wait }: RateLimitRetryOptions,
 ): Promise<"done" | "aborted"> {
   let attempt = 0;
   for (;;) {
+    if (isAborted()) return "aborted";
     try {
       await run();
       return "done";
@@ -40,7 +41,14 @@ export async function withRateLimitRetry(
       const delayMs = delays[attempt];
       attempt += 1;
       onRetry({ attempt, total: delays.length, delayMs });
-      await wait(delayMs);
+      if (wait) {
+        await wait(delayMs);
+      } else {
+        const deadline = Date.now() + delayMs;
+        while (!isAborted() && Date.now() < deadline) {
+          await sleep(Math.min(100, deadline - Date.now()));
+        }
+      }
     }
   }
 }
