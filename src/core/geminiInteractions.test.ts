@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildGeminiHistoryReplayInput,
+  buildGeminiInteractionInput,
   buildGeminiGenerateContentTools,
   buildGeminiInteractionTools,
   messagesToGeminiContents,
@@ -21,6 +23,41 @@ describe("Gemini Interactions helpers", () => {
         parts: [{ inlineData: { mimeType: "image/png", data: "base64" } }, { text: "describe" }],
       },
       { role: "model", parts: [{ text: "result" }] },
+    ]);
+  });
+
+  it("builds multimodal Interactions input and decodes text attachments", () => {
+    expect(buildGeminiInteractionInput({
+      role: "user",
+      content: "question",
+      timestamp: 1,
+      attachments: [
+        { name: "a.png", type: "image", mimeType: "image/png", data: "image-data" },
+        { name: "a.pdf", type: "pdf", mimeType: "application/pdf", data: "pdf-data" },
+        { name: "notes.txt", type: "text", mimeType: "text/plain", data: btoa("notes") },
+      ],
+    })).toEqual([
+      { type: "image", data: "image-data", mime_type: "image/png" },
+      { type: "document", data: "pdf-data", mime_type: "application/pdf" },
+      { type: "text", text: "[File: notes.txt]\nnotes" },
+      { type: "text", text: "question" },
+    ]);
+  });
+
+  it("replays history as a transcript while preserving current attachments", () => {
+    expect(buildGeminiHistoryReplayInput([
+      { role: "user", content: "first", timestamp: 1 },
+      { role: "assistant", content: "answer", timestamp: 2 },
+      {
+        role: "user",
+        content: "follow-up",
+        timestamp: 3,
+        attachments: [{ name: "audio.mp3", type: "audio", mimeType: "audio/mpeg", data: "audio-data" }],
+      },
+    ])).toEqual([
+      { type: "text", text: "[Previous conversation]\nUser: first\n\nAssistant: answer\n\n[Current message]\n" },
+      { type: "audio", data: "audio-data", mime_type: "audio/mpeg" },
+      { type: "text", text: "follow-up" },
     ]);
   });
 

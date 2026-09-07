@@ -33,6 +33,10 @@ export interface GeminiInteractionToolOptions {
   webSearchEnabled?: boolean;
 }
 
+export type GeminiInteractionContent =
+  | { type: "text"; text: string }
+  | { type: "image" | "audio" | "video" | "document"; data: string; mime_type: string };
+
 export interface GeminiGenerateContentSchema {
   type: string;
   description?: string;
@@ -71,6 +75,48 @@ export function messagesToGeminiContents(messages: Message[]): GeminiContent[] {
     role: message.role === "user" ? "user" : "model",
     parts: buildGeminiMessageParts(message),
   }));
+}
+
+export function buildGeminiInteractionInput(message: Message): string | GeminiInteractionContent[] {
+  if (!message.attachments?.length) return message.content || "";
+
+  const contents: GeminiInteractionContent[] = [];
+  for (const attachment of message.attachments) {
+    const type = attachment.type === "pdf" ? "document" : attachment.type;
+    if (type === "image" || type === "audio" || type === "video" || type === "document") {
+      contents.push({ type, data: attachment.data, mime_type: attachment.mimeType });
+    } else if (attachment.data) {
+      try {
+        contents.push({ type: "text", text: `[File: ${attachment.name}]\n${atob(attachment.data)}` });
+      } catch {
+        contents.push({ type: "text", text: `[File: ${attachment.name}]` });
+      }
+    }
+  }
+  if (message.content) contents.push({ type: "text", text: message.content });
+  return contents;
+}
+
+export function buildGeminiHistoryReplayInput(
+  messages: Message[],
+): string | GeminiInteractionContent[] {
+  const historyMessages = messages.slice(0, -1);
+  const lastMessage = messages[messages.length - 1];
+  if (historyMessages.length === 0) return buildGeminiInteractionInput(lastMessage);
+
+  const lines: string[] = [];
+  for (const message of historyMessages) {
+    const role = message.role === "user" ? "User" : "Assistant";
+    if (message.content) lines.push(`${role}: ${message.content}`);
+  }
+  const historyText = `[Previous conversation]\n${lines.join("\n\n")}\n\n[Current message]\n`;
+  if (!lastMessage.attachments?.length) return historyText + (lastMessage.content || "");
+
+  const contents: GeminiInteractionContent[] = [{ type: "text", text: historyText }];
+  const lastParts = buildGeminiInteractionInput(lastMessage);
+  if (Array.isArray(lastParts)) contents.push(...lastParts);
+  else contents.push({ type: "text", text: lastParts });
+  return contents;
 }
 
 function geminiToolPropertyToJsonSchema(property: ToolPropertyDefinition): Record<string, unknown> {
