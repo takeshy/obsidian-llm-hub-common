@@ -173,6 +173,9 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
   fallback収集を `src/core/geminiInteractions.ts` へ移動済み。これはInteractionsの
   イベント解析でありlocal pluginは対象外。hubのRAG事前取得とgemini helperの
   native File Searchという実行経路の差は維持している。
+- tool上限到達後の最終Interactions streamからtext・interaction ID・raw usageを
+  抽出する処理と、completed statusをエラー文へ変換する処理を
+  `src/core/geminiToolLoop.ts` へ移動済み。usageのモデル別換算は各pluginに残す。
 - 残りは tool loop、Interactions API の実行本体、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）

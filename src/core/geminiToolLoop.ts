@@ -95,3 +95,45 @@ export class GeminiFunctionCallAccumulator {
     return { id: pending.id, name: pending.name, args };
   }
 }
+
+export interface GeminiFinalInteractionEvent {
+  text?: string;
+  interactionId?: string;
+  usage?: unknown;
+}
+
+/**
+ * Extract the small common subset consumed from a tool loop's final-answer
+ * stream. Usage remains opaque because each host chooses the effective model
+ * used to price it.
+ */
+export function parseGeminiFinalInteractionEvent(event: unknown): GeminiFinalInteractionEvent {
+  const value = event as {
+    event_type?: string;
+    delta?: { type?: string; text?: unknown };
+    interaction?: { id?: unknown; usage?: unknown };
+  } | undefined;
+  switch (value?.event_type) {
+    case "step.delta":
+      return value.delta?.type === "text" && typeof value.delta.text === "string"
+        ? { text: value.delta.text }
+        : {};
+    case "interaction.created":
+      return typeof value.interaction?.id === "string"
+        ? { interactionId: value.interaction.id }
+        : {};
+    case "interaction.completed":
+      return value.interaction?.usage !== undefined
+        ? { usage: value.interaction.usage }
+        : {};
+    default:
+      return {};
+  }
+}
+
+export function getGeminiInteractionStatusError(status: unknown): string | null {
+  if (typeof status !== "string" || status === "completed" || status === "requires_action") {
+    return null;
+  }
+  return `Response ${status}${status === "failed" ? " (possibly blocked by safety filters)" : ""}`;
+}

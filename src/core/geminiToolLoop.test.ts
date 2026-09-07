@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   GeminiFunctionCallAccumulator,
+  getGeminiInteractionStatusError,
+  parseGeminiFinalInteractionEvent,
   planGeminiFunctionCalls,
   requestGeminiFunctionCallLimitExtension,
 } from "./geminiToolLoop.js";
@@ -81,5 +83,34 @@ describe("Gemini tool loop limits", () => {
       name: "read",
       args: { path: "note.md" },
     });
+  });
+
+  it("parses final-answer Interactions stream events", () => {
+    expect(parseGeminiFinalInteractionEvent({
+      event_type: "step.delta",
+      delta: { type: "text", text: "answer" },
+    })).toEqual({ text: "answer" });
+    expect(parseGeminiFinalInteractionEvent({
+      event_type: "interaction.created",
+      interaction: { id: "interaction-1" },
+    })).toEqual({ interactionId: "interaction-1" });
+    const usage = { total_tokens: 12 };
+    expect(parseGeminiFinalInteractionEvent({
+      event_type: "interaction.completed",
+      interaction: { usage },
+    })).toEqual({ usage });
+    expect(parseGeminiFinalInteractionEvent({
+      event_type: "step.delta",
+      delta: { type: "thought_summary", text: "hidden" },
+    })).toEqual({});
+  });
+
+  it("normalizes failed Interactions statuses", () => {
+    expect(getGeminiInteractionStatusError("completed")).toBeNull();
+    expect(getGeminiInteractionStatusError("requires_action")).toBeNull();
+    expect(getGeminiInteractionStatusError("failed"))
+      .toBe("Response failed (possibly blocked by safety filters)");
+    expect(getGeminiInteractionStatusError("cancelled")).toBe("Response cancelled");
+    expect(getGeminiInteractionStatusError(undefined)).toBeNull();
   });
 });
