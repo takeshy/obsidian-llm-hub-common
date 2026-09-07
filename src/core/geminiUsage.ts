@@ -14,6 +14,14 @@ export interface ExtractGeminiUsageOptions {
   webSearchUsed?: boolean;
 }
 
+export interface GeminiInteractionsUsage {
+  total_input_tokens?: number;
+  total_output_tokens?: number;
+  total_thought_tokens?: number;
+  total_tool_use_tokens?: number;
+  total_tokens?: number;
+}
+
 export const GEMINI_MODEL_PRICING: Readonly<Record<string, Readonly<{ input: number; output: number }>>> = {
   "gemini-3.8-flash": { input: 0.75 / 1e6, output: 3.75 / 1e6 },
   "gemini-3.5-flash-lite": { input: 0.30 / 1e6, output: 2.50 / 1e6 },
@@ -56,6 +64,33 @@ export function extractGeminiUsage(
     thinking: thinkingTokens > 0 ? thinkingTokens : undefined,
     toolUsePromptTokens: toolUseTokens > 0 ? toolUseTokens : undefined,
     total: usage.totalTokenCount,
+    inputCost,
+    outputCost,
+    totalCost,
+  };
+}
+
+export function extractGeminiInteractionsUsage(
+  usage: GeminiInteractionsUsage | undefined,
+  model?: string,
+): TracingUsage | undefined {
+  if (!usage) return undefined;
+  const inputTokens = usage.total_input_tokens ?? 0;
+  const outputTokens = usage.total_output_tokens ?? 0;
+  const thinkingTokens = usage.total_thought_tokens ?? 0;
+  const toolUseTokens = usage.total_tool_use_tokens ?? 0;
+  const totalTokens = usage.total_tokens ?? inputTokens + outputTokens;
+  const pricing = model ? GEMINI_MODEL_PRICING[model] : undefined;
+  const inputCost = pricing ? inputTokens * pricing.input : undefined;
+  const outputCost = pricing ? outputTokens * pricing.output : undefined;
+  const totalCost = inputCost !== undefined && outputCost !== undefined ? inputCost + outputCost : undefined;
+
+  return {
+    input: inputTokens || undefined,
+    output: outputTokens || undefined,
+    thinking: thinkingTokens > 0 ? thinkingTokens : undefined,
+    toolUsePromptTokens: toolUseTokens > 0 ? toolUseTokens : undefined,
+    total: totalTokens || undefined,
     inputCost,
     outputCost,
     totalCost,
