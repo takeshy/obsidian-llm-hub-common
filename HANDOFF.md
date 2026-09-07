@@ -132,7 +132,9 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
 - Gemini の thinking level / config / 選択肢判定を
   `src/core/geminiThinking.ts` へ移動済み。`reasoningEffort: "default"` は legacy toggle
   より優先し、モデル既定へ委ねる契約を共有テストで固定した。
-- 残りは CORS fetch、usage変換、tool loop、Interactions API、画像生成など。
+- Gemini の usage metadata 変換、複数 round の集計、stream usage 変換、料金表、
+  grounding cost、finish reason のエラー判定を `src/core/geminiUsage.ts` へ移動済み。
+- 残りは CORS fetch、tool loop、Interactions API、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）
 
