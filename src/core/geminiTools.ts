@@ -84,6 +84,51 @@ export function extractGeminiGroundingWebSearch(chunk: unknown): {
   };
 }
 
+export interface ParsedGeminiContentParts {
+  textSegments: Array<{ type: "text" | "thinking"; content: string }>;
+  functionCalls: Array<{ id?: string; name: string; args: Record<string, unknown> }>;
+  webSearchResponses: unknown[];
+}
+
+export function parseGeminiGenerateContentParts(parts: unknown): ParsedGeminiContentParts {
+  const result: ParsedGeminiContentParts = {
+    textSegments: [],
+    functionCalls: [],
+    webSearchResponses: [],
+  };
+  if (!Array.isArray(parts)) return result;
+  for (const rawPart of parts) {
+    if (!rawPart || typeof rawPart !== "object") continue;
+    const part = rawPart as {
+      text?: unknown;
+      thought?: unknown;
+      functionCall?: { id?: unknown; name?: unknown; args?: unknown };
+      toolResponse?: { toolType?: unknown; response?: unknown };
+    };
+    if (typeof part.text === "string" && part.text) {
+      result.textSegments.push({
+        type: part.thought ? "thinking" : "text",
+        content: part.text,
+      });
+    }
+    if (typeof part.functionCall?.name === "string" && part.functionCall.name) {
+      const rawArgs = part.functionCall.args;
+      const args = rawArgs && typeof rawArgs === "object" && !Array.isArray(rawArgs)
+        ? rawArgs as Record<string, unknown>
+        : {};
+      result.functionCalls.push({
+        ...(typeof part.functionCall.id === "string" ? { id: part.functionCall.id } : {}),
+        name: part.functionCall.name,
+        args,
+      });
+    }
+    if (part.toolResponse?.toolType === "GOOGLE_SEARCH_WEB") {
+      result.webSearchResponses.push(part.toolResponse.response);
+    }
+  }
+  return result;
+}
+
 /** Collect unique HTTP(S) sources from Gemini tool responses and attribution HTML. */
 export function collectGeminiWebSources(value: unknown, sources: WebSearchSource[]): void {
   if (typeof value === "string") {

@@ -3,6 +3,7 @@ import {
   collectGeminiWebSources,
   extractGeminiGroundingWebSearch,
   prepareGeminiToolResult,
+  parseGeminiGenerateContentParts,
   sanitizeGeminiFunctionResult,
   serializeGeminiFunctionResult,
 } from "./geminiTools.js";
@@ -74,5 +75,25 @@ describe("Gemini tool helpers", () => {
     expect(extractGeminiGroundingWebSearch({
       candidates: [{ groundingMetadata: { webSearchQueries: ["query"] } }],
     })).toEqual({ used: true, sources: [] });
+  });
+
+  it("classifies text, thinking, function calls, and Search tool responses", () => {
+    expect(parseGeminiGenerateContentParts([
+      { text: "answer" },
+      { text: "reasoning", thought: true, thoughtSignature: "keep-on-original-part" },
+      { functionCall: { id: "call-1", name: "search", args: { query: "notes" } } },
+      { functionCall: { name: "invalid-args", args: "not-an-object" } },
+      { toolResponse: { toolType: "GOOGLE_SEARCH_WEB", response: { url: "https://example.com" } } },
+    ])).toEqual({
+      textSegments: [
+        { type: "text", content: "answer" },
+        { type: "thinking", content: "reasoning" },
+      ],
+      functionCalls: [
+        { id: "call-1", name: "search", args: { query: "notes" } },
+        { name: "invalid-args", args: {} },
+      ],
+      webSearchResponses: [{ url: "https://example.com" }],
+    });
   });
 });

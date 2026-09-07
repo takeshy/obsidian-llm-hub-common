@@ -162,6 +162,9 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
 - GenerateContent stream chunkのgrounding metadataからGoogle Search使用有無と
   重複のないweb sourceを抽出する処理を `src/core/geminiTools.ts` へ移動済み。
   sourceがないquery-onlyの応答も検索使用として扱う。
+- GenerateContentのpartsをtext/thinking/function call/Google Search tool responseへ
+  分類する処理を `src/core/geminiTools.ts` へ移動済み。不正なfunction argsは
+  空objectへ正規化し、元partsはthought signature保持のためplugin側でそのまま保存する。
 - 残りは tool loop、Interactions API の実行本体、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）
