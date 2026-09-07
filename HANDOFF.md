@@ -176,6 +176,9 @@ hub と gemini で最大の重複。引き継ぎ再開時点ではそれぞれ21
 - tool上限到達後の最終Interactions streamからtext・interaction ID・raw usageを
   抽出する処理と、completed statusをエラー文へ変換する処理を
   `src/core/geminiToolLoop.ts` へ移動済み。usageのモデル別換算は各pluginに残す。
+- Interactions tool loopの `function_result`、tool返却添付の`user_input`、上限通知の
+  text `user_input` step構築を `src/core/geminiInteractions.ts` へ移動済み。
+  tool実行・添付dedupe・上限判定は各pluginに残す。
 - 残りは tool loop、Interactions API の実行本体、画像生成など。
 
 ### 5.3 動作確認（別端末でやってほしいこと）

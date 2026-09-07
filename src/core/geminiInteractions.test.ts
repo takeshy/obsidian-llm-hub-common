@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildGeminiHistoryReplayInput,
   buildGeminiInteractionInput,
+  buildGeminiInteractionAttachmentStep,
+  buildGeminiInteractionFunctionResultStep,
+  buildGeminiInteractionTextStep,
   buildGeminiGenerateContentTools,
   buildGeminiInteractionTools,
   buildGeminiRagRequest,
@@ -13,6 +16,24 @@ import {
 } from "./geminiInteractions.js";
 
 describe("Gemini Interactions helpers", () => {
+  it("builds tool-loop input steps", () => {
+    expect(buildGeminiInteractionFunctionResultStep("call-1", "read", '{"ok":true}')).toEqual({
+      type: "function_result",
+      call_id: "call-1",
+      name: "read",
+      result: '{"ok":true}',
+    });
+    expect(buildGeminiInteractionAttachmentStep([])).toBeNull();
+    expect(buildGeminiInteractionAttachmentStep([{ data: "pdf-data", mimeType: "application/pdf" }])).toEqual({
+      type: "user_input",
+      content: [{ type: "document", data: "pdf-data", mime_type: "application/pdf" }],
+    });
+    expect(buildGeminiInteractionTextStep("finish now")).toEqual({
+      type: "user_input",
+      content: [{ type: "text", text: "finish now" }],
+    });
+  });
+
   it("converts messages, attachments, and tool messages to Gemini contents", () => {
     expect(messagesToGeminiContents([
       {

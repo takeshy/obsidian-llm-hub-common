@@ -1,4 +1,4 @@
-import type { Message, RagContext } from "./message.js";
+import type { Attachment, Message, RagContext } from "./message.js";
 import type { ToolDefinition, ToolPropertyDefinition } from "./provider.js";
 
 export interface GeminiContentPart {
@@ -37,6 +37,21 @@ export type GeminiInteractionContent =
   | { type: "text"; text: string }
   | { type: "image" | "audio" | "video" | "document"; data: string; mime_type: string };
 
+export type GeminiInteractionInputStep =
+  | {
+    type: "function_result";
+    call_id: string;
+    name: string;
+    result: string;
+  }
+  | {
+    type: "user_input";
+    content: Array<
+      | { type: "text"; text: string }
+      | { type: "document"; data: string; mime_type: string }
+    >;
+  };
+
 export interface GeminiGenerateContentSchema {
   type: string;
   description?: string;
@@ -65,6 +80,40 @@ export interface GeminiRagRequest {
       metadataFilter?: string;
     };
   }>;
+}
+
+export function buildGeminiInteractionFunctionResultStep(
+  callId: string,
+  name: string,
+  serializedResult: string,
+): GeminiInteractionInputStep {
+  return {
+    type: "function_result",
+    call_id: callId,
+    name,
+    result: serializedResult,
+  };
+}
+
+export function buildGeminiInteractionAttachmentStep(
+  attachments: Array<Pick<Attachment, "data" | "mimeType">>,
+): GeminiInteractionInputStep | null {
+  if (attachments.length === 0) return null;
+  return {
+    type: "user_input",
+    content: attachments.map(attachment => ({
+      type: "document",
+      data: attachment.data,
+      mime_type: attachment.mimeType,
+    })),
+  };
+}
+
+export function buildGeminiInteractionTextStep(text: string): GeminiInteractionInputStep {
+  return {
+    type: "user_input",
+    content: [{ type: "text", text }],
+  };
 }
 
 export interface GeminiInteractionSourceCollection {
