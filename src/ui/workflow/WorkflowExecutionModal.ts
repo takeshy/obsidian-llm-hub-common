@@ -144,7 +144,7 @@ export class WorkflowExecutionModal extends Modal {
       });
 
       const nodeEl = nodeWrapper.createDiv({
-        cls: `workflow-execution-node workflow-execution-node-${nodeInfo.status}`,
+        cls: cls("workflow-execution-node", `workflow-execution-node-${nodeInfo.status}`),
       });
       this.nodeElements.set(nodeInfo.id, nodeWrapper);
 
@@ -202,23 +202,23 @@ export class WorkflowExecutionModal extends Modal {
     if (this.expandedNodes.has(nodeId)) {
       this.expandedNodes.delete(nodeId);
       // Remove detail section
-      const detail = wrapper.querySelector(".workflow-execution-node-detail");
+      const detail = wrapper.querySelector(`.${cls("workflow-execution-node-detail")}`);
       if (detail) detail.remove();
       // Update expand indicator
-      const expandIndicator = wrapper.querySelector(".workflow-execution-node-expand");
+      const expandIndicator = wrapper.querySelector(`.${cls("workflow-execution-node-expand")}`);
       if (expandIndicator) expandIndicator.textContent = "▶";
     } else {
       this.expandedNodes.add(nodeId);
       this.renderNodeDetail(nodeId, wrapper);
       // Update expand indicator
-      const expandIndicator = wrapper.querySelector(".workflow-execution-node-expand");
+      const expandIndicator = wrapper.querySelector(`.${cls("workflow-execution-node-expand")}`);
       if (expandIndicator) expandIndicator.textContent = "▼";
     }
   }
 
   private renderNodeDetail(nodeId: string, wrapper: HTMLElement): void {
     // Remove existing detail if any
-    const existingDetail = wrapper.querySelector(".workflow-execution-node-detail");
+    const existingDetail = wrapper.querySelector(`.${cls("workflow-execution-node-detail")}`);
     if (existingDetail) existingDetail.remove();
 
     const logData = this.nodeLogs.get(nodeId);
@@ -482,20 +482,20 @@ export class WorkflowExecutionModal extends Modal {
     const wrapper = this.nodeElements.get(nodeId);
     if (!wrapper) return;
 
-    const nodeEl = wrapper.querySelector(".workflow-execution-node");
+    const nodeEl = wrapper.querySelector(`.${cls("workflow-execution-node")}`);
     if (!nodeEl) return;
 
     const status = this.nodeStatuses.get(nodeId) || "pending";
 
     // Update class
-    nodeEl.removeClass("workflow-execution-node-pending");
-    nodeEl.removeClass("workflow-execution-node-running");
-    nodeEl.removeClass("workflow-execution-node-completed");
-    nodeEl.removeClass("workflow-execution-node-error");
-    nodeEl.addClass(`workflow-execution-node-${status}`);
+    nodeEl.removeClass(cls("workflow-execution-node-pending"));
+    nodeEl.removeClass(cls("workflow-execution-node-running"));
+    nodeEl.removeClass(cls("workflow-execution-node-completed"));
+    nodeEl.removeClass(cls("workflow-execution-node-error"));
+    nodeEl.addClass(cls(`workflow-execution-node-${status}`));
 
     // Update status indicator
-    const statusIndicator = nodeEl.querySelector(".workflow-execution-node-status");
+    const statusIndicator = nodeEl.querySelector(`.${cls("workflow-execution-node-status")}`);
     if (statusIndicator instanceof HTMLElement) {
       this.updateStatusIndicator(statusIndicator, status);
     }
@@ -520,7 +520,7 @@ export class WorkflowExecutionModal extends Modal {
     }
 
     // Update status text
-    const statusEl = this.contentEl.querySelector(".workflow-execution-status");
+    const statusEl = this.contentEl.querySelector(`.${cls("workflow-execution-status")}`);
     if (statusEl) {
       statusEl.textContent = success
         ? t("workflow.execution.completed")
@@ -541,7 +541,7 @@ export class WorkflowExecutionModal extends Modal {
     this.onAbort();
 
     // Update status
-    const statusEl = this.contentEl.querySelector(".workflow-execution-status");
+    const statusEl = this.contentEl.querySelector(`.${cls("workflow-execution-status")}`);
     if (statusEl) {
       statusEl.textContent = t("workflow.execution.stopped");
       statusEl.addClass("status-stopped");

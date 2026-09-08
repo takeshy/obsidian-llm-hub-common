@@ -1838,6 +1838,42 @@
   max-height: 400px;
 }
 
+.chat-ui-workflow-execution-node {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 10px 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-left: 3px solid var(--text-faint);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.chat-ui-workflow-execution-node:hover {
+  background: var(--background-primary-alt);
+  border-color: var(--background-modifier-border-hover);
+}
+
+.chat-ui-workflow-execution-node-pending {
+  opacity: 0.72;
+}
+
+.chat-ui-workflow-execution-node-running {
+  border-left-color: var(--interactive-accent);
+  background: var(--background-primary-alt);
+}
+
+.chat-ui-workflow-execution-node-completed {
+  border-left-color: var(--color-green);
+}
+
+.chat-ui-workflow-execution-node-error {
+  border-left-color: var(--color-red);
+}
+
 .chat-ui-workflow-execution-node-type {
   font-size: 10px;
   font-weight: 600;
@@ -1877,12 +1913,12 @@
   margin-top: 4px;
 }
 
-.chat-ui-workflow-execution-node-connections .chat-ui-conn-true {
+.chat-ui-workflow-execution-node-connections .chat-ui-workflow-execution-conn-true {
   color: var(--color-green);
   margin-right: 8px;
 }
 
-.chat-ui-workflow-execution-node-connections .chat-ui-conn-false {
+.chat-ui-workflow-execution-node-connections .chat-ui-workflow-execution-conn-false {
   color: var(--color-red);
 }
 
