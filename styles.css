@@ -5422,12 +5422,21 @@
   gap: 4px;
 }
 
+.chat-ui-workflow-selector-node-wrapper {
+  min-width: 0;
+}
+
 .chat-ui-workflow-selector-nodes .chat-ui-workflow-node-header {
   margin-left: 0;
 }
 
 .chat-ui-workflow-selector-nodes .chat-ui-workflow-node-summary {
   margin-left: 0;
+}
+
+.chat-ui-workflow-selector-nodes .chat-ui-workflow-node-comment {
+  margin-left: 0;
+  white-space: pre-wrap;
 }
 
 /* Workflow Selector - AI Workflow History */

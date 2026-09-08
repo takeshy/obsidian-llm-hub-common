@@ -10,6 +10,29 @@ import { getWorkflowNodeTypeLabels } from "../../workflow/index.js";
 
 const getNodeTypeLabels = getWorkflowNodeTypeLabels;
 
+interface IncomingConnection {
+  from: string;
+  type: "next" | "true" | "false";
+}
+
+function buildIncomingMap(nodes: SidebarNode[]): Map<string, IncomingConnection[]> {
+  const incoming = new Map<string, IncomingConnection[]>();
+  for (const node of nodes) {
+    const connections: Array<{ target?: string; type: IncomingConnection["type"] }> = [
+      { target: node.next, type: "next" },
+      { target: node.trueNext, type: "true" },
+      { target: node.falseNext, type: "false" },
+    ];
+    for (const connection of connections) {
+      if (!connection.target) continue;
+      const existing = incoming.get(connection.target) ?? [];
+      existing.push({ from: node.id, type: connection.type });
+      incoming.set(connection.target, existing);
+    }
+  }
+  return incoming;
+}
+
 function getNodeSummary(node: SidebarNode): string {
   switch (node.type) {
     case "variable":
@@ -353,6 +376,7 @@ export class WorkflowSelectorModal extends Modal {
     const result: { data: WorkflowBlockData } = { data: this.loadedWorkflow };
     const nodes = result.data.nodes;
     const nodeTypeLabels = getNodeTypeLabels();
+    const incomingMap = buildIncomingMap(nodes);
 
     // Render workflow name
     if (result.data.name) {
@@ -370,42 +394,60 @@ export class WorkflowSelectorModal extends Modal {
       const node = nodes[i];
       const isBranchNode = node.type === "if" || node.type === "while";
       const nextNode = i < nodes.length - 1 ? nodes[i + 1] : null;
+      const incoming = incomingMap.get(node.id) ?? [];
 
-      const nodeCard = nodesContainer.createDiv({ cls: "workflow-node-card workflow-selector-node-card" });
+      const nodeWrapper = nodesContainer.createDiv({ cls: cls("workflow-selector-node-wrapper") });
+
+      if (incoming.length > 0) {
+        const incomingEl = nodeWrapper.createDiv({ cls: cls("workflow-node-incoming") });
+        for (const connection of incoming) {
+          incomingEl.createSpan({
+            cls: cls("workflow-incoming-badge", `workflow-incoming-${connection.type}`),
+            text: `← ${connection.from}${connection.type === "next" ? "" : `.${connection.type === "true" ? "True" : "False"}`}`,
+          });
+        }
+      }
+
+      const nodeCard = nodeWrapper.createDiv({ cls: cls("workflow-node-card", "workflow-selector-node-card") });
 
       // Header
-      const header = nodeCard.createDiv({ cls: "workflow-node-header" });
+      const header = nodeCard.createDiv({ cls: cls("workflow-node-header") });
       header.createSpan({
-        cls: "workflow-node-type",
+        cls: cls("workflow-node-type", `workflow-node-type-${node.type}`),
         text: nodeTypeLabels[node.type] || node.type,
       });
       header.createSpan({
-        cls: "workflow-node-id",
+        cls: cls("workflow-node-id"),
         text: node.id,
       });
 
       // Summary
-      const summary = nodeCard.createDiv({ cls: "workflow-node-summary" });
+      const summary = nodeCard.createDiv({ cls: cls("workflow-node-summary") });
       summary.setText(getNodeSummary(node));
+
+      if (node.properties["comment"]) {
+        const comment = nodeCard.createDiv({ cls: cls("workflow-node-comment") });
+        comment.createSpan({ cls: cls("workflow-node-comment-text"), text: node.properties["comment"] });
+      }
 
       // Branch info for if/while nodes
       if (isBranchNode) {
-        const branchInfo = nodeCard.createDiv({ cls: "workflow-node-branch" });
+        const branchInfo = nodeWrapper.createDiv({ cls: cls("workflow-node-branch") });
 
-        const trueRow = branchInfo.createDiv({ cls: "workflow-branch-row" });
-        trueRow.createSpan({ cls: "workflow-branch-label workflow-branch-label-true", text: t("workflow.branchTrue") });
-        trueRow.createSpan({ cls: "workflow-branch-arrow", text: "→" });
-        trueRow.createSpan({ cls: "workflow-branch-target", text: node.trueNext || t("workflow.branchNext") });
+        const trueRow = branchInfo.createDiv({ cls: cls("workflow-branch-row") });
+        trueRow.createSpan({ cls: cls("workflow-branch-label", "workflow-branch-label-true"), text: t("workflow.branchTrue") });
+        trueRow.createSpan({ cls: cls("workflow-branch-arrow"), text: "→" });
+        trueRow.createSpan({ cls: cls("workflow-branch-target"), text: node.trueNext || t("workflow.branchNext") });
 
-        const falseRow = branchInfo.createDiv({ cls: "workflow-branch-row" });
-        falseRow.createSpan({ cls: "workflow-branch-label workflow-branch-label-false", text: t("workflow.branchFalse") });
-        falseRow.createSpan({ cls: "workflow-branch-arrow", text: "→" });
-        falseRow.createSpan({ cls: "workflow-branch-target", text: node.falseNext || t("workflow.branchEnd") });
+        const falseRow = branchInfo.createDiv({ cls: cls("workflow-branch-row") });
+        falseRow.createSpan({ cls: cls("workflow-branch-label", "workflow-branch-label-false"), text: t("workflow.branchFalse") });
+        falseRow.createSpan({ cls: cls("workflow-branch-arrow"), text: "→" });
+        falseRow.createSpan({ cls: cls("workflow-branch-target"), text: node.falseNext || t("workflow.branchEnd") });
       }
 
       // Arrow to next node (if not last and not branch node)
       if (nextNode && !isBranchNode) {
-        nodesContainer.createDiv({ cls: "workflow-node-arrow" });
+        nodeWrapper.createDiv({ cls: cls("workflow-node-arrow") });
       }
     }
   }
