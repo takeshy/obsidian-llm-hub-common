@@ -1,5 +1,13 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const ko = {
+  "voice.submitPhrase": "전송해 줘",
+  "input.autoReadAloud": "응답 자동으로 읽기",
+  "message.readAloud": "읽어 주기",
+  "message.stopReadingAloud": "읽기 중지",
+  "settings.voiceSubmit": "음성 입력 자동 전송",
+  "settings.voiceSubmit.desc": "붙여넣은 텍스트가 전송 문구로 끝나면 전송합니다. OS 받아쓰기, Aqua Voice 및 기타 음성 입력 도구에서 사용할 수 있습니다.",
+  "settings.voiceSubmitPhrase": "전송 문구",
+  "settings.voiceSubmitPhrase.desc": "비워 두면 현재 언어의 기본 문구를 사용합니다.",
   "workflow.multipleBlocksInFile": "단일 파일에서 여러 워크플로우 블록이 발견되었습니다. 각 파일은 하나의 워크플로우만 포함할 수 있습니다. 파일을 수동으로 분할하거나 마이그레이션 작업을 사용하세요.",
   "workflow.noCodeBlockFound": "워크플로우 코드 블록을 찾을 수 없습니다",
   "workflow.nodeType.variable": "변수",

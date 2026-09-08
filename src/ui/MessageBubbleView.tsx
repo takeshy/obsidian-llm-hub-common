@@ -21,6 +21,7 @@ import { t } from "../i18n/index.js";
 import { formatError } from "../core/error.js";
 import { isSafeWebUrl } from "../core/webUrl.js";
 import { chatLinkFileRef } from "../chat/localFileLink.js";
+import { readAloud, speechKeyForMessage, stopReadingAloud, useSpeakingMessageKey } from "../chat/voiceChat.js";
 import { getReadNotePageRange } from "../chat/toolDisplay.js";
 import { ConfirmModal } from "./ConfirmModal.js";
 
@@ -501,10 +502,20 @@ export default function MessageBubble({
     }
   };
 
+  const speechKey = speechKeyForMessage(message);
+  const speaking = useSpeakingMessageKey() === speechKey;
+
   return (
     <SharedMessageBubble classPrefix={classPrefix} isUser={isUser} isStreaming={isStreaming}
       roleLabel={getModelDisplayName()} timeLabel={formatTime(message.timestamp)} copied={copied}
-      copyLabel={t("message.copyToClipboard")} onCopy={() => { void handleCopy(); }}>
+      copyLabel={t("message.copyToClipboard")} onCopy={() => { void handleCopy(); }}
+      speech={isUser ? undefined : {
+        speaking,
+        readLabel: t("message.readAloud"),
+        stopLabel: t("message.stopReadingAloud"),
+        onRead: () => { readAloud(message.content, undefined, speechKey); },
+        onStop: stopReadingAloud,
+      }}>
 
       {/* Web search indicator */}
       {message.webSearchUsed && (

@@ -61,6 +61,38 @@ test("IME and keyboard events reach the host composer unchanged", () => {
   act(() => tree.unmount());
 });
 
+test("composer submits a dictated phrase from paste or accessibility input", () => {
+  const submitted = [], changed = [];
+  const tree = render(h(Composer, {
+    ...baseComposer,
+    textarea: { value: "draft", onChange: event => changed.push(event.currentTarget.value) },
+    voiceSubmit: { enabled: true, phrase: "send it", onSubmit: text => submitted.push(text) },
+  }));
+  const textarea = tree.root.findByType("textarea");
+  let prevented = false;
+  act(() => textarea.props.onPaste({
+    currentTarget: { value: "draft", selectionStart: 5, selectionEnd: 5 },
+    clipboardData: { getData: () => " update, send it." },
+    preventDefault: () => { prevented = true; },
+  }));
+  assert.equal(prevented, true);
+  assert.deepEqual(submitted, ["draft update,"]);
+
+  act(() => textarea.props.onChange({
+    currentTarget: { value: "Aqua text SEND IT!" },
+    nativeEvent: { isComposing: false },
+  }));
+  assert.deepEqual(submitted, ["draft update,", "Aqua text"]);
+  assert.deepEqual(changed, []);
+
+  act(() => textarea.props.onChange({
+    currentTarget: { value: "ordinary input" },
+    nativeEvent: { isComposing: false },
+  }));
+  assert.deepEqual(changed, ["ordinary input"]);
+  act(() => tree.unmount());
+});
+
 test("list preserves message metadata, source association and streaming thinking", () => {
   const messages = [{ role: "user", content: 'From "folder/source.md": hello', timestamp: 1 }, { role: "assistant", content: "reply", timestamp: 2, extra: "provider-state" }, { role: "user", content: "next", timestamp: 3 }, { role: "assistant", content: "reply2", timestamp: 4 }];
   const seen = [], streamed = [];
@@ -459,6 +491,45 @@ test("vault tool control keeps the history limit whether or not servers are conf
   assert.equal(selects(tree).length, 1);
   assert.equal(tree.root.findAllByType("input").length, 1);
   act(() => tree.unmount());
+});
+
+test("vault tool control exposes the auto-read-aloud switch", () => {
+  const changed = [];
+  const tree = render(h(VaultToolControl, {
+    classPrefix: "llm-hub", containerRef: createRef(), title: "vault tools", open: true,
+    onToggle() {}, modes: vaultModes, mode: "all", onModeChange() {},
+    autoReadAloud: { label: "read responses", enabled: false, onChange: value => changed.push(value) },
+  }));
+  const checkbox = tree.root.findByType("input");
+  assert.equal(checkbox.props.checked, false);
+  act(() => checkbox.props.onChange({ target: { checked: true } }));
+  assert.deepEqual(changed, [true]);
+  act(() => tree.unmount());
+});
+
+test("an assistant bubble reads its own answer aloud and stops it mid-speech", () => {
+  const calls = [];
+  const speech = {
+    speaking: false, readLabel: "read aloud", stopLabel: "stop reading",
+    onRead: () => calls.push("read"), onStop: () => calls.push("stop"),
+  };
+  const props = { classPrefix: "llm-hub", isUser: false, roleLabel: "Model", timeLabel: "12:00", copied: false, copyLabel: "copy", onCopy() {} };
+  const tree = render(h(MessageBubble, { ...props, speech }, "reply"));
+  const speechButton = buttons(tree).find(button => button.props.title === "read aloud");
+  act(() => speechButton.props.onClick());
+  assert.deepEqual(calls, ["read"]);
+
+  const speaking = render(h(MessageBubble, { ...props, speech: { ...speech, speaking: true } }, "reply"));
+  const stopButton = buttons(speaking).find(button => button.props.title === "stop reading");
+  assert.match(stopButton.props.className, /speech-btn-speaking/);
+  act(() => stopButton.props.onClick());
+  assert.deepEqual(calls, ["read", "stop"]);
+
+  // A user bubble and a streaming bubble carry no speech control.
+  assert.equal(renderToStaticMarkup(h(MessageBubble, props, "reply")).includes("speech-btn"), false);
+  assert.equal(renderToStaticMarkup(h(MessageBubble, { ...props, speech, isStreaming: true }, "reply")).includes("speech-btn"), false);
+  act(() => tree.unmount());
+  act(() => speaking.unmount());
 });
 
 test("vault tool button reports only a narrowed Vault mode, regardless of MCP state", () => {

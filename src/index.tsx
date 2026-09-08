@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ChangeEvent, type ReactNode, type Ref, type TextareaHTMLAttributes, type MouseEvent } from "react";
-import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, Database, Wrench, X, Paperclip, FileText, Maximize2, Minimize2 } from "lucide-react";
+import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, Database, Wrench, X, Paperclip, FileText, Maximize2, Minimize2, Volume2 } from "lucide-react";
 
 export interface ChatMessage {
   role: string;
@@ -10,6 +10,7 @@ export interface ChatMessage {
 export type { StyleProps } from "./types.js";
 import type { StyleProps } from "./types.js";
 import type { SearchSelection } from "./core/events.js";
+import { resolveVoiceSubmitPaste, resolveVoiceSubmitText } from "./chat/voiceChat.js";
 
 /** The host owns lifecycle, persistence and provider execution. */
 export function ChatLayout({ classPrefix: p, modifiers, children }: StyleProps & { modifiers?: readonly (string | false | undefined)[]; children: ReactNode }) {
@@ -97,13 +98,21 @@ export function Welcome({ classPrefix: p, title, hint, help, dashboard, tips, ca
 export interface MessageBubbleProps extends StyleProps {
   isUser: boolean; isStreaming?: boolean;
   roleLabel: ReactNode; timeLabel: string; copied: boolean; copyLabel: string; onCopy: () => void;
+  /** Read this message aloud, or stop it mid-sentence while it is speaking. */
+  speech?: { speaking: boolean; readLabel: string; stopLabel: string; onRead: () => void; onStop: () => void };
   children: ReactNode;
 }
-export function MessageBubble({ classPrefix: p, isUser, isStreaming, roleLabel, timeLabel, copied, copyLabel, onCopy, children }: MessageBubbleProps) {
+export function MessageBubble({ classPrefix: p, isUser, isStreaming, roleLabel, timeLabel, copied, copyLabel, onCopy, speech, children }: MessageBubbleProps) {
   return <div className={`${p}-message ${p}-message-${isUser ? "user" : "assistant"} ${isStreaming ? `${p}-message-streaming` : ""}`}>
     <div className={`${p}-message-header`}>
       <span className={`${p}-message-role`}>{roleLabel}</span>
       <span className={`${p}-message-time`}>{timeLabel}</span>
+      {!isStreaming && speech && <button
+        className={[`${p}-speech-btn`, speech.speaking && `${p}-speech-btn-speaking`].filter(Boolean).join(" ")}
+        onClick={speech.speaking ? speech.onStop : speech.onRead}
+        title={speech.speaking ? speech.stopLabel : speech.readLabel}>
+        {speech.speaking ? <StopCircle size={14} /> : <Volume2 size={14} />}
+      </button>}
       {!isStreaming && <button className={`${p}-copy-btn`} onClick={onCopy} title={copyLabel}>{copied ? <Check size={14} /> : <Copy size={14} />}</button>}
     </div>
     {children}
@@ -148,10 +157,40 @@ export interface ComposerProps extends StyleProps {
   onSend: () => void; onStop?: () => void;
   sendLabel: string; stopLabel: string; compactingLabel?: string;
   collapse?: { collapsed: boolean; onToggle: () => void; label: string };
+  /** Detect a dictated command phrase in pasted text and hand the final text to the host. */
+  voiceSubmit?: { enabled: boolean; phrase: string; onSubmit: (text: string) => void };
 }
-export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, collapse }: ComposerProps) {
+export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, collapse, voiceSubmit }: ComposerProps) {
+  const { onPaste, onChange, ...textareaProps } = textarea;
   return <>
-    <textarea ref={textareaRef} className={`${p}-input`} rows={3} {...textarea} />
+    <textarea ref={textareaRef} className={`${p}-input`} rows={3} {...textareaProps} onChange={event => {
+      const nativeEvent = event.nativeEvent as InputEvent;
+      if (voiceSubmit?.enabled && !nativeEvent.isComposing) {
+        const result = resolveVoiceSubmitText(event.currentTarget.value, voiceSubmit.phrase);
+        if (result) {
+          voiceSubmit.onSubmit(result.text);
+          return;
+        }
+      }
+      onChange?.(event);
+    }} onPaste={event => {
+      if (voiceSubmit?.enabled) {
+        const target = event.currentTarget;
+        const result = resolveVoiceSubmitPaste(
+          target.value,
+          event.clipboardData.getData("text/plain"),
+          target.selectionStart,
+          target.selectionEnd,
+          voiceSubmit.phrase,
+        );
+        if (result) {
+          event.preventDefault();
+          voiceSubmit.onSubmit(result.text);
+          return;
+        }
+      }
+      onPaste?.(event);
+    }} />
     <div className={`${p}-send-buttons`}>
       {isCompacting ? <button className={`${p}-send-btn`} disabled title={compactingLabel}><Loader2 size={18} className={`${p}-spinner`} /></button>
         : isLoading ? <button className={`${p}-stop-btn`} onClick={onStop} title={stopLabel}><StopCircle size={18} /></button>
@@ -385,7 +424,7 @@ export interface VaultToolModeChoice<T extends string> { id: T; label: string; d
  */
 export function VaultToolControl<T extends string>({
   classPrefix: p, containerRef, title, open, onToggle, onOpen,
-  modes, mode, onModeChange, lockedTo, disabled, mcp, historyLimit,
+  modes, mode, onModeChange, lockedTo, disabled, mcp, historyLimit, autoReadAloud,
 }: StyleProps & {
   containerRef: Ref<HTMLDivElement>;
   title: string;
@@ -402,6 +441,7 @@ export function VaultToolControl<T extends string>({
   disabled?: boolean;
   mcp?: { label: string; servers: readonly McpServerChoice[]; onToggle: (id: string, enabled: boolean) => void };
   historyLimit?: { label: string; value: number; onChange: (count: number) => void };
+  autoReadAloud?: { label: string; enabled: boolean; onChange: (enabled: boolean) => void };
 }) {
   const narrowed = mode !== modes[0]?.id;
   return <VaultToolButton
@@ -441,6 +481,14 @@ export function VaultToolControl<T extends string>({
         value={historyLimit.value}
         onChange={historyLimit.onChange}
       />}
+      {autoReadAloud && <>
+        <div className={`${p}-vault-tool-separator`} />
+        <label className={`${p}-vault-tool-speech-row`}>
+          <span>{autoReadAloud.label}</span>
+          <input type="checkbox" checked={autoReadAloud.enabled}
+            onChange={event => autoReadAloud.onChange(event.target.checked)} />
+        </label>
+      </>}
     </VaultToolMenu>}
   </VaultToolButton>;
 }

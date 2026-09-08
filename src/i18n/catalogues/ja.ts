@@ -1,5 +1,13 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const ja = {
+  "voice.submitPhrase": "送信して",
+  "input.autoReadAloud": "回答を自動で読み上げる",
+  "message.readAloud": "読み上げる",
+  "message.stopReadingAloud": "読み上げを停止",
+  "settings.voiceSubmit": "音声入力を自動送信",
+  "settings.voiceSubmit.desc": "貼り付けられた文章が送信フレーズで終わる場合に送信します。OS音声入力、Aqua Voiceなどで利用できます。",
+  "settings.voiceSubmitPhrase": "送信フレーズ",
+  "settings.voiceSubmitPhrase.desc": "空欄の場合は現在の言語の既定フレーズを使用します。",
   "workflow.multipleBlocksInFile": "1つのファイルに複数のワークフローブロックが見つかりました。1ファイルにつき1ワークフローのみ許可されています。手動で分割するか、マイグレーション機能を使用してください。",
   "workflow.noCodeBlockFound": "ワークフローコードブロックが見つかりません",
   "workflow.nodeType.variable": "変数",

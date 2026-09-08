@@ -1,5 +1,13 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const zh = {
+  "voice.submitPhrase": "发送",
+  "input.autoReadAloud": "自动朗读回复",
+  "message.readAloud": "朗读",
+  "message.stopReadingAloud": "停止朗读",
+  "settings.voiceSubmit": "自动发送语音输入",
+  "settings.voiceSubmit.desc": "粘贴的文本以发送短语结尾时自动发送。适用于系统听写、Aqua Voice及其他语音输入工具。",
+  "settings.voiceSubmitPhrase": "发送短语",
+  "settings.voiceSubmitPhrase.desc": "留空时使用当前语言的默认短语。",
   "workflow.multipleBlocksInFile": "在单个文件中发现多个工作流代码块。每个文件只能包含一个工作流；请手动拆分文件或使用迁移操作。",
   "workflow.noCodeBlockFound": "未找到工作流代码块",
   "workflow.nodeType.variable": "变量",

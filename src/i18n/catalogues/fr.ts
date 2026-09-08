@@ -1,5 +1,13 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const fr = {
+  "voice.submitPhrase": "envoie",
+  "input.autoReadAloud": "Lire automatiquement les réponses",
+  "message.readAloud": "Lire à voix haute",
+  "message.stopReadingAloud": "Arrêter la lecture",
+  "settings.voiceSubmit": "Envoyer automatiquement le texte dicté",
+  "settings.voiceSubmit.desc": "Envoie lorsque le texte collé se termine par la phrase d'envoi. Fonctionne avec la dictée du système, Aqua Voice et d'autres outils vocaux.",
+  "settings.voiceSubmitPhrase": "Phrase d'envoi",
+  "settings.voiceSubmitPhrase.desc": "Laissez vide pour utiliser la phrase par défaut de la langue actuelle.",
   "workflow.multipleBlocksInFile": "Plusieurs blocs de flux de travail trouvés dans un seul fichier. Chaque fichier ne peut contenir qu'un seul flux de travail ; divisez le fichier manuellement ou utilisez l'action de migration.",
   "workflow.noCodeBlockFound": "Aucun bloc de code de flux de travail trouvé",
   "workflow.nodeType.variable": "Variable",

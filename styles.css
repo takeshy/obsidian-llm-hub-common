@@ -275,6 +275,38 @@
   background: var(--background-modifier-hover);
 }
 
+.chat-ui-speech-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.chat-ui-message:hover .chat-ui-speech-btn {
+  opacity: 1;
+}
+
+.chat-ui-speech-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.chat-ui-speech-btn-speaking {
+  opacity: 1;
+  color: var(--text-accent);
+}
+
+.chat-ui-speech-btn + .chat-ui-copy-btn {
+  margin-left: 0;
+}
+
 .chat-ui-message-user .chat-ui-copy-btn {
   color: var(--text-on-accent);
 }
@@ -872,6 +904,16 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.chat-ui-vault-tool-speech-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .chat-ui-mcp-server-item {

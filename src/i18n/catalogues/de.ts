@@ -1,5 +1,13 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const de = {
+  "voice.submitPhrase": "absenden",
+  "input.autoReadAloud": "Antworten automatisch vorlesen",
+  "message.readAloud": "Vorlesen",
+  "message.stopReadingAloud": "Vorlesen beenden",
+  "settings.voiceSubmit": "Diktierten Text automatisch senden",
+  "settings.voiceSubmit.desc": "Sendet, wenn eingefügter Text mit der Sendefloskel endet. Funktioniert mit der Betriebssystem-Diktierfunktion, Aqua Voice und anderen Spracheingaben.",
+  "settings.voiceSubmitPhrase": "Sendefloskel",
+  "settings.voiceSubmitPhrase.desc": "Leer lassen, um die Standardfloskel der aktuellen Sprache zu verwenden.",
   "workflow.multipleBlocksInFile": "Mehrere Workflow-Blöcke in einer einzelnen Datei gefunden. Jede Datei darf nur einen Workflow enthalten; teilen Sie die Datei manuell oder verwenden Sie die Migrationsaktion.",
   "workflow.noCodeBlockFound": "Kein Workflow-Codeblock gefunden",
   "workflow.nodeType.variable": "Variable",

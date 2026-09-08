@@ -1,5 +1,13 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const en = {
+  "voice.submitPhrase": "send it",
+  "input.autoReadAloud": "Read responses aloud automatically",
+  "message.readAloud": "Read aloud",
+  "message.stopReadingAloud": "Stop reading aloud",
+  "settings.voiceSubmit": "Send dictated text automatically",
+  "settings.voiceSubmit.desc": "Send when pasted text ends with the command phrase. Works with OS dictation, Aqua Voice, and other voice input tools.",
+  "settings.voiceSubmitPhrase": "Send phrase",
+  "settings.voiceSubmitPhrase.desc": "Leave empty to use the default phrase for the current language.",
   "workflow.multipleBlocksInFile": "Multiple workflow blocks found in a single file. Each file may contain only one workflow; split the file manually or use the migration action.",
   "workflow.noCodeBlockFound": "No workflow code block found",
   "workflow.nodeType.variable": "Variable",

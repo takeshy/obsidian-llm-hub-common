@@ -30,3 +30,8 @@ export const DEFAULT_EDIT_HISTORY_SETTINGS: EditHistorySettings = {
     contextLines: 3,
   },
 };
+
+export {
+  DEFAULT_VOICE_CHAT_SETTINGS,
+  type VoiceChatSettings,
+} from "../core/voiceChatSettings.js";
