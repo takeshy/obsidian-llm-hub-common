@@ -29,13 +29,16 @@ export interface OllamaChatMessage {
 
 /** Reuse answered-tool/history normalization while adapting to Ollama's native content shape. */
 export function buildOllamaMessages(messages: Message[], systemPrompt: string): OllamaChatMessage[] {
-  const wire = buildOpenAiMessages(messages, systemPrompt);
+  // Native Ollama needs argument objects, not the OpenAI wire JSON string.
+  const wire = buildOpenAiMessages(messages, systemPrompt, args =>
+    args && typeof args === "object" && !Array.isArray(args) ? args : {});
   const toolNames = new Map<string, string>();
   for (const message of messages) {
     for (const call of message.toolCalls ?? []) toolNames.set(call.id, call.name);
     if (message.toolCallId && message.toolName) toolNames.set(message.toolCallId, message.toolName);
   }
-  return wire.map(message => {
+  return wire.filter(message => !Array.isArray(message.content)
+    || message.content.some(part => part.type !== "file")).map(message => {
     const content = Array.isArray(message.content)
       ? message.content.filter(part => part.type === "text").map(part => part.text).join("\n")
       : message.content ?? "";
@@ -47,7 +50,7 @@ export function buildOllamaMessages(messages: Message[], systemPrompt: string): 
       ...(message.reasoning_content ? { thinking: message.reasoning_content } : {}),
       ...(message.role === "tool" ? { tool_name: toolNames.get(message.tool_call_id ?? "") } : {}),
       ...(message.tool_calls ? { tool_calls: message.tool_calls.map(call => ({
-        type: "function" as const, function: { name: call.function.name, arguments: JSON.parse(call.function.arguments) as Record<string, unknown> },
+        type: "function" as const, function: { name: call.function.name, arguments: call.function.arguments },
       })) } : {}),
     };
   });

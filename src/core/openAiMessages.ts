@@ -7,7 +7,7 @@ export type OpenAiContentPart =
   | { type: "file"; file: { filename: string; file_data: string } };
 
 /** A message in the OpenAI-compatible wire format. */
-export interface OpenAiChatMessage {
+export interface OpenAiChatMessage<Arguments = string> {
   role: "system" | "user" | "assistant" | "tool";
   content: string | null | OpenAiContentPart[];
   /** Echoed back on assistant turns; some gateways reject a thinking model without it. */
@@ -15,7 +15,7 @@ export interface OpenAiChatMessage {
   tool_calls?: {
     id: string;
     type: "function";
-    function: { name: string; arguments: string };
+    function: { name: string; arguments: Arguments };
   }[];
   tool_call_id?: string;
 }
@@ -45,8 +45,12 @@ function dataUrl(attachment: Attachment): string {
  * - `llmContent` is the body the sender built for the model (inlined
  *   attachment text, workspace context); `content` is what the chat shows.
  */
-export function buildOpenAiMessages(messages: Message[], systemPrompt?: string): OpenAiChatMessage[] {
-  const result: OpenAiChatMessage[] = [];
+export function buildOpenAiMessages(messages: Message[], systemPrompt?: string): OpenAiChatMessage[];
+export function buildOpenAiMessages<Arguments>(messages: Message[], systemPrompt: string | undefined,
+  encodeArguments: (args: Record<string, unknown>) => Arguments): OpenAiChatMessage<Arguments>[];
+export function buildOpenAiMessages<Arguments>(messages: Message[], systemPrompt?: string,
+  encodeArguments?: (args: Record<string, unknown>) => Arguments): OpenAiChatMessage<Arguments | string>[] {
+  const result: OpenAiChatMessage<Arguments | string>[] = [];
   if (systemPrompt) result.push({ role: "system", content: systemPrompt });
 
   // A call can be answered by a `tool` message of its own further down the
@@ -102,7 +106,7 @@ export function buildOpenAiMessages(messages: Message[], systemPrompt?: string):
         tool_calls: answeredCalls.map(call => ({
           id: call.id,
           type: "function" as const,
-          function: { name: call.name, arguments: JSON.stringify(call.args) },
+          function: { name: call.name, arguments: encodeArguments ? encodeArguments(call.args) : JSON.stringify(call.args) },
         })),
       });
       for (const call of bundled) {

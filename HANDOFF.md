@@ -1,6 +1,6 @@
 # 引き継ぎ: 3プラグインの共通化リファクタリング
 
-最終更新: 2026-09-08 / Geminiの残りrunnerとローカルLLM providerの共有化を実装・自動検証済み。
+最終更新: 2026-09-08 / 共有化レビューの修正を反映。実API・Obsidian実機確認は未実施。
 
 ## 1. このタスク
 
@@ -163,13 +163,13 @@ hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれ�
   循環参照時もtrace生成で失敗しない。
 - function callの残り枠から実行対象・skip数・実行後残数を決めるplannerと、
   callbackによるlimit extensionの正規化を `src/core/geminiToolLoop.ts` へ移動済み。
-  warningのタイミングと最終回答への遷移はホスト差があるため各pluginに残す。
+  warningのタイミングと最終回答への遷移も共有runnerへ移動済み（5.2.1参照）。
 - GenerateContent stream chunkのgrounding metadataからGoogle Search使用有無と
   重複のないweb sourceを抽出する処理を `src/core/geminiTools.ts` へ移動済み。
   sourceがないquery-onlyの応答も検索使用として扱う。
 - GenerateContentのpartsをtext/thinking/function call/Google Search tool responseへ
   分類する処理を `src/core/geminiTools.ts` へ移動済み。不正なfunction argsは
-  空objectへ正規化し、元partsはthought signature保持のためplugin側でそのまま保存する。
+  空objectへ正規化し、元partsはthought signature保持のため共有runnerがそのまま保存する。
 - Interactions streamの `step.start` / 複数 `arguments_delta` / `step.stop` から
   function callを復元するaccumulatorを `src/core/geminiToolLoop.ts` へ移動済み。
   streamed JSONが壊れた場合は `step.start` のargumentsへfallbackする。
@@ -180,14 +180,14 @@ hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれ�
   native File Searchという実行経路の差は維持している。
 - tool上限到達後の最終Interactions streamからtext・interaction ID・raw usageを
   抽出する処理と、completed statusをエラー文へ変換する処理を
-  `src/core/geminiToolLoop.ts` へ移動済み。usageのモデル別換算は各pluginに残す。
+  `src/core/geminiToolLoop.ts` へ移動済み。usageのモデル別換算も共有runnerが所有する。
 - Interactions tool loopの `function_result`、tool返却添付の`user_input`、上限通知の
   text `user_input` step構築を `src/core/geminiInteractions.ts` へ移動済み。
-  tool実行・添付dedupe・上限判定は各pluginに残す。
+  tool実行・添付dedupe・上限判定も共有runnerへ移動済み。
 
 - Interactions main streamのイベント解析を `src/core/geminiInteractionStream.ts` の
-  純粋reducerへ移動済み。両pluginは同じreducerを使用し、yield/tracing/料金換算は
-  ホストに残す。必須の `native` / `pre-retrieved` policyでFile Searchの差を維持する。
+  純粋reducerへ移動済み。両pluginは同じrunner経由でreducerを使用し、yield/tracing/料金換算も
+  共有する。必須の `native` / `pre-retrieved` policyでFile Searchの差を維持する。
   status metadataの `total_usage` / `usage` 両方に対応し、completed usageを優先する。
   hubでもInteractionsのWeb検索ソースを収集してdoneへ渡すよう統一した。
   分割・交錯するfunction arguments、source dedupe、policy差、error、state非破壊を
@@ -204,20 +204,28 @@ hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれ�
 2. **GenerateContent function tool loop**
    - `src/core/geminiGenerationRunner.ts` の `runGeminiGenerateContentTools` がstream消費、
      model parts保存、functionResponse生成、次roundを所有する。thought signatureは元partsのまま保持。
-   - 上限後もモデルがtoolを要求し続ける無限ループを修正。最終requestはtoolsなしで1回だけ。
+   - 上限後もモデルがtoolを要求し続ける無限ループを修正。最終requestは関数ツールを外して1回だけ。Google/File Search等のbuilt-in toolは保持する。
    - usage後にsearch invocationが届く場合もgrounding料金を集計する。
 3. **両API共通のtool実行・上限**
    - `src/core/geminiToolExecution.ts` の `executeGeminiTools` / `GeminiToolBudget`。
-     固定上限と承認延長は必須のunion policy。ツール結果の後に添付を送り、重複を除く。
+     固定上限と承認延長は必須のunion policyで、延長可否だけを表す。警告は両方とも
+     batch実行後の残枠が閾値以下になる場合に実行前に発火し、延長後の残枠を表示する。
+     両APIともゼロ枠・上限一致・skippedの最終roundを `built-in-only` に統一。
+     ツール結果の後に添付を送り、重複を除く。Interactions結果とtool_callは同じ正規化済みIDを使う。
+     GenerateContentは別途保持するsourceIdだけをfunctionResponseへ返し、元IDなしならidキーを省略する。
      tool実行がthrowした場合もtool spanを閉じる。
    - `src/core/toolResultAttachments.ts` も共有化し、hub/helperはre-exportのみ。
 4. **通常chat / chatStream、Workflow、Deep Research、画像生成**
    - `src/core/geminiChatRunners.ts` が全runnerを所有し、SDK呼び出しをhostから注入。
      research polling/text fallback、image parts、usage、エラー処理を共有した。
-   - Workflowも空streamをエラーに統一。hubのGenerateContent thinking未指定時を
-     helperと同じモデル既定に揃え、両pluginの結合テストで固定した。
+   - `src/core/geminiGenerationClient.ts` の基底クラスに同一の公開5メソッドと
+     request構築・履歴変換を移し、hub/helperは継承する。SDK生成・proxyはhost側。
+     workflow traceのenableThinkingは実際のthinking configに合わせる（Gemma等はfalse）。
+   - Workflowも空streamをエラーに統一。hubのGenerateContentとInteractionsのthinkingを
+     共有resolverへ統一。未指定はモデル既定、falseはモデル別のlow/minimal/high、
+     明示的defaultはtoggleより優先することを両pluginの結合テストで固定した。
 
-共有runnerテスト29件、両pluginのSDK adapter結合テストは各7件。
+共有runner・generation clientテスト45件、両pluginのSDK adapter結合テストは各20件。
 残りの公開同期と実機確認は7節・5.3を参照。
 
 #### 5.2.2 共通化せずplugin側に残すもの
@@ -240,8 +248,17 @@ hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれ�
   （local は以前これが保存されず消えていた。修正済み）
 - 生成中に**別のチャットへ切り替え** → 答えが**元のチャット**に保存されること
   （local は以前、変数解決中に切り替えると新しい方に入っていた。修正済み）
-- ローカルLLM（小さいモデル）で Vault ツールを使わせる → 本文に生の JSON が
-  出ずにツールが実行されること（hub の新規修正。llama3.1:8b / mistral 7b で顕著）
+- **優先: local pluginのOllamaでtool履歴を再生して次の質問を送る** → tool_calls付き
+  assistant（contentは空文字）→ tool結果 → assistant本文の順を受理し、結果を参照できること。
+  旧localはtool_callsと本文を同じassistant turnに載せていたため、実モデルの互換性確認が必要。
+  PDF付きtool結果で空のuser turnが入らないこと、args未定義の旧履歴でも継続できることも確認。
+- **優先: Ollamaの画像履歴と認証** → 画像付き会話の次の質問でも画像を参照できること、
+  apiKey設定時のAuthorizationヘッダを認証付き接続先が受理すること。どちらも今回の共有化で追加。
+- local pluginでローカルLLM（小さいモデル）にVaultツールを使わせる → 本文に生のJSONが
+  出ずにinline tool callフォールバックで実行されること。hubのrunLocalLlmChatにはtoolsを
+  渡しておらず、hubはChat.tsxのマーカー方式agent loopなので、この確認の対象ではない。
+- hub/helperの両Gemini API経路でツール上限に達する → 関数ツールを追加実行せず、
+  検索を伴う最終回答とusageを受信できること。helperは閾値到達batchの実行前に延長確認が出ること。
 - Ollama を **既定以外の URL/ポート**に置いて RAG の埋め込みモデル一覧を開く →
   埋め込みモデルが出ること（local の新規修正）
 
@@ -270,12 +287,16 @@ hub と gemini-helper で最大の重複。引き継ぎ再開時点ではそれ�
 - 公開順序はライブラリcommit/push → sync-plugins → 3plugin再検証 → plugin commit/push。
   公開コミットと依存ピンの確定値は各リポジトリのGit履歴・package.jsonを参照。
   以降の共有化のローカル検証にpushは不要。
-- 最新の検証: ライブラリbuild + npm test成功（Vitest 583件 + Node test suites）。
+- レビュー修正についてもcommit/push指示を受領。公開は上記順序で行い、
+  plugin依存ピンを公開済みライブラリのコミットに更新する。確定値はGit履歴・package.jsonを参照。
+- 追加レビュー修正: GenerateContentへの補完ID流出を修正。IDなし回帰テストの失敗を確認後、
+  関連runnerテスト23件・build成功。追加修正後の共有ライブラリ全件検証も成功。
+- 全件検証: ライブラリbuild + npm test成功（Vitest 605件 + Node test suites）。
   3pluginのtsc / eslint / Vitest / production build成功。
-  hub 382件成功・12件skip、helper 121件成功、local 286件成功・10件skip。
+  hub 395件成功・12件skip、helper 134件成功、local 286件成功・10件skip。
   検証用コピーで実行後、実リポジトリへ反映した全ソースとdistが検証コピーに一致することを確認済み。
 - local loopback HTTPテストとhub proxyFetchテストはsocket listenが必要なため、sandbox制限外で実行。
-  検証ログ: `/tmp/gemini-sharing-next/*-tests.log` と `*-validation.log`。
+  検証ログ: `/tmp/gemini-review-fixes/*-tests.log` と `*-validation.log`。
 - **実API・実LLM・Obsidian実機確認は未実施**。実モデル接続先の提示があれば検証可能だが、
   5.3のUI操作はObsidianが動く環境で必要。この端末ではollama/obsidianコマンドと
   対応する実行中プロセスがないことを確認した。実モデル接続先の質問は回答待ち。

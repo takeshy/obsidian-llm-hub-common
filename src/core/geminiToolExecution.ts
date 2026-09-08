@@ -18,7 +18,9 @@ export class GeminiToolBudget {
   async plan<T>(calls: T[]) {
     let plan = planGeminiFunctionCalls(calls, this.used, this.limit);
     let warning: string | undefined;
-    const warningRemaining = this.policy.kind === "fixed" ? plan.remainingAfter : plan.remainingBefore;
+    // Warn before executing a batch that reaches the threshold. Approval support
+    // changes only whether the budget can grow, never when the warning fires.
+    const warningRemaining = plan.remainingAfter;
     if (plan.remainingBefore > 0 && !this.warned && warningRemaining <= this.warningThreshold) {
       this.warned = true;
       if (this.policy.kind === "extendable") {
@@ -27,7 +29,7 @@ export class GeminiToolBudget {
         );
         plan = planGeminiFunctionCalls(calls, this.used, this.limit);
       }
-      const remaining = this.policy.kind === "fixed" ? plan.remainingAfter : plan.remainingBefore;
+      const remaining = plan.remainingAfter;
       warning = `\n\n[Note: ${remaining} function calls remaining. Please work efficiently.]`;
     }
     return { ...plan, warning };
@@ -37,7 +39,12 @@ export class GeminiToolBudget {
 export interface GeminiExecutableCall { id?: string; name: string; args: Record<string, unknown> }
 export interface GeminiToolExecutionState { output: string; toolCallCount: number }
 export interface GeminiExecutedTools {
-  results: Array<{ call: GeminiExecutableCall; serializedResult: string }>;
+  results: Array<{
+    call: GeminiExecutableCall & { id: string };
+    /** Original API ID; GenerateContent must not echo the display fallback. */
+    sourceId: string | undefined;
+    serializedResult: string;
+  }>;
   attachments: Attachment[];
 }
 
@@ -70,8 +77,29 @@ export async function* executeGeminiTools(options: {
     const { serializedResult, trace } = prepareGeminiToolResult(call.name, call.args, cleanResult);
     options.state.output += trace;
     yield { type: "tool_result", toolResult: { toolCallId: toolCall.id, result: cleanResult } };
-    results.push({ call, serializedResult });
+    results.push({ call: toolCall, sourceId: call.id, serializedResult });
     attachments.push(...getToolResultAttachments(result));
   }
   return { results, attachments: dedupeAttachments(attachments) };
+}
+
+/** Function-call limits apply to client tools; server-side grounding remains available. */
+export type GeminiToolMode = "all" | "built-in-only";
+
+export function selectGeminiInteractionTools<T extends { type: string }>(
+  tools: T[] | undefined, mode: GeminiToolMode,
+): T[] | undefined {
+  const selected = mode === "all" ? tools : tools?.filter(tool => tool.type !== "function");
+  return selected?.length ? selected : undefined;
+}
+
+export function selectGeminiGenerationTools<T extends { functionDeclarations?: unknown }>(
+  tools: T[] | undefined, mode: GeminiToolMode,
+): T[] | undefined {
+  if (mode === "all") return tools?.length ? tools : undefined;
+  const selected = tools?.flatMap(tool => {
+    const { functionDeclarations: _functions, ...builtIn } = tool;
+    return Object.values(builtIn).some(value => value !== undefined) ? [builtIn as T] : [];
+  });
+  return selected?.length ? selected : undefined;
 }

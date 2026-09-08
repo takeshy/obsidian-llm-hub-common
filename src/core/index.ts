@@ -39,3 +39,4 @@ export * from "./geminiChatRunners.js";
 export * from "./localLlmTransport.js";
 export * from "./localLlmResponse.js";
 export * from "./localLlmProvider.js";
+export * from "./geminiGenerationClient.js";

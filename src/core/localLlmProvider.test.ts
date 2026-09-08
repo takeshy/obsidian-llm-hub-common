@@ -5,6 +5,7 @@ import { LocalLlmResponseParser } from "./localLlmResponse.js";
 import { streamLocalLlmLines } from "./localLlmTransport.js";
 import type { NodeHttpModule, NodeIncomingMessage } from "./localLlmStream.js";
 import type { StreamChunk } from "./provider.js";
+import type { Message } from "./message.js";
 
 const config = { framework: "lm-studio", baseUrl: "http://localhost:1234", model: "local", temperature: 0, maxTokens: 32 };
 const messages = [{ role: "user" as const, content: "日本語", timestamp: 0 }];
@@ -23,6 +24,39 @@ function mockHttp(send: (response: EventEmitter, request: EventEmitter) => void,
 const bytes = (text: string) => new TextEncoder().encode(text);
 
 describe("local LLM request union", () => {
+  it("drops PDF-only tool attachment turns while keeping text, images and assistant ordering", () => {
+    const pdf = { name: "note.pdf", type: "pdf" as const, mimeType: "application/pdf", data: "abc" };
+    const history: Message[] = [{ role: "assistant", content: "summary", timestamp: 0,
+      toolCalls: [{ id: "c", name: "read", args: {} }],
+      toolResults: [{ toolCallId: "c", result: "document", attachments: [pdf] }],
+    }, { role: "user", content: "next", timestamp: 1, attachments: [pdf,
+      { name: "image", type: "image", mimeType: "image/png", data: "xyz" }],
+    }];
+    expect(buildOllamaMessages(history, "")).toEqual([
+      expect.objectContaining({ role: "assistant", content: "", tool_calls: expect.any(Array) }),
+      expect.objectContaining({ role: "tool", content: "document" }),
+      { role: "assistant", content: "summary" },
+      { role: "user", content: "next", images: ["xyz"] },
+    ]);
+    expect(buildOllamaMessages([{ role: "tool", content: "document", toolCallId: "c", timestamp: 0, attachments: [pdf] }], ""))
+      .toEqual([expect.objectContaining({ role: "tool", content: "document" })]);
+  });
+  it.each([undefined, null, "broken", []])("normalizes legacy invalid Ollama arguments %s without throwing", args => {
+    const history = [{ role: "assistant", content: "", timestamp: 0,
+      toolCalls: [{ id: "c", name: "read", args }], toolResults: [{ toolCallId: "c", result: "ok" }],
+    }] as unknown as Message[];
+    expect(buildOllamaMessages(history, "")[0].tool_calls?.[0].function.arguments).toEqual({});
+  });
+  it("passes original Ollama argument objects without serializing or matching reused IDs", () => {
+    const first = { path: "a", toJSON() { throw new Error("must not serialize"); } };
+    const second = { path: "b" };
+    const history: Message[] = [first, second].map(args => ({ role: "assistant", content: "", timestamp: 0,
+      toolCalls: [{ id: "reused", name: "read", args }], toolResults: [{ toolCallId: "reused", result: "ok" }],
+    }));
+    const wire = buildOllamaMessages(history, "");
+    expect(wire[0].tool_calls?.[0].function.arguments).toBe(first);
+    expect(wire[2].tool_calls?.[0].function.arguments).toBe(second);
+  });
   it("preserves vision, assistant reasoning and completed tools for both protocols", () => {
     const history = [...messages.map(message => ({ ...message, attachments: [{ name: "image", type: "image" as const, mimeType: "image/png", data: "abc" }] })),
       { role: "assistant" as const, content: "", thinking: "thought", timestamp: 1,

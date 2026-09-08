@@ -21,7 +21,7 @@ describe("Gemini chat runners", () => {
     await expect(runGeminiChat({ model, generate: async () => { throw error; } })).rejects.toBe(error);
   });
   it.each(["chatStream", "generateWorkflowStream"] as const)("streams %s with the correct thought policy and terminal usage", async kind => {
-    const chunks = await collect(runGeminiTextStream({ model, kind, generate: async () => stream([
+    const chunks = await collect(runGeminiTextStream({ model, mode: kind === "chatStream" ? { kind } : { kind, enableThinking: true }, generate: async () => stream([
       { text: "answer", candidates: [{ content: { parts: [{ thought: true, text: "thinking" }] } }] },
       { usageMetadata: { totalTokenCount: 5 } },
     ]) }));
@@ -29,12 +29,12 @@ describe("Gemini chat runners", () => {
     expect(chunks.at(-1)).toMatchObject({ type: "done", usage: { totalTokens: 5 } });
   });
   it.each(["chatStream", "generateWorkflowStream"] as const)("does not call empty %s successful", async kind => {
-    const chunks = await collect(runGeminiTextStream({ model, kind, generate: async () => stream([]) }));
+    const chunks = await collect(runGeminiTextStream({ model, mode: kind === "chatStream" ? { kind } : { kind, enableThinking: true }, generate: async () => stream([]) }));
     expect(chunks).toEqual([{ type: "error", error: "No response received from API (possible server error)" }]);
   });
   it("retains usage on stream failure and suppresses blocked text", async () => {
     const end = vi.spyOn(tracing, "generationEnd");
-    const chunks = await collect(runGeminiTextStream({ model, kind: "chatStream", generate: async () => stream([
+    const chunks = await collect(runGeminiTextStream({ model, mode: { kind: "chatStream" }, generate: async () => stream([
       { usageMetadata: { totalTokenCount: 4 }, text: "blocked", candidates: [{ finishReason: "RECITATION" }] },
     ]) }));
     expect(chunks).toHaveLength(1);

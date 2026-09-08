@@ -4,7 +4,7 @@ import { tracing, type TracingUsage } from "./tracingHooks.js";
 import { formatError } from "./error.js";
 import { accumulateGeminiUsage, extractGeminiUsage, getGeminiFinishReasonError, toGeminiStreamChunkUsage, type GeminiUsageMetadata } from "./geminiUsage.js";
 import { collectGeminiWebSources, extractGeminiGroundingWebSearch, parseGeminiGenerateContentParts } from "./geminiTools.js";
-import { executeGeminiTools, GeminiToolBudget, type GeminiExecutableCall, type GeminiToolLimitPolicy } from "./geminiToolExecution.js";
+import { executeGeminiTools, GeminiToolBudget, type GeminiExecutableCall, type GeminiToolLimitPolicy, type GeminiToolMode } from "./geminiToolExecution.js";
 
 /** SDK-neutral structural shapes. Original parts are retained intact, including thought signatures. */
 export interface GeminiGenerationPart {
@@ -30,7 +30,7 @@ export async function* runGeminiGenerateContentTools(options: {
   warningThreshold: number;
   limitPolicy: GeminiToolLimitPolicy;
   executeToolCall?: (name: string, args: Record<string, unknown>) => Promise<unknown>;
-  create: (contents: GeminiGenerationContent[], finalRound: boolean) => Promise<AsyncIterable<GeminiGenerationResponse>>;
+  create: (contents: GeminiGenerationContent[], toolMode: GeminiToolMode) => Promise<AsyncIterable<GeminiGenerationResponse>>;
 }): AsyncGenerator<StreamChunk> {
   const { traceId, generationId, model } = options;
   const budget = new GeminiToolBudget(options.maxFunctionCalls, options.warningThreshold, options.limitPolicy);
@@ -45,7 +45,7 @@ export async function* runGeminiGenerateContentTools(options: {
   try {
     while (true) {
       roundNumber++;
-      const stream = await options.create(contents, finalRound);
+      const stream = await options.create(contents, finalRound ? "built-in-only" : "all");
       const modelParts: GeminiGenerationPart[] = [];
       const calls: GeminiExecutableCall[] = [];
       let rawUsage: GeminiUsageMetadata | undefined;
@@ -97,8 +97,8 @@ export async function* runGeminiGenerateContentTools(options: {
         state: execution, traceId, generationId,
       });
       budget.used += executed.results.length;
-      const responseParts: GeminiGenerationPart[] = executed.results.map(({ call, serializedResult }) => ({
-        functionResponse: { id: call.id, name: call.name, response: { output: serializedResult } },
+      const responseParts: GeminiGenerationPart[] = executed.results.map(({ call, sourceId, serializedResult }) => ({
+        functionResponse: { ...(sourceId !== undefined ? { id: sourceId } : {}), name: call.name, response: { output: serializedResult } },
       }));
       responseParts.push(...executed.attachments.map(attachment => ({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } })));
       if (plan.skippedCount > 0 || budget.used >= budget.limit) {

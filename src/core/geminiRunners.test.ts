@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { runGeminiInteractions } from "./geminiInteractionsRunner.js";
 import { runGeminiGenerateContentTools, type GeminiGenerationResponse } from "./geminiGenerationRunner.js";
-import { GeminiToolBudget } from "./geminiToolExecution.js";
+import { GeminiToolBudget, executeGeminiTools, selectGeminiInteractionTools, selectGeminiGenerationTools } from "./geminiToolExecution.js";
 import { tracing } from "./tracingHooks.js";
 import type { StreamChunk } from "./provider.js";
 
@@ -31,7 +31,7 @@ describe("shared Gemini tool budget", () => {
   it("extends before planning calls and never runs approval for a fixed limit", async () => {
     const approve = vi.fn().mockResolvedValue(2);
     const budget = new GeminiToolBudget(1, 1, { kind: "extendable", options: { requestLimitExtension: approve }, defaultExtensionAmount: 2 });
-    expect(await budget.plan([1, 2, 3, 4])).toMatchObject({ callsToExecute: [1, 2, 3], skippedCount: 1, warning: expect.stringContaining("3 function calls remaining") });
+    expect(await budget.plan([1, 2, 3, 4])).toMatchObject({ callsToExecute: [1, 2, 3], skippedCount: 1, warning: expect.stringContaining("0 function calls remaining") });
     expect(approve).toHaveBeenCalledWith({ used: 0, currentLimit: 1, extensionAmount: 2, pendingCalls: 4, remaining: 1 });
   });
 });
@@ -44,7 +44,7 @@ describe("Interactions runner", () => {
     const execute = vi.fn().mockResolvedValue({ found: true, attachments: [attachment, attachment] });
     const chunks = await collect(runGeminiInteractions({ ...interactionBase, previousInteractionId: "previous", create, executeToolCall: execute }));
     expect(execute.mock.calls).toEqual([["read", { path: "1" }], ["read", { path: "2" }]]);
-    expect(create.mock.calls[0][0]).toMatchObject({ previousInteractionId: "previous", includeTools: true });
+    expect(create.mock.calls[0][0]).toMatchObject({ previousInteractionId: "previous", toolMode: "all" });
     const next = create.mock.calls[1][0];
     expect(next.previousInteractionId).toBe("first");
     expect(next.input.map((step: { type: string }) => step.type)).toEqual(["function_result", "function_result", "user_input", "user_input"]);
@@ -66,12 +66,12 @@ describe("Interactions runner", () => {
     expect(chunks.some(chunk => chunk.type === "done")).toBe(false);
     expect(end).toHaveBeenLastCalledWith(null, expect.objectContaining({ usage: expect.objectContaining({ total: 9 }) }));
   });
-  it("zero budget requests a final answer without tools", async () => {
+  it("zero budget requests a final answer with only built-in tools", async () => {
     const create = vi.fn().mockResolvedValueOnce(stream(call("1"))).mockResolvedValueOnce(stream([complete]));
     const execute = vi.fn();
     await collect(runGeminiInteractions({ ...interactionBase, maxFunctionCalls: 0, create, executeToolCall: execute }));
     expect(execute).not.toHaveBeenCalled();
-    expect(create.mock.calls[1][0]).toMatchObject({ includeTools: false, input: expect.any(String) });
+    expect(create.mock.calls[1][0]).toMatchObject({ toolMode: "built-in-only", input: expect.any(String) });
   });
   it("closes the iterator immediately on API error while retaining prior usage", async () => {
     const nextAfterError = vi.fn();
@@ -134,12 +134,28 @@ describe("GenerateContent tool runner", () => {
     ]);
     expect(chunks.at(-1)?.type).toBe("done");
   });
+  it("omits a missing source ID from functionResponse while retaining display IDs", async () => {
+    const part = { functionCall: { name: "read_note", args: {} } };
+    const create = vi.fn().mockResolvedValueOnce(stream([response([part])]))
+      .mockResolvedValueOnce(stream([response([{ text: "answer" }])]));
+    const chunks = await collect(runGeminiGenerateContentTools({ ...base, contents: [], create,
+      executeToolCall: async () => ({ ok: true }),
+    }));
+    const contents = create.mock.calls[1][0];
+    expect(contents[0].parts[0]).toBe(part);
+    const result = contents[1].parts[0].functionResponse;
+    expect(result).toEqual({ name: "read_note", response: { output: '{"ok":true}' } });
+    expect(result).not.toHaveProperty("id");
+    expect(chunks).toContainEqual({ type: "tool_call", toolCall: { id: "read_note", name: "read_note", args: {} } });
+    expect(chunks).toContainEqual({ type: "tool_result", toolResult: { toolCallId: "read_note", result: { ok: true } } });
+    expect(chunks.at(-1)?.type).toBe("done");
+  });
   it("bounds rounds even when the model keeps requesting tools after exhaustion", async () => {
     const create = vi.fn().mockImplementation(async () => stream([response([fc])]));
     const execute = vi.fn().mockResolvedValue({});
     await collect(runGeminiGenerateContentTools({ ...base, contents: [], maxFunctionCalls: 1, create, executeToolCall: execute }));
     expect(create).toHaveBeenCalledTimes(2);
-    expect(create.mock.calls[1][1]).toBe(true);
+    expect(create.mock.calls[1][1]).toBe("built-in-only");
     expect(execute).toHaveBeenCalledTimes(1);
   });
   it("accounts for search reported after usage, without duplicating the search event", async () => {
@@ -157,5 +173,52 @@ describe("GenerateContent tool runner", () => {
     const chunks = await collect(runGeminiGenerateContentTools({ ...base, contents: [], create: async () => stream(events) }));
     expect(chunks.at(-1)?.type).toBe("error");
     expect(chunks.some(chunk => chunk.type === "done")).toBe(false);
+  });
+});
+
+
+describe("shared final-round tool policy", () => {
+  it("removes client functions but preserves built-in search in either wire format", () => {
+    const interactions = [{ type: "function", name: "read" }, { type: "google_search" }, { type: "file_search" }];
+    expect(selectGeminiInteractionTools(interactions, "all")).toBe(interactions);
+    expect(selectGeminiInteractionTools(interactions, "built-in-only")).toEqual(interactions.slice(1));
+    const generation = [{ functionDeclarations: [{ name: "read" }] }, { googleSearch: {} },
+      { functionDeclarations: [{ name: "find" }], fileSearch: { fileSearchStoreNames: ["store"] } }];
+    expect(selectGeminiGenerationTools(generation, "all")).toBe(generation);
+    expect(selectGeminiGenerationTools(generation, "built-in-only")).toEqual([
+      { googleSearch: {} }, { fileSearch: { fileSearchStoreNames: ["store"] } },
+    ]);
+    expect(selectGeminiGenerationTools(generation.slice(0, 1), "built-in-only")).toBeUndefined();
+    expect(selectGeminiInteractionTools(interactions.slice(0, 1), "built-in-only")).toBeUndefined();
+    expect(generation[0].functionDeclarations).toHaveLength(1);
+  });
+  it.each([0, 1, 2])("uses built-in-only after zero/skipped/exact budget %i in both runners", async maxFunctionCalls => {
+    const interactionCreate = vi.fn().mockResolvedValueOnce(stream([...call("1"), ...call("2")]))
+      .mockResolvedValueOnce(stream([complete]));
+    const generationCreate = vi.fn().mockResolvedValueOnce(stream([{ candidates: [{ content: { parts:
+      ["1", "2"].map(id => ({ functionCall: { id, name: "read", args: {} } })) } }] }]))
+      .mockResolvedValueOnce(stream([{ candidates: [{ content: { parts: [{ text: "answer" }] } }] }]));
+    const execute = vi.fn().mockResolvedValue({});
+    await collect(runGeminiInteractions({ ...interactionBase, maxFunctionCalls, create: interactionCreate, executeToolCall: execute }));
+    expect(execute).toHaveBeenCalledTimes(maxFunctionCalls);
+    expect(interactionCreate.mock.calls.map(([request]) => request.toolMode)).toEqual(["all", "built-in-only"]);
+    execute.mockClear();
+    await collect(runGeminiGenerateContentTools({ ...base, contents: [], maxFunctionCalls, create: generationCreate, executeToolCall: execute }));
+    expect(execute).toHaveBeenCalledTimes(maxFunctionCalls);
+    expect(generationCreate.mock.calls.map(([, mode]) => mode)).toEqual(["all", "built-in-only"]);
+  });
+  it.each(["fixed", "extendable"] as const)("warns at the same threshold with %s policy", async kind => {
+    const approve = vi.fn().mockResolvedValue(false);
+    const budget = new GeminiToolBudget(5, 2, kind === "fixed" ? { kind } : { kind, options: { requestLimitExtension: approve }, defaultExtensionAmount: 2 });
+    expect((await budget.plan([1, 2])).warning).toBeUndefined();
+    expect((await budget.plan([1, 2, 3])).warning).toContain("2 function calls remaining");
+    expect(approve).toHaveBeenCalledTimes(kind === "extendable" ? 1 : 0);
+  });
+  it("returns the same normalized call ID emitted to the consumer", async () => {
+    const generator = executeGeminiTools({ calls: [{ name: "read", args: {} }], execute: async () => "ok",
+      state: { output: "", toolCallCount: 0 }, traceId: null, generationId: null });
+    expect((await generator.next()).value).toMatchObject({ type: "tool_call", toolCall: { id: "read" } });
+    expect((await generator.next()).value).toMatchObject({ type: "tool_result", toolResult: { toolCallId: "read" } });
+    expect((await generator.next()).value).toMatchObject({ results: [{ call: { id: "read" }, sourceId: undefined }] });
   });
 });

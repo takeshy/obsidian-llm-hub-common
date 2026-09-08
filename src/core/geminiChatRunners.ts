@@ -29,12 +29,12 @@ export async function runGeminiChat(options: GeminiGenerationTrace & {
 
 /** Chat and workflow generation share stream lifecycle; workflow also emits thought summaries. */
 export async function* runGeminiTextStream(options: GeminiGenerationTrace & {
-  kind: "chatStream" | "generateWorkflowStream";
+  mode: { kind: "chatStream" } | { kind: "generateWorkflowStream"; enableThinking: boolean };
   generate: () => Promise<AsyncIterable<GeminiGenerationResponse>>;
 }): AsyncGenerator<StreamChunk> {
-  const id = tracing.generationStart(options.traceId ?? null, options.kind, {
+  const id = tracing.generationStart(options.traceId ?? null, options.mode.kind, {
     model: options.model, input: options.input,
-    ...(options.kind === "generateWorkflowStream" ? { metadata: { enableThinking: true } } : {}),
+    ...(options.mode.kind === "generateWorkflowStream" ? { metadata: { enableThinking: options.mode.enableThinking } } : {}),
   });
   let usage: TracingUsage | undefined;
   try {
@@ -46,7 +46,7 @@ export async function* runGeminiTextStream(options: GeminiGenerationTrace & {
       if (chunk.usageMetadata) usage = extractGeminiUsage(chunk.usageMetadata, { model: options.model });
       const error = getGeminiFinishReasonError(chunk.candidates);
       if (error) throw new Error(error);
-      if (options.kind === "generateWorkflowStream") {
+      if (options.mode.kind === "generateWorkflowStream") {
         for (const part of chunk.candidates?.[0]?.content?.parts ?? []) {
           if (part.thought && part.text) yield { type: "thinking", content: part.text };
         }

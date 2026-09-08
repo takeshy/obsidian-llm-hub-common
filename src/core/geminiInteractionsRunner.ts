@@ -6,7 +6,7 @@ import { createGeminiInteractionRound, reduceGeminiInteractionEvent, type Gemini
 import { buildGeminiInteractionAttachmentStep, buildGeminiInteractionFunctionResultStep, buildGeminiInteractionTextStep, type GeminiInteractionInputStep } from "./geminiInteractions.js";
 import { accumulateGeminiUsage, extractGeminiInteractionsUsage, GEMINI_SEARCH_GROUNDING_COST, toGeminiStreamChunkUsage, type GeminiInteractionsUsage } from "./geminiUsage.js";
 import { collectGeminiWebSources } from "./geminiTools.js";
-import { executeGeminiTools, GeminiToolBudget, type GeminiToolLimitPolicy } from "./geminiToolExecution.js";
+import { executeGeminiTools, GeminiToolBudget, type GeminiToolLimitPolicy, type GeminiToolMode } from "./geminiToolExecution.js";
 
 export interface GeminiInteractionsRunnerOptions<Input> {
   input: Input;
@@ -23,7 +23,7 @@ export interface GeminiInteractionsRunnerOptions<Input> {
   create: (request: {
     input: Input | string | GeminiInteractionInputStep[];
     previousInteractionId?: string;
-    includeTools: boolean;
+    toolMode: GeminiToolMode;
   }) => Promise<AsyncIterable<unknown>>;
 }
 
@@ -38,7 +38,6 @@ export async function* runGeminiInteractions<Input>(options: GeminiInteractionsR
   let interactionId: string | undefined;
   let input: Input | string | GeminiInteractionInputStep[] = options.input;
   let finalRound = false;
-  let includeTools = true;
   let ragEmitted = options.ragAlreadyEmitted;
   let roundSpan: string | null = null;
   const metadata = () => ({ toolCallCount: execution.toolCallCount, roundCount: roundNumber });
@@ -49,7 +48,7 @@ export async function* runGeminiInteractions<Input>(options: GeminiInteractionsR
         parentId: generationId ?? undefined, metadata: { roundNumber, final: finalRound },
       });
       const stream = await options.create({ input,
-        previousInteractionId: roundNumber === 1 ? options.previousInteractionId : interactionId, includeTools,
+        previousInteractionId: roundNumber === 1 ? options.previousInteractionId : interactionId, toolMode: finalRound ? "built-in-only" : "all",
       });
       let round = createGeminiInteractionRound(options.searchPolicy);
       let roundError: string | undefined;
@@ -93,7 +92,6 @@ export async function* runGeminiInteractions<Input>(options: GeminiInteractionsR
         yield { type: "text", content: "\n\n[Function call limit reached. Summarizing with available information...]" };
         input = "You have reached the function call limit. Please provide a final answer based on the information gathered so far.";
         finalRound = true;
-        includeTools = false;
         tracing.spanEnd(roundSpan, { metadata: { reason: "function_call_limit", usage } });
         roundSpan = null;
         continue;
@@ -104,7 +102,7 @@ export async function* runGeminiInteractions<Input>(options: GeminiInteractionsR
       });
       budget.used += executed.results.length;
       const steps = executed.results.map(({ call, serializedResult }) =>
-        buildGeminiInteractionFunctionResultStep(call.id!, call.name, serializedResult));
+        buildGeminiInteractionFunctionResultStep(call.id, call.name, serializedResult));
       const attachmentStep = buildGeminiInteractionAttachmentStep(executed.attachments);
       if (attachmentStep) steps.push(attachmentStep);
       if (plan.skippedCount > 0 || budget.used >= budget.limit) {
