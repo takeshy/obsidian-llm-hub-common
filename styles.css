@@ -2906,8 +2906,26 @@
    =============================================== */
 
 .chat-ui-workflow-preview-modal {
+  width: min(760px, calc(100vw - 32px));
   min-width: 600px;
   max-width: 900px;
+  max-height: calc(100vh - 48px);
+}
+
+.chat-ui-workflow-preview-modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 80px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-ui-workflow-preview-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 8px;
 }
 
 .chat-ui-workflow-preview-modal-content .modal-drag-handle {
@@ -3138,9 +3156,13 @@
 }
 
 .chat-ui-workflow-preview-buttons {
+  flex: 0 0 auto;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
 }
 
 .chat-ui-workflow-preview-buttons button {
@@ -3150,6 +3172,20 @@
 /* Workflow Preview Modal - Mobile */
 .is-mobile .chat-ui-workflow-preview-name {
   flex-shrink: 0;
+}
+
+.is-mobile .chat-ui-workflow-preview-modal {
+  width: 100vw;
+  min-width: 0;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+.is-mobile .chat-ui-workflow-preview-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .is-mobile .chat-ui-workflow-preview-nodes {

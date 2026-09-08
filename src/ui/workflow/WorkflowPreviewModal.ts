@@ -117,25 +117,28 @@ export class WorkflowPreviewModal extends Modal {
     dragHandle.createEl("h2", { text: t("workflow.preview.title") });
     this.setupDragHandle(dragHandle, modalEl);
 
+    // Keep actions visible while long previews and expanded accordions scroll.
+    const scrollEl = contentEl.createDiv({ cls: cls("workflow-preview-scroll") });
+
     // Workflow name
-    const nameEl = contentEl.createDiv({ cls: cls("workflow-preview-name") });
+    const nameEl = scrollEl.createDiv({ cls: cls("workflow-preview-name") });
     nameEl.textContent = this.workflowName;
 
     // Visual workflow preview
-    const nodesContainer = contentEl.createDiv({ cls: cls("workflow-preview-nodes") });
+    const nodesContainer = scrollEl.createDiv({ cls: cls("workflow-preview-nodes") });
     this.renderNodes(nodesContainer);
 
     // Collapsible YAML section
-    const yamlDetails = contentEl.createEl("details", { cls: cls("workflow-preview-yaml-section") });
+    const yamlDetails = scrollEl.createEl("details", { cls: cls("workflow-preview-yaml-section") });
     yamlDetails.createEl("summary", { text: t("workflow.preview.showYaml") });
     const yamlPre = yamlDetails.createEl("pre", { cls: cls("workflow-preview-yaml") });
     yamlPre.textContent = this.yaml;
 
     // Generation context (plan/thinking/review)
-    this.renderGenerationContext(contentEl);
+    this.renderGenerationContext(scrollEl);
 
     // Feedback textarea (always visible)
-    const additionalRequestContainer = contentEl.createDiv({
+    const additionalRequestContainer = scrollEl.createDiv({
       cls: cls("workflow-preview-additional"),
     });
     additionalRequestContainer.createEl("label", {

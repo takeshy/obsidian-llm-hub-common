@@ -113,29 +113,29 @@ export class WorkflowGenerationModal extends Modal {
     this.phaseIndicatorEl = contentEl.createDiv({ cls: cls("workflow-generation-phase-indicator") });
     this.renderPhaseIndicator();
 
+    // Thinking appears before generated phase content, matching chat bubbles.
+    // Hidden until the model emits real reasoning content.
+    this.thinkingSectionEl = contentEl.createEl("details", {
+      cls: `${cls("thinking", "workflow-generation-thinking-details")} is-hidden`,
+    });
+    const thinkingSummary = this.thinkingSectionEl.createEl("summary", {
+      cls: cls("thinking-summary"),
+    });
+    thinkingSummary.createSpan({ text: `💭 ${t("workflow.generation.thinking")}` });
+    this.thinkingContainerEl = this.thinkingSectionEl.createDiv({ cls: cls("thinking-content") });
+    this.addCopyButton(thinkingSummary, () => this.thinkingText);
+
     // Plan section (hidden when planning is skipped)
     this.planSectionEl = contentEl.createDiv({
-      cls: `workflow-generation-plan-section${this.planningEnabled ? "" : " is-hidden"}`,
+      cls: `${cls("workflow-generation-plan-section")}${this.planningEnabled ? "" : " is-hidden"}`,
     });
     const planHeader = this.planSectionEl.createDiv({ cls: cls("workflow-generation-section-header") });
     planHeader.createEl("h3", { text: t("workflow.generation.planning") });
     this.planContainerEl = this.planSectionEl.createDiv({ cls: cls("workflow-generation-plan") });
     this.addCopyButton(planHeader, () => this.planContainerEl?.textContent || "");
 
-    // Thinking section (collapsible details, like chat bubble thinking).
-    // Hidden until the model emits real thinking content — models without
-    // reasoning output would otherwise show an empty panel with just phase
-    // separators.
-    this.thinkingSectionEl = contentEl.createEl("details", { cls: "gemini-helper-thinking workflow-generation-thinking-details is-hidden" });
-    const thinkingSummary = this.thinkingSectionEl.createEl("summary", {
-      cls: "gemini-helper-thinking-summary",
-    });
-    thinkingSummary.createSpan({ text: `💭 ${t("workflow.generation.thinking")}` });
-    this.thinkingContainerEl = this.thinkingSectionEl.createDiv({ cls: "gemini-helper-thinking-content" });
-    this.addCopyButton(thinkingSummary, () => this.thinkingText);
-
     // Review section (hidden by default, shown after generation)
-    this.reviewSectionEl = contentEl.createDiv({ cls: "workflow-generation-review-section is-hidden" });
+    this.reviewSectionEl = contentEl.createDiv({ cls: `${cls("workflow-generation-review-section")} is-hidden` });
     const reviewHeader = this.reviewSectionEl.createDiv({ cls: cls("workflow-generation-section-header") });
     reviewHeader.createEl("h3", { text: t("workflow.generation.reviewing") });
     this.reviewContainerEl = this.reviewSectionEl.createDiv({ cls: cls("workflow-generation-review") });
@@ -229,7 +229,7 @@ export class WorkflowGenerationModal extends Modal {
 
   private updateStatusText(): void {
     if (!this.statusEl) return;
-    const loadingDots = this.statusEl.querySelector(".workflow-generation-loading-dots");
+    const loadingDots = this.statusEl.querySelector(`.${cls("workflow-generation-loading-dots")}`);
     const statusKey = `workflow.generation.${this.currentPhase}` as const;
     this.statusEl.textContent = t(statusKey);
     if (loadingDots) {
@@ -296,7 +296,7 @@ export class WorkflowGenerationModal extends Modal {
     }
     if (this.pendingThinkingSeparator && this.thinkingContainerEl) {
       const sep = createDiv();
-      sep.className = "workflow-generation-thinking-separator";
+      sep.className = cls("workflow-generation-thinking-separator");
       sep.textContent = `── ${this.pendingThinkingSeparator} ──`;
       this.thinkingContainerEl.appendChild(sep);
       this.pendingThinkingSeparator = null;
@@ -453,7 +453,7 @@ export class WorkflowGenerationModal extends Modal {
       this.renderPlanAsMarkdown();
 
       // Hide loading dots and cancel button
-      const loadingDots = this.statusEl?.querySelector(".workflow-generation-loading-dots");
+      const loadingDots = this.statusEl?.querySelector(`.${cls("workflow-generation-loading-dots")}`);
       if (loadingDots) loadingDots.remove();
       if (this.statusEl) {
         this.statusEl.textContent = t("workflow.generation.planComplete");
@@ -467,7 +467,7 @@ export class WorkflowGenerationModal extends Modal {
       const confirmContainer = contentEl.createDiv({ cls: cls("workflow-generation-plan-confirm") });
 
       // Feedback textarea (hidden by default, shown on Re-plan)
-      const feedbackContainer = confirmContainer.createDiv({ cls: "workflow-generation-plan-feedback is-hidden" });
+      const feedbackContainer = confirmContainer.createDiv({ cls: `${cls("workflow-generation-plan-feedback")} is-hidden` });
       const feedbackEl = feedbackContainer.createEl("textarea", {
         cls: cls("workflow-generation-plan-feedback-input"),
         attr: {
@@ -569,7 +569,7 @@ export class WorkflowGenerationModal extends Modal {
   showReviewConfirmation(): Promise<ReviewConfirmResult> {
     return new Promise((resolve) => {
       // Remove loading dots, clear active-status emphasis, set completion label
-      const loadingDots = this.statusEl?.querySelector(".workflow-generation-loading-dots");
+      const loadingDots = this.statusEl?.querySelector(`.${cls("workflow-generation-loading-dots")}`);
       if (loadingDots) loadingDots.remove();
       if (this.statusEl) {
         this.statusEl.textContent = t("workflow.generation.reviewComplete");
@@ -618,7 +618,7 @@ export class WorkflowGenerationModal extends Modal {
       this.reviewContainerEl.removeClass("workflow-generation-plan-rendered");
     }
     // Remove any lingering review-confirm UI (belt-and-braces — should already be cleaned up)
-    this.contentEl.querySelectorAll(".workflow-generation-review-confirm").forEach(el => el.remove());
+    this.contentEl.querySelectorAll(`.${cls("workflow-generation-review-confirm")}`).forEach(el => el.remove());
     // Restore loading dots and label
     if (this.statusEl) {
       this.statusEl.empty();
@@ -641,7 +641,7 @@ export class WorkflowGenerationModal extends Modal {
   setStatus(status: string): void {
     if (this.statusEl) {
       // Clear existing content but keep the first text node
-      const loadingDots = this.statusEl.querySelector(".workflow-generation-loading-dots");
+      const loadingDots = this.statusEl.querySelector(`.${cls("workflow-generation-loading-dots")}`);
       this.statusEl.textContent = status;
       if (loadingDots) {
         this.statusEl.appendChild(loadingDots);
@@ -654,7 +654,7 @@ export class WorkflowGenerationModal extends Modal {
    */
   setComplete(): void {
     if (this.statusEl) {
-      const loadingDots = this.statusEl.querySelector(".workflow-generation-loading-dots");
+      const loadingDots = this.statusEl.querySelector(`.${cls("workflow-generation-loading-dots")}`);
       if (loadingDots) {
         loadingDots.remove();
       }
