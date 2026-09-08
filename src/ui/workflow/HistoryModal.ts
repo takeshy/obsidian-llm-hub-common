@@ -40,7 +40,7 @@ export class HistoryModal extends Modal {
     const { contentEl, modalEl } = this;
     contentEl.empty();
     contentEl.addClass(cls("workflow-history-modal"));
-    modalEl.addClass(cls("modal-resizable"));
+    modalEl.addClass(cls("modal-resizable"), cls("workflow-history-modal-container"));
 
     // Drag handle with title
     const dragHandle = contentEl.createDiv({ cls: "modal-drag-handle" });

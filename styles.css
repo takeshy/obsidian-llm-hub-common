@@ -2279,9 +2279,19 @@
 }
 
 /* History Modal Styles */
+.chat-ui-workflow-history-modal-container {
+  width: min(900px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  height: min(680px, calc(100vh - 48px));
+  max-height: calc(100vh - 48px);
+  box-sizing: border-box;
+}
+
 .chat-ui-workflow-history-modal {
   padding: 20px;
-  min-width: 700px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -2455,6 +2465,7 @@
 /* History Detail Panel */
 .chat-ui-workflow-history-detail-panel {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2467,6 +2478,7 @@
 
 .chat-ui-workflow-history-detail {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
@@ -2553,6 +2565,13 @@
 .is-mobile .chat-ui-workflow-history-modal {
   min-width: unset;
   padding: 12px;
+}
+
+.is-mobile .chat-ui-workflow-history-modal-container {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
 }
 
 .is-mobile .chat-ui-workflow-history-container {

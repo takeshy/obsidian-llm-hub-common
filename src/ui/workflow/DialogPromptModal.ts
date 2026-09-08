@@ -17,6 +17,7 @@ export class DialogPromptModal extends Modal {
   private selectedOptions: Set<string> = new Set();
   private inputValue: string = "";
   private component: Component;
+  private settled = false;
 
   constructor(
     app: App,
@@ -53,6 +54,20 @@ export class DialogPromptModal extends Modal {
     }
     this.resolve = () => {};
     this.component = new Component();
+  }
+
+  private settle(result: DialogResult | null): void {
+    if (this.settled) return;
+    this.settled = true;
+    this.resolve(result);
+  }
+
+  private getResult(button: string): DialogResult {
+    return {
+      button,
+      selected: Array.from(this.selectedOptions),
+      input: this.inputTitle ? this.inputValue : undefined,
+    };
   }
 
   onOpen() {
@@ -171,11 +186,7 @@ export class DialogPromptModal extends Modal {
     if (this.button2) {
       const btn2 = buttonContainer.createEl("button", { text: this.button2 });
       btn2.addEventListener("click", () => {
-        this.resolve({
-          button: this.button2!,
-          selected: Array.from(this.selectedOptions),
-          input: this.inputTitle ? this.inputValue : undefined,
-        });
+        this.settle(this.getResult(this.button2!));
         this.close();
       });
     }
@@ -186,16 +197,17 @@ export class DialogPromptModal extends Modal {
       cls: "mod-cta"
     });
     btn1.addEventListener("click", () => {
-      this.resolve({
-        button: this.button1,
-        selected: Array.from(this.selectedOptions),
-        input: this.inputTitle ? this.inputValue : undefined,
-      });
+      this.settle(this.getResult(this.button1));
       this.close();
     });
   }
 
   onClose() {
+    // Closing a display-only result dialog is equivalent to acknowledging it.
+    // Interactive dialogs close as cancellation. Either way, never leave the
+    // workflow awaiting an unresolved modal promise.
+    const displayOnly = this.options.length === 0 && !this.inputTitle && !this.button2;
+    this.settle(displayOnly ? this.getResult(this.button1) : null);
     this.component.unload();
     const { contentEl } = this;
     contentEl.empty();
@@ -203,6 +215,7 @@ export class DialogPromptModal extends Modal {
 
   async waitForResult(): Promise<DialogResult | null> {
     return new Promise((resolve) => {
+      this.settled = false;
       this.resolve = resolve;
       this.open();
     });
