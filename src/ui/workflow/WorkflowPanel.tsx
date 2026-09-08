@@ -1475,12 +1475,12 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
               const isBranchNode = node.type === "if" || node.type === "while";
 
               return (
-                <div key={node.id}>
+                <div key={node.id} className={cls("workflow-node-wrapper")}>
                   {/* Incoming connection indicator */}
                   {incoming.length > 0 && (
                     <div className={cls("workflow-node-incoming")}>
                       {incoming.map((conn, i) => (
-                        <span key={i} className={`workflow-incoming-badge workflow-incoming-${conn.type}`}>
+                        <span key={i} className={cls("workflow-incoming-badge", `workflow-incoming-${conn.type}`)}>
                           ← {conn.from}{conn.type !== "next" ? `.${conn.type === "true" ? "True" : "False"}` : ""}
                         </span>
                       ))}
@@ -1488,15 +1488,15 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
                   )}
 
                   <div
-                    className={`workflow-node-card ${
-                      draggedIndex === index ? "workflow-node-dragging" : ""
+                    className={`${cls("workflow-node-card")} ${
+                      draggedIndex === index ? cls("workflow-node-dragging") : ""
                     } ${
                       dropTarget?.index === index && dropTarget.position === "above"
-                        ? "workflow-drop-above"
+                        ? cls("workflow-drop-above")
                         : ""
                     } ${
                       dropTarget?.index === index && dropTarget.position === "below"
-                        ? "workflow-drop-below"
+                        ? cls("workflow-drop-below")
                         : ""
                     }`}
                     draggable
@@ -1510,7 +1510,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
 
                     {/* Header */}
                     <div className={cls("workflow-node-header")}>
-                      <span className={`workflow-node-type workflow-node-type-${node.type}`}>
+                      <span className={cls("workflow-node-type", `workflow-node-type-${node.type}`)}>
                         {NODE_TYPE_LABELS[node.type]}
                       </span>
                       <span className={cls("workflow-node-id")}>{node.id}</span>
@@ -1528,7 +1528,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
                       const isExpanded = expandedComments.has(node.id);
                       return (
                         <div
-                          className={`workflow-node-comment${isMultiLine ? " is-multiline" : ""}${isExpanded ? " is-expanded" : ""}`}
+                          className={`${cls("workflow-node-comment")}${isMultiLine ? " is-multiline" : ""}${isExpanded ? " is-expanded" : ""}`}
                           onClick={isMultiLine ? (e) => {
                             e.stopPropagation();
                             setExpandedComments(prev => {

@@ -5057,7 +5057,11 @@
 .chat-ui-workflow-node-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
+}
+
+.chat-ui-workflow-node-wrapper {
+  min-width: 0;
 }
 
 .chat-ui-workflow-empty-state {
@@ -5126,6 +5130,20 @@
   background-color: var(--background-secondary);
   padding: 2px 6px;
   border-radius: 4px;
+}
+
+.chat-ui-workflow-node-type {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 /* Node Summary */
@@ -5564,16 +5582,21 @@
 
 /* Node Card */
 .chat-ui-workflow-node-card {
-  background-color: var(--background-secondary);
+  background-color: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  padding: 10px 12px;
+  border-left: 3px solid var(--interactive-accent);
+  border-radius: 8px;
+  padding: 12px 14px;
   cursor: pointer;
   position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
 .chat-ui-workflow-node-card:hover {
   background-color: var(--background-secondary-alt);
+  border-color: var(--interactive-accent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
 /* Node Comment */
