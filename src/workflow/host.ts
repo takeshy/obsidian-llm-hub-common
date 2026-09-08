@@ -97,6 +97,8 @@ export interface WorkflowHost {
   /** Vault folders this host keeps its workspace and skills in. */
   getWorkspaceFolder(): string;
   getSkillsFolder(): string;
+  /** Tell the host to rediscover skills after workflow UI creates or changes one. */
+  notifySkillsChanged(): void;
   /** Encryption for stored execution history, when the host has it configured. */
   getHistoryEncryption(): EncryptionConfig | undefined;
   /** The plugin version, recorded with generated workflows. */
@@ -136,6 +138,7 @@ const noHost: WorkflowHost = {
   getWorkflowSpecification: () => "",
   getWorkspaceFolder: () => "",
   getSkillsFolder: () => "",
+  notifySkillsChanged: () => {},
   getHistoryEncryption: () => undefined,
   getPluginVersion: () => "",
   getWorkflowHotkeys: () => [],

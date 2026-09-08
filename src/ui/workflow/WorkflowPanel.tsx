@@ -447,6 +447,11 @@ async function createSkillFromResult(
   return await app.vault.create(skillFilePath, skillContent);
 }
 
+function notifySkillsChanged(): void {
+  globalEventEmitter.emit("skills-changed");
+  workflowHost().notifySkillsChanged();
+}
+
 // Create or append workflow file from AI result (non-skill path).
 // Under "1 file = 1 workflow" we only append to an existing file when it does
 // not yet contain a workflow block; otherwise we throw and let the caller
@@ -674,7 +679,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
         if (result.createAsSkill) {
           targetFile = await createSkillFromResult(app, result, workflowHost().getSkillsFolder());
           new Notice(t("aiWorkflow.skillCreated", { name: result.name, path: targetFile.path }));
-          globalEventEmitter.emit("skills-changed");
+          notifySkillsChanged();
         } else {
           const created = await createWorkflowFile(app, result);
           targetFile = created.targetFile;
@@ -1267,14 +1272,18 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
 
   // Create skill with AI (skill-only: modal pins output to skills/, generates SKILL.md + workflow)
   const handleCreateSkillWithAI = async () => {
-    const result = await promptForAIWorkflow(
-      app, "create", undefined, undefined, undefined, { isSkill: true }
-    );
-    if (!result || !result.outputPath) return;
-    const targetFile = await createSkillFromResult(app, result, workflowHost().getSkillsFolder());
-    new Notice(t("aiWorkflow.skillCreated", { name: result.name, path: targetFile.path }));
-    globalEventEmitter.emit("skills-changed");
-    await app.workspace.getLeaf().openFile(targetFile);
+    try {
+      const result = await promptForAIWorkflow(
+        app, "create", undefined, undefined, undefined, { isSkill: true }
+      );
+      if (!result || !result.outputPath) return;
+      const targetFile = await createSkillFromResult(app, result, workflowHost().getSkillsFolder());
+      notifySkillsChanged();
+      new Notice(t("aiWorkflow.skillCreated", { name: result.name, path: targetFile.path }));
+      await app.workspace.getLeaf().openFile(targetFile);
+    } catch (error) {
+      new Notice(t("workflow.failed", { message: formatError(error) }));
+    }
   };
 
   // Render a hint line such as "**Workflow**: description" where the bold segment
