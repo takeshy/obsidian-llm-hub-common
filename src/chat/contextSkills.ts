@@ -1,3 +1,20 @@
+import { useEffect, useRef } from "react";
+
+/**
+ * Save the skill selection whenever it changes - but not the value it started
+ * with, so opening a chat view never writes settings for a user who has not
+ * touched the list. The save runs after the render that changed it, keeping the
+ * state updaters free of side effects.
+ */
+export function useSkillPathPersistence(paths: string[], save: (paths: readonly string[]) => void): void {
+  const saved = useRef(paths);
+  useEffect(() => {
+    if (saved.current === paths) return;
+    saved.current = paths;
+    save(paths);
+  }, [paths, save]);
+}
+
 export function resolveEffectiveSkillPaths(
 	activeSkillPaths: string[],
 	activeContextSkillPath: string | null,
