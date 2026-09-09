@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ChangeEvent, type ReactNode, type Ref, type TextareaHTMLAttributes, type MouseEvent } from "react";
-import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, Database, Wrench, X, Paperclip, FileText, Maximize2, Minimize2, Volume2 } from "lucide-react";
+import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, Database, Wrench, X, Paperclip, FileText, Maximize2, Minimize2, Volume2, Mic } from "lucide-react";
 
 export interface ChatMessage {
   role: string;
@@ -10,7 +10,7 @@ export interface ChatMessage {
 export type { StyleProps } from "./types.js";
 import type { StyleProps } from "./types.js";
 import type { SearchSelection } from "./core/events.js";
-import { resolveVoiceSubmitPaste, resolveVoiceSubmitText } from "./chat/voiceChat.js";
+import { resolveConversationPaste, resolveConversationText, resolveVoiceSubmitPaste, resolveVoiceSubmitText } from "./chat/voiceChat.js";
 
 /** The host owns lifecycle, persistence and provider execution. */
 export function ChatLayout({ classPrefix: p, modifiers, children }: StyleProps & { modifiers?: readonly (string | false | undefined)[]; children: ReactNode }) {
@@ -159,12 +159,27 @@ export interface ComposerProps extends StyleProps {
   collapse?: { collapsed: boolean; onToggle: () => void; label: string };
   /** Detect a dictated command phrase in pasted text and hand the final text to the host. */
   voiceSubmit?: { enabled: boolean; phrase: string; onSubmit: (text: string) => void };
+  /**
+   * A conversation held through an external dictation app: the button opens it,
+   * its paste is the answer, and an empty paste ends the session.
+   */
+  voiceConversation?: {
+    available: boolean; active: boolean; label: string; activeLabel: string; phrase: string;
+    onToggle: () => void; onSubmit: (text: string) => void; onEnd: () => void;
+  };
 }
-export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, collapse, voiceSubmit }: ComposerProps) {
+export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, collapse, voiceSubmit, voiceConversation }: ComposerProps) {
   const { onPaste, onChange, ...textareaProps } = textarea;
   return <>
     <textarea ref={textareaRef} className={`${p}-input`} rows={3} {...textareaProps} onChange={event => {
       const nativeEvent = event.nativeEvent as InputEvent;
+      if (voiceConversation?.active && !isLoading && !nativeEvent.isComposing) {
+        const spoken = resolveConversationText(event.currentTarget.value, voiceConversation.phrase);
+        if (spoken?.end) {
+          voiceConversation.onEnd();
+          return;
+        }
+      }
       if (voiceSubmit?.enabled && !nativeEvent.isComposing) {
         const result = resolveVoiceSubmitText(event.currentTarget.value, voiceSubmit.phrase);
         if (result) {
@@ -174,6 +189,22 @@ export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isC
       }
       onChange?.(event);
     }} onPaste={event => {
+      if (voiceConversation?.active && !isLoading) {
+        const target = event.currentTarget;
+        const result = resolveConversationPaste(
+          target.value,
+          event.clipboardData.getData("text/plain"),
+          target.selectionStart,
+          target.selectionEnd,
+          voiceConversation.phrase,
+        );
+        if (result) {
+          event.preventDefault();
+          if (result.end) voiceConversation.onEnd();
+          else voiceConversation.onSubmit(result.text);
+          return;
+        }
+      }
       if (voiceSubmit?.enabled) {
         const target = event.currentTarget;
         const result = resolveVoiceSubmitPaste(
@@ -192,6 +223,12 @@ export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isC
       onPaste?.(event);
     }} />
     <div className={`${p}-send-buttons`}>
+      {voiceConversation?.available && <button
+        className={[`${p}-mic-btn`, voiceConversation.active && `${p}-mic-btn-active`].filter(Boolean).join(" ")}
+        onClick={voiceConversation.onToggle}
+        title={voiceConversation.active ? voiceConversation.activeLabel : voiceConversation.label}>
+        <Mic size={18} />
+      </button>}
       {isCompacting ? <button className={`${p}-send-btn`} disabled title={compactingLabel}><Loader2 size={18} className={`${p}-spinner`} /></button>
         : isLoading ? <button className={`${p}-stop-btn`} onClick={onStop} title={stopLabel}><StopCircle size={18} /></button>
         : <button className={`${p}-send-btn`} onClick={onSend} disabled={!canSend} title={sendLabel}><Send size={18} /></button>}
@@ -393,6 +430,20 @@ export function EnabledMcpServers({ classPrefix: p, servers, onDisable, disabled
     <span className={`${p}-enabled-mcp-server-name`}>{server.name}</span>
     <button type="button" className={`${p}-enabled-mcp-server-remove`} onClick={() => onDisable(server.id)} disabled={disabled} title={server.removeTitle} aria-label={server.removeTitle}><X size={10} aria-hidden="true" /></button>
   </span>)}</div>;
+}
+
+/**
+ * Reading aloud is easy to forget once it is on, so it announces itself outside
+ * the transcript with the same shape as the MCP chips, and switches off there.
+ */
+export function ReadAloudChip({ classPrefix: p, label, removeTitle, onDisable }: StyleProps & { label: string; removeTitle: string; onDisable: () => void }) {
+  return <div className={`${p}-read-aloud-chips`}>
+    <span className={`${p}-read-aloud-chip`} title={label}>
+      <Volume2 size={12} aria-hidden="true" />
+      <span className={`${p}-read-aloud-chip-name`}>{label}</span>
+      <button type="button" className={`${p}-read-aloud-chip-remove`} onClick={onDisable} title={removeTitle} aria-label={removeTitle}><X size={10} aria-hidden="true" /></button>
+    </span>
+  </div>;
 }
 
 /** `description` is required so a host cannot ship a mode whose meaning is unexplained. */

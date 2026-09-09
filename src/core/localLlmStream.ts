@@ -7,6 +7,8 @@
  * as stalled.
  */
 
+import { getNodeModule } from "./nodeModule.js";
+
 /** Subset of `http.IncomingMessage` the providers touch. */
 export interface NodeIncomingMessage {
   statusCode?: number;
@@ -101,15 +103,5 @@ export class StreamSignal {
  * ask for `typeof import("http")` and keep the full API.
  */
 export function getHttpModule<T = NodeHttpModule>(protocol: string): T {
-  type Loader = { require?: (id: string) => unknown; module?: { require?: (id: string) => unknown } };
-  const windows: (Loader | undefined)[] = [
-    typeof activeWindow !== "undefined" ? (activeWindow as unknown as Loader) : undefined,
-    typeof window !== "undefined" ? (window as unknown as Loader) : undefined,
-  ];
-  const moduleName = protocol === "https:" ? "https" : "http";
-  for (const candidate of windows) {
-    const loader = candidate?.require || candidate?.module?.require;
-    if (loader) return loader(moduleName) as T;
-  }
-  throw new Error("Node.js http module is not available in this environment");
+  return getNodeModule<T>(protocol === "https:" ? "https" : "http");
 }

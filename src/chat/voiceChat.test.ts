@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { setLocale } from "../i18n/index.js";
-import { buildReadAloudSystemPrompt, defaultVoiceSubmitPhrase, readAloud, speakingMessageKey, speechKeyForMessage, stopReadingAloud, resolveVoiceSubmitPaste, resolveVoiceSubmitText, speechLanguageForLocale, textForSpeech } from "./voiceChat.js";
+import { buildReadAloudSystemPrompt, clampReadAloudRate, defaultVoiceSubmitPhrase, getReadAloudRate, readAloud, setReadAloudRate, speakingMessageKey, speechKeyForMessage, stopReadingAloud, whenReadingSettles, resolveVoiceSubmitPaste, resolveVoiceSubmitText, speechLanguageForLocale, textForSpeech } from "./voiceChat.js";
 
 describe("voice chat commands", () => {
   it.each([
@@ -54,13 +54,14 @@ describe("buildReadAloudSystemPrompt", () => {
 });
 
 describe("read aloud state", () => {
-  interface FakeUtterance { text: string; lang: string; onend: (() => void) | null; onerror: (() => void) | null }
+  interface FakeUtterance { text: string; lang: string; rate: number; onend: (() => void) | null; onerror: (() => void) | null }
 
   function installSpeechSynthesis(): FakeUtterance[] {
     const spoken: FakeUtterance[] = [];
     const target = globalThis as unknown as Record<string, unknown>;
     target.SpeechSynthesisUtterance = class {
       lang = "";
+      rate = 1;
       onend: (() => void) | null = null;
       onerror: (() => void) | null = null;
       constructor(public text: string) {}
@@ -76,6 +77,38 @@ describe("read aloud state", () => {
     expect(speakingMessageKey()).toBe(key);
     stopReadingAloud();
     expect(speakingMessageKey()).toBeNull();
+  });
+
+  it("settles once the reading ends, and after a grace period if none starts", async () => {
+    const spoken = installSpeechSynthesis();
+    readAloud("a long answer", "en-US", "message:1");
+    let settled = false;
+    const waiting = whenReadingSettles(5).then(() => { settled = true; });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    // Still speaking: the grace period must not release the caller.
+    expect(settled).toBe(false);
+    spoken[0].onend?.();
+    await waiting;
+    expect(settled).toBe(true);
+
+    // Nothing speaks at all (no engine, or an answer with no speakable text).
+    stopReadingAloud();
+    await whenReadingSettles(5);
+  });
+
+  it("reads at the configured rate, clamped to what a voice can do", () => {
+    const spoken = installSpeechSynthesis();
+    setReadAloudRate(1.6);
+    readAloud("faster please", "en-US", "message:1");
+    expect(spoken[0].rate).toBe(1.6);
+
+    // A stored value from outside the slider's range must not silence the voice.
+    setReadAloudRate(99);
+    expect(getReadAloudRate()).toBe(3);
+    setReadAloudRate(Number.NaN);
+    expect(getReadAloudRate()).toBe(1);
+    expect(clampReadAloudRate(0.1)).toBe(0.5);
+    stopReadingAloud();
   });
 
   it("lets only the newest utterance clear the state", () => {

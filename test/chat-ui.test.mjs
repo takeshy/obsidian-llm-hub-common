@@ -6,7 +6,9 @@ import { join } from "node:path";
 import React, { useState, createRef } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection, ChatLayout, HeaderButton, SidebarWidthButton, SaveNoteButton, VaultToolControl } from "../dist/index.js";
+import { useVoiceConversation, configureSpeechPopupRunner } from "../dist/chat/speechPopup.js";
+import { readAloud, stopReadingAloud } from "../dist/chat/voiceChat.js";
+import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection, ChatLayout, HeaderButton, SidebarWidthButton, SaveNoteButton, VaultToolControl, ReadAloudChip } from "../dist/index.js";
 const h = React.createElement;
 const render = element => { let tree; act(() => { tree = TestRenderer.create(element); }); return tree; };
 const buttons = tree => tree.root.findAllByType("button");
@@ -91,6 +93,189 @@ test("composer submits a dictated phrase from paste or accessibility input", () 
   }));
   assert.deepEqual(changed, ["ordinary input"]);
   act(() => tree.unmount());
+});
+
+test("the composer offers a mic button and answers the conversation by paste", () => {
+  const events = [];
+  const voiceConversation = {
+    available: true, active: false, label: "start voice", activeLabel: "end voice", phrase: "send it",
+    onToggle: () => events.push("toggle"), onSubmit: text => events.push(`submit:${text}`), onEnd: () => events.push("end"),
+  };
+  const tree = render(h(Composer, { ...baseComposer, voiceConversation }));
+  const mic = buttons(tree).find(button => button.props.title === "start voice");
+  act(() => mic.props.onClick());
+  assert.deepEqual(events, ["toggle"]);
+  // The mic sits above send, so it is the first button of the column.
+  assert.equal(buttons(tree)[0].props.title, "start voice");
+
+  const pasted = [];
+  const active = render(h(Composer, {
+    ...baseComposer,
+    textarea: { value: "draft", onChange() {}, onPaste: () => pasted.push("host") },
+    voiceConversation: { ...voiceConversation, active: true },
+  }));
+  const textarea = active.root.findByType("textarea");
+  let prevented = 0;
+  const paste = text => ({
+    currentTarget: { value: "draft", selectionStart: 5, selectionEnd: 5 },
+    clipboardData: { getData: () => text },
+    preventDefault: () => { prevented++; },
+  });
+  act(() => textarea.props.onPaste(paste(" spoken answer")));
+  // The send phrase spoken alone ends the session; a blank paste is left to the host.
+  act(() => textarea.props.onPaste({ ...paste(" send it"), currentTarget: { value: "", selectionStart: 0, selectionEnd: 0 } }));
+  act(() => textarea.props.onPaste(paste("  ")));
+  assert.equal(prevented, 2);
+  assert.deepEqual(pasted, ["host"]);
+  assert.deepEqual(events, ["toggle", "submit:draft spoken answer", "end"]);
+  // Typed or dictated, the same phrase ends it.
+  act(() => textarea.props.onChange({ currentTarget: { value: "send it" }, nativeEvent: { isComposing: false } }));
+  assert.deepEqual(events, ["toggle", "submit:draft spoken answer", "end", "end"]);
+  assert.match(buttons(active)[0].props.className, /mic-btn-active/);
+
+  // Without the app installed the column looks as it always did.
+  const unavailable = render(h(Composer, { ...baseComposer, voiceConversation: { ...voiceConversation, available: false } }));
+  assert.equal(buttons(unavailable).some(button => button.props.title === "start voice"), false);
+  act(() => tree.unmount());
+  act(() => active.unmount());
+  act(() => unavailable.unmount());
+});
+
+test("a voice conversation reopens the popup after every answer", async () => {
+  const calls = [];
+  const errors = [];
+  let focused = 0;
+  let started = 0;
+  configureSpeechPopupRunner((command, args) => {
+    calls.push(`${command} ${args.join(" ")}`);
+    return Promise.resolve({ ok: true, stdout: args[0] === "status" ? "speech-popup 1.0.0\ndaemon:   running\n" : "", stderr: "" });
+  });
+  let session;
+  function Probe({ messages, isLoading }) {
+    session = useVoiceConversation(messages, isLoading, {
+      command: "/opt/speech-popup",
+      onError: message => errors.push(message),
+      onOpened: () => { focused++; },
+      onStarted: () => { started++; },
+    });
+    return null;
+  }
+  const answered = [{ role: "user", content: "hi" }, { role: "assistant", content: "hello" }];
+  let tree;
+  await act(async () => { tree = TestRenderer.create(h(Probe, { messages: [], isLoading: false })); });
+  assert.equal(session.available, true);
+  assert.deepEqual(calls, ["/opt/speech-popup status"]);
+
+  await act(async () => session.toggle());
+  assert.equal(session.active, true);
+  assert.deepEqual(calls.slice(1), ["/opt/speech-popup show"]);
+  // Starting a session is what switches reading aloud on; reopening does not.
+  assert.equal(started, 1);
+
+  // A finished turn reopens the popup, so the user may speak while it is read aloud.
+  await act(async () => { tree.update(h(Probe, { messages: [{ role: "user", content: "hi" }], isLoading: true })); });
+  await act(async () => { tree.update(h(Probe, { messages: answered, isLoading: false })); });
+  assert.deepEqual(calls.slice(2), ["/opt/speech-popup show"]);
+  // Both opens hand focus back, or the transcript would paste into nothing.
+  assert.equal(focused, 2);
+
+  // Ending the session leaves later turns alone.
+  await act(async () => session.end());
+  assert.equal(session.active, false);
+  await act(async () => { tree.update(h(Probe, { messages: answered, isLoading: true })); });
+  await act(async () => { tree.update(h(Probe, { messages: answered, isLoading: false })); });
+  assert.equal(calls.length, 3);
+  assert.equal(started, 1);
+  assert.deepEqual(errors, []);
+  act(() => tree.unmount());
+  configureSpeechPopupRunner(null);
+});
+
+test("with reading aloud on, the popup waits for the answer to finish speaking", async () => {
+  const calls = [];
+  configureSpeechPopupRunner((_command, args) => {
+    calls.push(args[0]);
+    return Promise.resolve({ ok: true, stdout: args[0] === "status" ? "speech-popup 1.0.0\ndaemon:   running\n" : "", stderr: "" });
+  });
+  // The plugin's own speech must not be recorded back, so drive a fake engine.
+  const spoken = [];
+  globalThis.SpeechSynthesisUtterance = class {
+    constructor(text) { this.text = text; this.lang = ""; this.onend = null; this.onerror = null; }
+  };
+  globalThis.window = { speechSynthesis: { cancel() {}, speak: utterance => spoken.push(utterance) } };
+  let session;
+  function Probe({ messages, isLoading }) {
+    session = useVoiceConversation(messages, isLoading, { readAloud: true });
+    return null;
+  }
+  let tree;
+  await act(async () => { tree = TestRenderer.create(h(Probe, { messages: [], isLoading: false })); });
+  await act(async () => session.toggle());
+  assert.deepEqual(calls, ["status", "show"]);
+
+  // The answer lands and starts being read; the microphone stays closed.
+  await act(async () => { tree.update(h(Probe, { messages: [{ role: "user", content: "hi" }], isLoading: true })); });
+  readAloud("a long spoken answer", "en-US", "message:0");
+  await act(async () => {
+    tree.update(h(Probe, { messages: [{ role: "user", content: "hi" }, { role: "assistant", content: "a long spoken answer" }], isLoading: false }));
+  });
+  assert.deepEqual(calls, ["status", "show"]);
+
+  // Reading finishes: only now is it safe to record again.
+  await act(async () => { spoken[0].onend(); });
+  await act(async () => new Promise(resolve => setTimeout(resolve, 10)));
+  assert.deepEqual(calls, ["status", "show", "show"]);
+
+  act(() => tree.unmount());
+  stopReadingAloud();
+  configureSpeechPopupRunner(null);
+  delete globalThis.window;
+  delete globalThis.SpeechSynthesisUtterance;
+});
+
+test("a popup that will not open reports why and stays inactive", async () => {
+  const errors = [];
+  configureSpeechPopupRunner((_command, args) => Promise.resolve({
+    ok: args[0] === "status",
+    stdout: args[0] === "status" ? "speech-popup 1.0.0\ndaemon:   not running\n" : "",
+    stderr: "the daemon is not listening",
+  }));
+  let session;
+  function Probe() {
+    session = useVoiceConversation([], false, { onError: message => errors.push(message) });
+    return null;
+  }
+  let tree;
+  await act(async () => { tree = TestRenderer.create(h(Probe)); });
+  // Installed but not listening: the button shows, and the failure explains itself.
+  assert.equal(session.available, true);
+  await act(async () => session.toggle());
+  assert.equal(session.active, false);
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /speech-popup/);
+  // The command and its own message reach the user, not just a generic sentence.
+  assert.match(errors[0], /the daemon is not listening/);
+  act(() => tree.unmount());
+  configureSpeechPopupRunner(null);
+});
+
+test("a configured command keeps the mic button even when status fails", async () => {
+  const errors = [];
+  configureSpeechPopupRunner(() => Promise.resolve({ ok: false, stdout: "", stderr: "", error: "spawn ENOENT" }));
+  let session;
+  function Probe() {
+    session = useVoiceConversation([], false, { command: "C:\\bad path\\speech-popup.exe", onError: message => errors.push(message) });
+    return null;
+  }
+  let tree;
+  await act(async () => { tree = TestRenderer.create(h(Probe)); });
+  // Hiding the button would leave nothing to click and no way to see the reason.
+  assert.equal(session.available, true);
+  await act(async () => session.toggle());
+  assert.equal(session.active, false);
+  assert.match(errors[0], /speech-popup\.exe show: spawn ENOENT/);
+  act(() => tree.unmount());
+  configureSpeechPopupRunner(null);
 });
 
 test("list preserves message metadata, source association and streaming thinking", () => {
@@ -504,6 +689,19 @@ test("vault tool control exposes the auto-read-aloud switch", () => {
   assert.equal(checkbox.props.checked, false);
   act(() => checkbox.props.onChange({ target: { checked: true } }));
   assert.deepEqual(changed, [true]);
+  act(() => tree.unmount());
+});
+
+test("the read-aloud chip sits outside the chat and switches reading off", () => {
+  let disabled = 0;
+  const tree = render(h(ReadAloudChip, {
+    classPrefix: "llm-hub", label: "reading answers aloud", removeTitle: "turn read-aloud off",
+    onDisable: () => disabled++,
+  }));
+  assert.match(JSON.stringify(tree.toJSON()), /reading answers aloud/);
+  const remove = buttons(tree).find(button => button.props.title === "turn read-aloud off");
+  act(() => remove.props.onClick());
+  assert.equal(disabled, 1);
   act(() => tree.unmount());
 });
 

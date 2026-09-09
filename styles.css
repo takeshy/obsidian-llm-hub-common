@@ -741,6 +741,51 @@
   opacity: 0.5;
 }
 
+.chat-ui-read-aloud-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.chat-ui-read-aloud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: min(240px, 80vw);
+  padding: 3px 6px;
+  border: 1px solid color-mix(in srgb, var(--color-blue) 35%, var(--background-modifier-border));
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--color-blue) 10%, var(--background-secondary));
+  color: var(--color-blue);
+  font-size: 11px;
+}
+
+.chat-ui-read-aloud-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-ui-read-aloud-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chat-ui-read-aloud-chip-remove:hover {
+  background: color-mix(in srgb, var(--color-blue) 20%, transparent);
+}
+
 .chat-ui-pending-attachments {
   display: flex;
   flex-wrap: wrap;
@@ -972,6 +1017,7 @@
   gap: 4px;
 }
 
+.chat-ui-mic-btn,
 .chat-ui-send-btn,
 .chat-ui-stop-btn {
   background: transparent;
@@ -999,6 +1045,20 @@
 .chat-ui-send-btn:hover:not(:disabled),
 .chat-ui-stop-btn:hover {
   background: var(--background-modifier-hover);
+}
+
+.chat-ui-mic-btn {
+  color: var(--text-muted);
+}
+
+.chat-ui-mic-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* A live session must be obvious: the popup itself may be behind Obsidian. */
+.chat-ui-mic-btn-active {
+  color: var(--interactive-accent);
 }
 
 /* Autocomplete */

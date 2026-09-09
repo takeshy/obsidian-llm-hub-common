@@ -17,3 +17,4 @@ export * from "./rateLimitRetry.js";
 export * from "./streamAccumulator.js";
 export * from "./chatTurn.js";
 export * from "./voiceChat.js";
+export * from "./speechPopup.js";

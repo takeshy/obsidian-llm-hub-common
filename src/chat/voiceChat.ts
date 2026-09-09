@@ -45,6 +45,36 @@ export function resolveVoiceSubmitPaste(
   return resolveVoiceSubmitText(combined, customPhrase);
 }
 
+export interface VoiceConversationTurn {
+  /** The send phrase spoken with nothing else is how the user leaves. */
+  end: boolean;
+  text: string;
+}
+
+/**
+ * While a voice conversation runs, dictation is the user's answer: speech-popup
+ * has already dropped its own send phrase, so anything pasted is sent as it is.
+ * The plugin's phrase still applies, and speaking it alone ends the session.
+ */
+export function resolveConversationText(value: string, customPhrase = ""): VoiceConversationTurn | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const phrase = resolveVoiceSubmitText(trimmed, customPhrase);
+  if (phrase) return { end: !phrase.text, text: phrase.text };
+  return { end: false, text: trimmed };
+}
+
+export function resolveConversationPaste(
+  value: string,
+  pastedText: string,
+  selectionStart: number,
+  selectionEnd: number,
+  customPhrase = "",
+): VoiceConversationTurn | null {
+  if (!pastedText.trim()) return null;
+  return resolveConversationText(value.slice(0, selectionStart) + pastedText + value.slice(selectionEnd), customPhrase);
+}
+
 /** Detect the same command after accessibility-based dictation or ordinary input. */
 export function resolveVoiceSubmitText(value: string, customPhrase = ""): VoiceSubmitPasteResult | null {
   const phrase = effectiveVoiceSubmitPhrase(customPhrase);
@@ -128,6 +158,7 @@ export function useSpeakingMessageKey(): string | null {
 export function stopReadingAloud(): void {
   utteranceSequence++;
   setSpeakingKey(null);
+  if (typeof window === "undefined") return;
   window.speechSynthesis?.cancel();
 }
 
@@ -147,12 +178,72 @@ export function speechLanguageForLocale(locale = getLocale()): string {
   return SPEECH_LANGUAGE_BY_LOCALE[locale.split("-")[0].toLowerCase()] ?? locale;
 }
 
+export const MIN_READ_ALOUD_RATE = 0.5;
+export const MAX_READ_ALOUD_RATE = 3;
+
+let readAloudRate = 1;
+
+export function clampReadAloudRate(rate: number): number {
+  if (!Number.isFinite(rate)) return 1;
+  return Math.min(MAX_READ_ALOUD_RATE, Math.max(MIN_READ_ALOUD_RATE, rate));
+}
+
+/**
+ * The rate is a setting, but both readers of an answer - the auto-read hook and
+ * the button on a bubble - are far from it, so it is held here rather than
+ * threaded through every caller.
+ */
+export function setReadAloudRate(rate: number): void {
+  readAloudRate = clampReadAloudRate(rate);
+}
+
+export function getReadAloudRate(): number {
+  return readAloudRate;
+}
+
+/** Keeps the stored rate in effect, including after the user changes it. */
+export function useReadAloudRate(rate: number): void {
+  useEffect(() => { setReadAloudRate(rate); }, [rate]);
+}
+
+/**
+ * Settle once nothing is being read aloud, so a listener can act on the silence.
+ * Speech usually starts in the same commit as the caller's effect, so a moment of
+ * grace is allowed before concluding that nothing will speak at all (an engine
+ * that is missing, or an answer with no speakable text).
+ */
+export function whenReadingSettles(graceMs = 300): Promise<void> {
+  return new Promise((resolve) => {
+    let grace: ReturnType<typeof setTimeout> | null = null;
+    let unsubscribe = () => {};
+    const finish = () => {
+      if (grace) clearTimeout(grace);
+      grace = null;
+      unsubscribe();
+      resolve();
+    };
+    unsubscribe = subscribeSpeaking(() => {
+      if (speakingKey) {
+        // Speech started; from here only its end matters.
+        if (grace) clearTimeout(grace);
+        grace = null;
+        return;
+      }
+      if (!grace) finish();
+    });
+    if (speakingKey) return;
+    grace = setTimeout(finish, graceMs);
+  });
+}
+
 export function readAloud(text: string, lang = speechLanguageForLocale(), key: string | null = null): boolean {
   const spoken = textForSpeech(text);
+  if (typeof window === "undefined") return false;
   if (!spoken || !window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") return false;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(spoken);
   utterance.lang = lang;
+  utterance.rate = readAloudRate;
   // A cancelled utterance still reports end or error afterwards, so only the
   // newest one may clear the speaking state.
   const sequence = ++utteranceSequence;
