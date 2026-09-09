@@ -12,12 +12,18 @@ import { getNodeModule } from "../core/nodeModule.js";
 import { splitCommandLine } from "../mcp/commandLine.js";
 import { formatError } from "../core/error.js";
 import { t } from "../i18n/index.js";
-import { stopReadingAloud, whenReadingSettles } from "./voiceChat.js";
+import { stopReadingAloud, VOICE_CHAT_MARKER, whenReadingSettles } from "./voiceChat.js";
 
 export const DEFAULT_SPEECH_POPUP_COMMAND = "speech-popup";
 
 /** How long a popup command may take before it counts as broken. */
 const COMMAND_TIMEOUT_MS = 5000;
+
+/**
+ * A pause before the popup comes back after an answer. Without it the window
+ * appears the instant the answer lands, on top of what the user is still reading.
+ */
+const REOPEN_DELAY_MS = 2500;
 
 export interface SpeechPopupResult {
   ok: boolean;
@@ -107,9 +113,16 @@ export async function speechPopupStatus(command = ""): Promise<SpeechPopupStatus
   return { ...status, error: `${resolved} status: ${failureDetail(result) ?? "no output"}` };
 }
 
-export async function showSpeechPopup(command = ""): Promise<SpeechPopupResult> {
+/**
+ * Show the popup, asking it to mark what it pastes so the answer is
+ * recognisable. A speech-popup too old for `--append` refuses the command and
+ * says so, which is the right outcome: without the marker the conversation
+ * cannot tell an answer from any other clipboard paste.
+ */
+export async function showSpeechPopup(command = "", marker = VOICE_CHAT_MARKER): Promise<SpeechPopupResult> {
   const resolved = effectiveSpeechPopupCommand(command);
-  const result = await runSpeechPopup(resolved, ["show"]);
+  const args = marker ? ["show", "--append", marker] : ["show"];
+  const result = await runSpeechPopup(resolved, args);
   if (result.ok) return result;
   return { ...result, error: `${resolved} show: ${failureDetail(result) ?? "failed"}` };
 }
@@ -118,7 +131,13 @@ export interface VoiceConversationSession {
   /** speech-popup answered `status`, so the microphone button is worth showing. */
   available: boolean;
   active: boolean;
-  toggle: () => void;
+  /**
+   * Show the popup and keep the conversation on. Opening is idempotent because
+   * nothing tells the plugin when the popup was closed: a click that could mean
+   * "end" would be spent on a session the user already left, and the popup
+   * would not appear until the next click.
+   */
+  open: () => void;
   end: () => void;
 }
 
@@ -137,6 +156,14 @@ export interface VoiceConversationOptions {
    * later turn still reopens the popup even if the user switches reading off.
    */
   onStarted?: () => void;
+  /** Overrides the pause before the popup returns after an answer. */
+  reopenDelayMs?: number;
+  /**
+   * The chat this conversation belongs to. Moving to another chat, or starting a
+   * new one, ends the mode: the chip is easy to miss, and a conversation that
+   * followed the user into an unrelated chat would keep opening the popup.
+   */
+  chatId?: string | null;
   /**
    * Whether the answer is being read aloud. With reading on, the popup opens only
    * after the reading stops: an open microphone would otherwise transcribe the
@@ -148,7 +175,7 @@ export interface VoiceConversationOptions {
 export function useVoiceConversation<M extends { role: string; content: string }>(
   messages: readonly M[],
   isLoading: boolean,
-  { command = "", onError, onOpened, onStarted, readAloud = false }: VoiceConversationOptions = {},
+  { command = "", chatId = null, onError, onOpened, onStarted, readAloud = false, reopenDelayMs = REOPEN_DELAY_MS }: VoiceConversationOptions = {},
 ): VoiceConversationSession {
   const [status, setStatus] = useState<SpeechPopupStatus | null>(null);
   const [active, setActive] = useState(false);
@@ -184,42 +211,51 @@ export function useVoiceConversation<M extends { role: string; content: string }
   // while an answer was still being read does not reopen the popup afterwards.
   const waitToken = useRef(0);
 
+  // The popup stays open: a paste it makes afterwards is recognisable by its
+  // marker, and the text lands in the composer instead of being sent.
   const end = useCallback(() => {
     waitToken.current++;
     setActive(false);
     stopReadingAloud();
   }, []);
 
-  const toggle = useCallback(() => {
-    if (activeRef.current) {
-      end();
-      return;
-    }
+  const start = useCallback(() => {
     void (async () => {
       if (!await open()) return;
+      if (activeRef.current) return;
       setActive(true);
       onStarted?.();
     })();
-  }, [end, onStarted, open]);
+  }, [onStarted, open]);
 
-  // Reopen when the turn lands, or, while it is read aloud, when the reading
-  // stops - whether that is the end of the answer or the user cutting it short.
+  // The first save of a new chat only fills in its id (null -> id), which is the
+  // same conversation and must not end anything.
+  const previousChatId = useRef(chatId);
+  useEffect(() => {
+    const previous = previousChatId.current;
+    previousChatId.current = chatId;
+    if (previous === chatId || previous === null) return;
+    end();
+  }, [chatId, end]);
+
+  // Reopen a moment after the turn lands, or, while it is read aloud, a moment
+  // after the reading stops - whether that is the end of the answer or the user
+  // cutting it short.
   const previousLoading = useRef(isLoading);
   useEffect(() => {
     const completed = previousLoading.current && !isLoading;
     previousLoading.current = isLoading;
     if (!completed || !active) return;
     if (messages[messages.length - 1]?.role !== "assistant") return;
-    if (!readAloud) {
-      void open();
-      return;
-    }
     const token = ++waitToken.current;
-    void whenReadingSettles().then(() => {
+    void (async () => {
+      if (readAloud) await whenReadingSettles();
+      await new Promise((resolve) => setTimeout(resolve, reopenDelayMs));
+      // end() bumps the token, so a session left in the meantime stays closed.
       if (token !== waitToken.current || !activeRef.current) return;
       void open();
-    });
-  }, [active, isLoading, messages, open, readAloud]);
+    })();
+  }, [active, isLoading, messages, open, readAloud, reopenDelayMs]);
 
-  return { available, active, toggle, end };
+  return { available, active, open: start, end };
 }

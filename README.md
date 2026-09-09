@@ -22,6 +22,12 @@ Local Ollama/OpenAI-compatible streams share HTTP framing, request construction,
 parsing and inline-tool recovery. OpenCode routing and provider-specific tool execution stay with
 their host. Shared tests cover the protocol contracts and both Gemini plugins test their adapters.
 
+Voice belongs here too: dictated-paste submission, reading answers aloud (with the prompt that
+asks for a spoken-shaped answer), the microphone button and the conversation with the external
+speech-popup app. Hosts supply only the settings values, a way to show an error and the chat id
+whose change ends a conversation; process execution goes through `core/nodeModule`, so a mobile
+build never loads it.
+
 Plugin features are unified rather than branched. When the same feature exists in more than one
 generation across the plugins, the newest one wins and the others adopt it; a shared component does
 not grow an option to preserve an older variant. Options exist only for capabilities a host cannot

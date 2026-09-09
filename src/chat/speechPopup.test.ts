@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { setLocale } from "../i18n/index.js";
-import { resolveConversationPaste, resolveConversationText } from "./voiceChat.js";
+import { resolveConversationPaste, VOICE_CHAT_MARKER } from "./voiceChat.js";
 import {
   configureSpeechPopupRunner,
   effectiveSpeechPopupCommand,
@@ -51,7 +51,8 @@ describe("speech-popup status", () => {
     expect(await showSpeechPopup("/opt/speech-popup")).toMatchObject({ ok: true });
     expect(calls).toEqual([
       { command: "/opt/speech-popup", args: ["status"] },
-      { command: "/opt/speech-popup", args: ["show"] },
+      // Every show asks the popup to mark what it pastes.
+      { command: "/opt/speech-popup", args: ["show", "--append", VOICE_CHAT_MARKER] },
     ]);
   });
 
@@ -68,21 +69,39 @@ describe("speech-popup status", () => {
 });
 
 describe("voice conversation turns", () => {
-  it("sends what was dictated and ends when only the phrase is spoken", () => {
+  it("reads what the popup marked, and leaves other pastes alone", () => {
     setLocale("ja");
-    // speech-popup drops its own send phrase, so plain dictation is the answer.
-    expect(resolveConversationPaste("前半 ", "これが答え", 3, 3)).toEqual({ end: false, text: "前半 これが答え" });
-    // The plugin's phrase still applies, and alone it closes the session.
-    expect(resolveConversationPaste("", "本題です。送信して", 0, 0)).toEqual({ end: false, text: "本題です。" });
-    expect(resolveConversationPaste("", "送信して", 0, 0)).toEqual({ end: true, text: "" });
-    expect(resolveConversationPaste("leftover", "   ", 8, 8)).toBeNull();
+    const marked = (text: string) => `${text} ${VOICE_CHAT_MARKER}`;
+    // The marker says this paste came from a popup this chat opened.
+    expect(resolveConversationPaste("前半 ", marked("これが答え"), 3, 3))
+      .toEqual({ end: false, text: "前半 これが答え" });
+    // Nothing dictated: the popup was closed on an empty transcript.
+    expect(resolveConversationPaste("", VOICE_CHAT_MARKER, 0, 0)).toEqual({ end: true, text: "" });
+    // Words the user merely spoke are not the marker, whatever they are.
+    expect(resolveConversationPaste("", "送信して", 0, 0)).toBeNull();
+    expect(resolveConversationPaste("", "貼り付けたいだけ", 0, 0)).toBeNull();
+  });
+});
+
+describe("marking what the popup pastes", () => {
+  afterEach(() => { configureSpeechPopupRunner(null); });
+
+  it("asks the popup to mark what it pastes", async () => {
+    const calls: string[][] = [];
+    configureSpeechPopupRunner((_command, args) => {
+      calls.push([...args]);
+      return Promise.resolve({ ok: true, stdout: "", stderr: "" });
+    });
+    expect(await showSpeechPopup()).toMatchObject({ ok: true });
+    expect(calls).toEqual([["show", "--append", VOICE_CHAT_MARKER]]);
   });
 
-  it("recognizes the same ending from typed or accessibility input", () => {
-    setLocale("en");
-    expect(resolveConversationText(" send it ")).toEqual({ end: true, text: "" });
-    expect(resolveConversationText("one more thing")).toEqual({ end: false, text: "one more thing" });
-    expect(resolveConversationText("   ")).toBeNull();
-    expect(resolveConversationText("お願い", "お願い")).toEqual({ end: true, text: "" });
+  it("reports a popup that will not take the marker", async () => {
+    configureSpeechPopupRunner(() => Promise.resolve({
+      ok: false, stdout: "", stderr: `invalid command "show {\"append\":\"⟦voice-chat⟧\"}"`,
+    }));
+    const result = await showSpeechPopup();
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("invalid command");
   });
 });

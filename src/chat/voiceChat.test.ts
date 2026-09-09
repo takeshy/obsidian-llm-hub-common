@@ -104,7 +104,9 @@ describe("read aloud state", () => {
 
     // A stored value from outside the slider's range must not silence the voice.
     setReadAloudRate(99);
-    expect(getReadAloudRate()).toBe(3);
+    expect(getReadAloudRate()).toBe(5);
+    setReadAloudRate(3.5);
+    expect(getReadAloudRate()).toBe(3.5);
     setReadAloudRate(Number.NaN);
     expect(getReadAloudRate()).toBe(1);
     expect(clampReadAloudRate(0.1)).toBe(0.5);

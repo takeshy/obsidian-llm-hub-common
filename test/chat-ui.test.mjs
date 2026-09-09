@@ -7,8 +7,8 @@ import React, { useState, createRef } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
 import { useVoiceConversation, configureSpeechPopupRunner } from "../dist/chat/speechPopup.js";
-import { readAloud, stopReadingAloud } from "../dist/chat/voiceChat.js";
-import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection, ChatLayout, HeaderButton, SidebarWidthButton, SaveNoteButton, VaultToolControl, ReadAloudChip } from "../dist/index.js";
+import { readAloud, stopReadingAloud, VOICE_CHAT_MARKER } from "../dist/chat/voiceChat.js";
+import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection, ChatLayout, HeaderButton, SidebarWidthButton, SaveNoteButton, VaultToolControl, ReadAloudChip, VoiceConversationChip, ChipRow } from "../dist/index.js";
 const h = React.createElement;
 const render = element => { let tree; act(() => { tree = TestRenderer.create(element); }); return tree; };
 const buttons = tree => tree.root.findAllByType("button");
@@ -98,15 +98,16 @@ test("composer submits a dictated phrase from paste or accessibility input", () 
 test("the composer offers a mic button and answers the conversation by paste", () => {
   const events = [];
   const voiceConversation = {
-    available: true, active: false, label: "start voice", activeLabel: "end voice", phrase: "send it",
-    onToggle: () => events.push("toggle"), onSubmit: text => events.push(`submit:${text}`), onEnd: () => events.push("end"),
+    available: true, active: false, label: "voice conversation",
+    onOpen: () => events.push("open"), onSubmit: text => events.push(`submit:${text}`),
+    onEnd: () => events.push("end"), onInsert: text => events.push(`insert:${text}`),
   };
   const tree = render(h(Composer, { ...baseComposer, voiceConversation }));
-  const mic = buttons(tree).find(button => button.props.title === "start voice");
+  const mic = buttons(tree).find(button => button.props.title === "voice conversation");
   act(() => mic.props.onClick());
-  assert.deepEqual(events, ["toggle"]);
+  assert.deepEqual(events, ["open"]);
   // The mic sits above send, so it is the first button of the column.
-  assert.equal(buttons(tree)[0].props.title, "start voice");
+  assert.equal(buttons(tree)[0].props.title, "voice conversation");
 
   const pasted = [];
   const active = render(h(Composer, {
@@ -121,24 +122,65 @@ test("the composer offers a mic button and answers the conversation by paste", (
     clipboardData: { getData: () => text },
     preventDefault: () => { prevented++; },
   });
-  act(() => textarea.props.onPaste(paste(" spoken answer")));
-  // The send phrase spoken alone ends the session; a blank paste is left to the host.
-  act(() => textarea.props.onPaste({ ...paste(" send it"), currentTarget: { value: "", selectionStart: 0, selectionEnd: 0 } }));
+  // The popup marks what it pastes, so this is the user's answer.
+  act(() => textarea.props.onPaste(paste(` spoken answer ${VOICE_CHAT_MARKER}`)));
+  // The marker alone: the popup was closed without dictating anything.
+  act(() => textarea.props.onPaste({ ...paste(VOICE_CHAT_MARKER), currentTarget: { value: "", selectionStart: 0, selectionEnd: 0 } }));
+  // An ordinary clipboard paste is left to the host, and so is a blank one.
+  act(() => textarea.props.onPaste(paste(" just pasting")));
   act(() => textarea.props.onPaste(paste("  ")));
   assert.equal(prevented, 2);
-  assert.deepEqual(pasted, ["host"]);
-  assert.deepEqual(events, ["toggle", "submit:draft spoken answer", "end"]);
-  // Typed or dictated, the same phrase ends it.
-  act(() => textarea.props.onChange({ currentTarget: { value: "send it" }, nativeEvent: { isComposing: false } }));
-  assert.deepEqual(events, ["toggle", "submit:draft spoken answer", "end", "end"]);
+  assert.deepEqual(pasted, ["host", "host"]);
+  assert.deepEqual(events, ["open", "submit:draft spoken answer", "end"]);
+  // Clicking the mic during a conversation opens the popup again; it never ends it.
+  act(() => buttons(active)[0].props.onClick());
+  assert.deepEqual(events.slice(-1), ["open"]);
   assert.match(buttons(active)[0].props.className, /mic-btn-active/);
+
+  // A popup opened for a conversation that has since ended still pastes with its
+  // marker: the marker is dropped and the words are kept, not sent.
+  const afterEnd = render(h(Composer, {
+    ...baseComposer,
+    textarea: { value: "", onChange() {} },
+    voiceConversation,
+  }));
+  act(() => afterEnd.root.findByType("textarea").props.onPaste({
+    currentTarget: { value: "", selectionStart: 0, selectionEnd: 0 },
+    clipboardData: { getData: () => `later thought ${VOICE_CHAT_MARKER}` },
+    preventDefault: () => {},
+  }));
+  assert.deepEqual(events.slice(-1), ["insert:later thought"]);
+  act(() => afterEnd.unmount());
 
   // Without the app installed the column looks as it always did.
   const unavailable = render(h(Composer, { ...baseComposer, voiceConversation: { ...voiceConversation, available: false } }));
-  assert.equal(buttons(unavailable).some(button => button.props.title === "start voice"), false);
+  assert.equal(buttons(unavailable).some(button => button.props.title === "voice conversation"), false);
   act(() => tree.unmount());
   act(() => active.unmount());
   act(() => unavailable.unmount());
+});
+
+test("chips describing the chat share one row", () => {
+  const tree = render(h(ChipRow, { classPrefix: "llm-hub" },
+    h(ReadAloudChip, { classPrefix: "llm-hub", label: "reading", removeTitle: "stop reading", onDisable() {} }),
+    h(VoiceConversationChip, { classPrefix: "llm-hub", label: "in a conversation", removeTitle: "end", onEnd() {} }),
+  ));
+  const row = tree.root.findByProps({ className: "llm-hub-chip-row" });
+  // Both chips are children of the same row, so they lay out side by side.
+  assert.equal(row.findAllByType("span").filter(node => /chip$/.test(node.props.className ?? "")).length, 2);
+  act(() => tree.unmount());
+});
+
+test("the voice conversation chip ends the conversation", () => {
+  let ended = 0;
+  const tree = render(h(VoiceConversationChip, {
+    classPrefix: "llm-hub", label: "in a voice conversation", removeTitle: "end the voice conversation",
+    onEnd: () => ended++,
+  }));
+  assert.match(JSON.stringify(tree.toJSON()), /in a voice conversation/);
+  act(() => buttons(tree).find(button => button.props.title === "end the voice conversation").props.onClick());
+  assert.equal(ended, 1);
+  act(() => tree.unmount());
 });
 
 test("a voice conversation reopens the popup after every answer", async () => {
@@ -154,6 +196,7 @@ test("a voice conversation reopens the popup after every answer", async () => {
   function Probe({ messages, isLoading }) {
     session = useVoiceConversation(messages, isLoading, {
       command: "/opt/speech-popup",
+      reopenDelayMs: 5,
       onError: message => errors.push(message),
       onOpened: () => { focused++; },
       onStarted: () => { started++; },
@@ -166,25 +209,36 @@ test("a voice conversation reopens the popup after every answer", async () => {
   assert.equal(session.available, true);
   assert.deepEqual(calls, ["/opt/speech-popup status"]);
 
-  await act(async () => session.toggle());
+  await act(async () => session.open());
   assert.equal(session.active, true);
-  assert.deepEqual(calls.slice(1), ["/opt/speech-popup show"]);
+  assert.deepEqual(calls.slice(1), [`/opt/speech-popup show --append ${VOICE_CHAT_MARKER}`]);
   // Starting a session is what switches reading aloud on; reopening does not.
   assert.equal(started, 1);
 
-  // A finished turn reopens the popup, so the user may speak while it is read aloud.
+  // A finished turn reopens the popup, after a pause so the window does not land
+  // on top of the answer the moment it arrives.
   await act(async () => { tree.update(h(Probe, { messages: [{ role: "user", content: "hi" }], isLoading: true })); });
   await act(async () => { tree.update(h(Probe, { messages: answered, isLoading: false })); });
-  assert.deepEqual(calls.slice(2), ["/opt/speech-popup show"]);
+  assert.deepEqual(calls.slice(2), []);
+  await act(async () => new Promise(resolve => setTimeout(resolve, 30)));
+  assert.deepEqual(calls.slice(2), [`/opt/speech-popup show --append ${VOICE_CHAT_MARKER}`]);
   // Both opens hand focus back, or the transcript would paste into nothing.
   assert.equal(focused, 2);
 
-  // Ending the session leaves later turns alone.
+  // Opening again while it runs just shows the popup; only the chip ends it.
+  await act(async () => session.open());
+  assert.equal(session.active, true);
+  assert.deepEqual(calls.slice(3), [`/opt/speech-popup show --append ${VOICE_CHAT_MARKER}`]);
+  assert.equal(started, 1);
+
+  // Ending the session leaves later turns alone. The popup stays open; what it
+  // pastes afterwards is recognised by its marker and kept, not sent.
   await act(async () => session.end());
   assert.equal(session.active, false);
   await act(async () => { tree.update(h(Probe, { messages: answered, isLoading: true })); });
   await act(async () => { tree.update(h(Probe, { messages: answered, isLoading: false })); });
-  assert.equal(calls.length, 3);
+  await act(async () => new Promise(resolve => setTimeout(resolve, 30)));
+  assert.equal(calls.length, 4);
   assert.equal(started, 1);
   assert.deepEqual(errors, []);
   act(() => tree.unmount());
@@ -205,12 +259,12 @@ test("with reading aloud on, the popup waits for the answer to finish speaking",
   globalThis.window = { speechSynthesis: { cancel() {}, speak: utterance => spoken.push(utterance) } };
   let session;
   function Probe({ messages, isLoading }) {
-    session = useVoiceConversation(messages, isLoading, { readAloud: true });
+    session = useVoiceConversation(messages, isLoading, { readAloud: true, reopenDelayMs: 5 });
     return null;
   }
   let tree;
   await act(async () => { tree = TestRenderer.create(h(Probe, { messages: [], isLoading: false })); });
-  await act(async () => session.toggle());
+  await act(async () => session.open());
   assert.deepEqual(calls, ["status", "show"]);
 
   // The answer lands and starts being read; the microphone stays closed.
@@ -221,9 +275,9 @@ test("with reading aloud on, the popup waits for the answer to finish speaking",
   });
   assert.deepEqual(calls, ["status", "show"]);
 
-  // Reading finishes: only now is it safe to record again.
+  // Reading finishes: only now, and after the pause, is it safe to record again.
   await act(async () => { spoken[0].onend(); });
-  await act(async () => new Promise(resolve => setTimeout(resolve, 10)));
+  await act(async () => new Promise(resolve => setTimeout(resolve, 30)));
   assert.deepEqual(calls, ["status", "show", "show"]);
 
   act(() => tree.unmount());
@@ -231,6 +285,38 @@ test("with reading aloud on, the popup waits for the answer to finish speaking",
   configureSpeechPopupRunner(null);
   delete globalThis.window;
   delete globalThis.SpeechSynthesisUtterance;
+});
+
+test("a new or different chat ends the conversation, but naming this one does not", async () => {
+  const calls = [];
+  configureSpeechPopupRunner((_command, args) => {
+    calls.push(args[0]);
+    return Promise.resolve({ ok: true, stdout: args[0] === "status" ? "speech-popup 1.0.0\ndaemon:   running\n" : "", stderr: "" });
+  });
+  let session;
+  function Probe({ chatId }) {
+    session = useVoiceConversation([], false, { chatId });
+    return null;
+  }
+  let tree;
+  await act(async () => { tree = TestRenderer.create(h(Probe, { chatId: null })); });
+  await act(async () => session.open());
+  assert.equal(session.active, true);
+
+  // The first save of this chat only fills in its id; the conversation continues.
+  await act(async () => { tree.update(h(Probe, { chatId: "chat-1" })); });
+  assert.equal(session.active, true);
+
+  // Opening another chat, or starting a new one, is a different conversation.
+  await act(async () => { tree.update(h(Probe, { chatId: "chat-2" })); });
+  assert.equal(session.active, false);
+  await act(async () => session.open());
+  assert.equal(session.active, true);
+  await act(async () => { tree.update(h(Probe, { chatId: null })); });
+  assert.equal(session.active, false);
+
+  act(() => tree.unmount());
+  configureSpeechPopupRunner(null);
 });
 
 test("a popup that will not open reports why and stays inactive", async () => {
@@ -249,7 +335,7 @@ test("a popup that will not open reports why and stays inactive", async () => {
   await act(async () => { tree = TestRenderer.create(h(Probe)); });
   // Installed but not listening: the button shows, and the failure explains itself.
   assert.equal(session.available, true);
-  await act(async () => session.toggle());
+  await act(async () => session.open());
   assert.equal(session.active, false);
   assert.equal(errors.length, 1);
   assert.match(errors[0], /speech-popup/);
@@ -271,7 +357,7 @@ test("a configured command keeps the mic button even when status fails", async (
   await act(async () => { tree = TestRenderer.create(h(Probe)); });
   // Hiding the button would leave nothing to click and no way to see the reason.
   assert.equal(session.available, true);
-  await act(async () => session.toggle());
+  await act(async () => session.open());
   assert.equal(session.active, false);
   assert.match(errors[0], /speech-popup\.exe show: spawn ENOENT/);
   act(() => tree.unmount());
@@ -678,18 +764,31 @@ test("vault tool control keeps the history limit whether or not servers are conf
   act(() => tree.unmount());
 });
 
-test("vault tool control exposes the auto-read-aloud switch", () => {
+test("vault tool control exposes the auto-read-aloud switch and its speed", () => {
   const changed = [];
-  const tree = render(h(VaultToolControl, {
+  const props = enabled => ({
     classPrefix: "llm-hub", containerRef: createRef(), title: "vault tools", open: true,
     onToggle() {}, modes: vaultModes, mode: "all", onModeChange() {},
-    autoReadAloud: { label: "read responses", enabled: false, onChange: value => changed.push(value) },
-  }));
+    autoReadAloud: {
+      label: "read responses", enabled, onChange: value => changed.push(value),
+      rate: { label: "speed", value: 1.4, min: 0.5, max: 5, step: 0.1, onChange: rate => changed.push(rate) },
+    },
+  });
+  const tree = render(h(VaultToolControl, props(false)));
   const checkbox = tree.root.findByType("input");
   assert.equal(checkbox.props.checked, false);
+  // The speed only matters once answers are read, so it appears with the switch.
+  assert.equal(tree.root.findAllByType("input").length, 1);
   act(() => checkbox.props.onChange({ target: { checked: true } }));
-  assert.deepEqual(changed, [true]);
+
+  const reading = render(h(VaultToolControl, props(true)));
+  const slider = reading.root.findAllByType("input").find(node => node.props.type === "range");
+  assert.equal(slider.props.max, 5);
+  act(() => slider.props.onChange({ target: { value: "2.5" } }));
+  assert.deepEqual(changed, [true, 2.5]);
+  assert.match(JSON.stringify(reading.toJSON()), /1\.4x/);
   act(() => tree.unmount());
+  act(() => reading.unmount());
 });
 
 test("the read-aloud chip sits outside the chat and switches reading off", () => {

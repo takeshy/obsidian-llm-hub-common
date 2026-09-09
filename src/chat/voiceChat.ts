@@ -45,36 +45,6 @@ export function resolveVoiceSubmitPaste(
   return resolveVoiceSubmitText(combined, customPhrase);
 }
 
-export interface VoiceConversationTurn {
-  /** The send phrase spoken with nothing else is how the user leaves. */
-  end: boolean;
-  text: string;
-}
-
-/**
- * While a voice conversation runs, dictation is the user's answer: speech-popup
- * has already dropped its own send phrase, so anything pasted is sent as it is.
- * The plugin's phrase still applies, and speaking it alone ends the session.
- */
-export function resolveConversationText(value: string, customPhrase = ""): VoiceConversationTurn | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const phrase = resolveVoiceSubmitText(trimmed, customPhrase);
-  if (phrase) return { end: !phrase.text, text: phrase.text };
-  return { end: false, text: trimmed };
-}
-
-export function resolveConversationPaste(
-  value: string,
-  pastedText: string,
-  selectionStart: number,
-  selectionEnd: number,
-  customPhrase = "",
-): VoiceConversationTurn | null {
-  if (!pastedText.trim()) return null;
-  return resolveConversationText(value.slice(0, selectionStart) + pastedText + value.slice(selectionEnd), customPhrase);
-}
-
 /** Detect the same command after accessibility-based dictation or ordinary input. */
 export function resolveVoiceSubmitText(value: string, customPhrase = ""): VoiceSubmitPasteResult | null {
   const phrase = effectiveVoiceSubmitPhrase(customPhrase);
@@ -96,6 +66,43 @@ export function resolveVoiceSubmitText(value: string, customPhrase = ""): VoiceS
     text: withoutPunctuation.slice(0, -phrase.length).trim(),
     phrase,
   };
+}
+
+/**
+ * What speech-popup appends to a paste it made for this chat (`show --append`).
+ * It is a token no dictation produces, so a paste carrying it is known to come
+ * from a popup this chat opened - unlike the send phrase, which the user may
+ * simply have spoken. If it ever leaks into a message it is visible rather than
+ * silent, which is the failure that can be noticed and reported.
+ */
+export const VOICE_CHAT_MARKER = "⟦voice-chat⟧";
+
+export interface VoiceConversationTurn {
+  /** The marker arrived with nothing before it: the user is done talking. */
+  end: boolean;
+  text: string;
+}
+
+/**
+ * What a marked paste holds.
+ *
+ * A paste without the marker is an ordinary clipboard paste and belongs to the
+ * composer, so it returns null. The marker alone is how a popup closed on an
+ * empty transcript says the conversation is over - a hands-free gesture, unlike
+ * the chip. The caller decides what to do with the text, because that depends on
+ * whether the conversation is still running.
+ */
+export function resolveConversationPaste(
+  value: string,
+  pastedText: string,
+  selectionStart: number,
+  selectionEnd: number,
+): VoiceConversationTurn | null {
+  if (!pastedText.includes(VOICE_CHAT_MARKER)) return null;
+  const combined = value.slice(0, selectionStart) + pastedText + value.slice(selectionEnd);
+  const spoken = resolveVoiceSubmitText(combined, VOICE_CHAT_MARKER);
+  if (!spoken) return null;
+  return { end: !spoken.text, text: spoken.text };
 }
 
 /** Remove Markdown constructs that speech engines otherwise read as punctuation. */
@@ -179,7 +186,7 @@ export function speechLanguageForLocale(locale = getLocale()): string {
 }
 
 export const MIN_READ_ALOUD_RATE = 0.5;
-export const MAX_READ_ALOUD_RATE = 3;
+export const MAX_READ_ALOUD_RATE = 5;
 
 let readAloudRate = 1;
 

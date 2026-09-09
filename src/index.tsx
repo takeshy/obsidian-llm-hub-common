@@ -10,7 +10,7 @@ export interface ChatMessage {
 export type { StyleProps } from "./types.js";
 import type { StyleProps } from "./types.js";
 import type { SearchSelection } from "./core/events.js";
-import { resolveConversationPaste, resolveConversationText, resolveVoiceSubmitPaste, resolveVoiceSubmitText } from "./chat/voiceChat.js";
+import { resolveConversationPaste, resolveVoiceSubmitPaste, resolveVoiceSubmitText } from "./chat/voiceChat.js";
 
 /** The host owns lifecycle, persistence and provider execution. */
 export function ChatLayout({ classPrefix: p, modifiers, children }: StyleProps & { modifiers?: readonly (string | false | undefined)[]; children: ReactNode }) {
@@ -164,8 +164,10 @@ export interface ComposerProps extends StyleProps {
    * its paste is the answer, and an empty paste ends the session.
    */
   voiceConversation?: {
-    available: boolean; active: boolean; label: string; activeLabel: string; phrase: string;
-    onToggle: () => void; onSubmit: (text: string) => void; onEnd: () => void;
+    available: boolean; active: boolean; label: string;
+    onOpen: () => void; onSubmit: (text: string) => void; onEnd: () => void;
+    /** Text from a popup that is no longer part of a conversation, or arrives mid-answer. */
+    onInsert: (text: string) => void;
   };
 }
 export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, collapse, voiceSubmit, voiceConversation }: ComposerProps) {
@@ -173,13 +175,6 @@ export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isC
   return <>
     <textarea ref={textareaRef} className={`${p}-input`} rows={3} {...textareaProps} onChange={event => {
       const nativeEvent = event.nativeEvent as InputEvent;
-      if (voiceConversation?.active && !isLoading && !nativeEvent.isComposing) {
-        const spoken = resolveConversationText(event.currentTarget.value, voiceConversation.phrase);
-        if (spoken?.end) {
-          voiceConversation.onEnd();
-          return;
-        }
-      }
       if (voiceSubmit?.enabled && !nativeEvent.isComposing) {
         const result = resolveVoiceSubmitText(event.currentTarget.value, voiceSubmit.phrase);
         if (result) {
@@ -189,19 +184,22 @@ export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isC
       }
       onChange?.(event);
     }} onPaste={event => {
-      if (voiceConversation?.active && !isLoading) {
+      if (voiceConversation) {
         const target = event.currentTarget;
-        const result = resolveConversationPaste(
+        const spoken = resolveConversationPaste(
           target.value,
           event.clipboardData.getData("text/plain"),
           target.selectionStart,
           target.selectionEnd,
-          voiceConversation.phrase,
         );
-        if (result) {
+        if (spoken) {
           event.preventDefault();
-          if (result.end) voiceConversation.onEnd();
-          else voiceConversation.onSubmit(result.text);
+          // The popup outlives the conversation it was opened for, and an answer
+          // may land while one is still being generated. In both cases the
+          // marker is dropped and the words are kept, rather than sent.
+          if (!voiceConversation.active || isLoading) voiceConversation.onInsert(spoken.text);
+          else if (spoken.end) voiceConversation.onEnd();
+          else voiceConversation.onSubmit(spoken.text);
           return;
         }
       }
@@ -225,8 +223,8 @@ export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isC
     <div className={`${p}-send-buttons`}>
       {voiceConversation?.available && <button
         className={[`${p}-mic-btn`, voiceConversation.active && `${p}-mic-btn-active`].filter(Boolean).join(" ")}
-        onClick={voiceConversation.onToggle}
-        title={voiceConversation.active ? voiceConversation.activeLabel : voiceConversation.label}>
+        onClick={voiceConversation.onOpen}
+        title={voiceConversation.label}>
         <Mic size={18} />
       </button>}
       {isCompacting ? <button className={`${p}-send-btn`} disabled title={compactingLabel}><Loader2 size={18} className={`${p}-spinner`} /></button>
@@ -433,6 +431,15 @@ export function EnabledMcpServers({ classPrefix: p, servers, onDisable, disabled
 }
 
 /**
+ * Chips that describe the state of this chat - reading aloud, a voice
+ * conversation, the enabled MCP servers - share one wrapping row above the
+ * input. Each of them is a block of its own, so without this they stack.
+ */
+export function ChipRow({ classPrefix: p, children }: StyleProps & { children: ReactNode }) {
+  return <div className={`${p}-chip-row`}>{children}</div>;
+}
+
+/**
  * Reading aloud is easy to forget once it is on, so it announces itself outside
  * the transcript with the same shape as the MCP chips, and switches off there.
  */
@@ -442,6 +449,21 @@ export function ReadAloudChip({ classPrefix: p, label, removeTitle, onDisable }:
       <Volume2 size={12} aria-hidden="true" />
       <span className={`${p}-read-aloud-chip-name`}>{label}</span>
       <button type="button" className={`${p}-read-aloud-chip-remove`} onClick={onDisable} title={removeTitle} aria-label={removeTitle}><X size={10} aria-hidden="true" /></button>
+    </span>
+  </div>;
+}
+
+/**
+ * A running voice conversation says so next to the read-aloud chip, and ends
+ * there. The microphone button only opens the dictation window, so nothing has
+ * to know whether that window is still on screen.
+ */
+export function VoiceConversationChip({ classPrefix: p, label, removeTitle, onEnd }: StyleProps & { label: string; removeTitle: string; onEnd: () => void }) {
+  return <div className={`${p}-read-aloud-chips`}>
+    <span className={`${p}-voice-chip`} title={label}>
+      <Mic size={12} aria-hidden="true" />
+      <span className={`${p}-read-aloud-chip-name`}>{label}</span>
+      <button type="button" className={`${p}-voice-chip-remove`} onClick={onEnd} title={removeTitle} aria-label={removeTitle}><X size={10} aria-hidden="true" /></button>
     </span>
   </div>;
 }
@@ -492,7 +514,11 @@ export function VaultToolControl<T extends string>({
   disabled?: boolean;
   mcp?: { label: string; servers: readonly McpServerChoice[]; onToggle: (id: string, enabled: boolean) => void };
   historyLimit?: { label: string; value: number; onChange: (count: number) => void };
-  autoReadAloud?: { label: string; enabled: boolean; onChange: (enabled: boolean) => void };
+  autoReadAloud?: {
+    label: string; enabled: boolean; onChange: (enabled: boolean) => void;
+    /** Adjusting the pace next to the switch, where the answers are heard. */
+    rate?: { label: string; value: number; min: number; max: number; step: number; onChange: (rate: number) => void };
+  };
 }) {
   const narrowed = mode !== modes[0]?.id;
   return <VaultToolButton
@@ -539,6 +565,14 @@ export function VaultToolControl<T extends string>({
           <input type="checkbox" checked={autoReadAloud.enabled}
             onChange={event => autoReadAloud.onChange(event.target.checked)} />
         </label>
+        {autoReadAloud.enabled && autoReadAloud.rate && <label className={`${p}-vault-tool-speech-row`}>
+          <span>{autoReadAloud.rate.label}</span>
+          <input type="range" className={`${p}-vault-tool-rate`}
+            min={autoReadAloud.rate.min} max={autoReadAloud.rate.max} step={autoReadAloud.rate.step}
+            value={autoReadAloud.rate.value}
+            onChange={event => autoReadAloud.rate?.onChange(Number(event.target.value))} />
+          <span className={`${p}-vault-tool-rate-value`}>{`${autoReadAloud.rate.value.toFixed(1)}x`}</span>
+        </label>}
       </>}
     </VaultToolMenu>}
   </VaultToolButton>;

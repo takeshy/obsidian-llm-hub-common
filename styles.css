@@ -741,6 +741,23 @@
   opacity: 0.5;
 }
 
+.chat-ui-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+/* The row owns the spacing; its groups only lay out their own chips. */
+.chat-ui-chip-row > * {
+  margin-bottom: 0;
+}
+
+.chat-ui-chip-row:empty {
+  display: none;
+}
+
 .chat-ui-read-aloud-chips {
   display: flex;
   flex-wrap: wrap;
@@ -784,6 +801,38 @@
 
 .chat-ui-read-aloud-chip-remove:hover {
   background: color-mix(in srgb, var(--color-blue) 20%, transparent);
+}
+
+.chat-ui-voice-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: min(240px, 80vw);
+  padding: 3px 6px;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 35%, var(--background-modifier-border));
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--interactive-accent) 10%, var(--background-secondary));
+  color: var(--interactive-accent);
+  font-size: 11px;
+}
+
+.chat-ui-voice-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chat-ui-voice-chip-remove:hover {
+  background: color-mix(in srgb, var(--interactive-accent) 20%, transparent);
 }
 
 .chat-ui-pending-attachments {
@@ -961,6 +1010,18 @@
   cursor: pointer;
 }
 
+.chat-ui-vault-tool-rate {
+  flex: 1;
+  min-width: 90px;
+}
+
+.chat-ui-vault-tool-rate-value {
+  min-width: 30px;
+  text-align: right;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .chat-ui-mcp-server-item {
   display: flex;
   align-items: center;
@@ -1051,14 +1112,16 @@
   color: var(--text-muted);
 }
 
-.chat-ui-mic-btn:hover {
+.chat-ui-mic-btn:hover:not(.chat-ui-mic-btn-active) {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
 }
 
-/* A live session must be obvious: the popup itself may be behind Obsidian. */
+/* A running conversation must stay obvious under the pointer too: hovering the
+   button it was just clicked with used to paint over the only difference. */
 .chat-ui-mic-btn-active {
   color: var(--interactive-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 15%, transparent);
 }
 
 /* Autocomplete */
