@@ -3,6 +3,8 @@ import { setLocale } from "../i18n/index.js";
 import { resolveConversationPaste, VOICE_CHAT_MARKER } from "./voiceChat.js";
 import {
   configureSpeechPopupRunner,
+  hostSpawnCommand,
+  sandboxHint,
   effectiveSpeechPopupCommand,
   parseSpeechPopupStatus,
   showSpeechPopup,
@@ -103,5 +105,26 @@ describe("marking what the popup pastes", () => {
     const result = await showSpeechPopup();
     expect(result.ok).toBe(false);
     expect(result.error).toContain("invalid command");
+  });
+});
+
+describe("reaching the host from a sandboxed Obsidian", () => {
+  it("goes through the Flatpak portal, and leaves an unsandboxed command alone", () => {
+    // The sandbox cannot see programs installed on the host; Flatpak lends a
+    // portal for exactly this, and other Obsidian plugins reach their binaries
+    // the same way.
+    expect(hostSpawnCommand("/opt/speech-popup", ["show", "--append", "x"], "flatpak"))
+      .toEqual({ file: "flatpak-spawn", args: ["--host", "/opt/speech-popup", "show", "--append", "x"] });
+    expect(hostSpawnCommand("speech-popup", ["status"], "none"))
+      .toEqual({ file: "speech-popup", args: ["status"] });
+    // Snap has no such portal, so the command is left to fail with an explanation.
+    expect(hostSpawnCommand("speech-popup", ["status"], "snap"))
+      .toEqual({ file: "speech-popup", args: ["status"] });
+  });
+
+  it("says what to do about each sandbox", () => {
+    expect(sandboxHint("flatpak")).toContain("flatpak override --user --talk-name=org.freedesktop.Flatpak");
+    expect(sandboxHint("snap")).toContain("cannot start programs installed on the host");
+    expect(sandboxHint("none")).toBeUndefined();
   });
 });

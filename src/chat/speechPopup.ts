@@ -64,6 +64,54 @@ interface ExecFileModule {
   ): unknown;
 }
 
+export type ObsidianSandbox = "none" | "flatpak" | "snap";
+
+/**
+ * Which sandbox this Obsidian runs in, if any. A Flatpak or Snap build cannot
+ * see programs installed on the host, so a command that works in a terminal
+ * fails here for a reason no error message explains on its own.
+ */
+export function obsidianSandbox(): ObsidianSandbox {
+  const env = typeof process !== "undefined" ? process.env ?? {} : {};
+  if (env.FLATPAK_ID || env.container === "flatpak") return "flatpak";
+  if (env.SNAP) return "snap";
+  try {
+    // The definitive marker inside a Flatpak sandbox, present even when the
+    // app was started in a way that did not export the variables above.
+    const fs = getNodeModule<{ existsSync(path: string): boolean }>("fs");
+    if (fs.existsSync("/.flatpak-info")) return "flatpak";
+  } catch {
+    // No Node, so nothing can be spawned anyway.
+  }
+  return "none";
+}
+
+/**
+ * How to reach a program on the host. Flatpak provides a portal for exactly
+ * this - the same `flatpak-spawn --host` other Obsidian plugins use to reach
+ * their own binaries - while a Snap build has no equivalent, so the command is
+ * left as it is and fails with an explanation instead.
+ */
+export function hostSpawnCommand(
+  command: string,
+  args: readonly string[],
+  sandbox: ObsidianSandbox = obsidianSandbox(),
+): { file: string; args: string[] } {
+  if (sandbox !== "flatpak") return { file: command, args: [...args] };
+  return { file: "flatpak-spawn", args: ["--host", command, ...args] };
+}
+
+/** What the user has to do about a sandbox, once a command has failed inside one. */
+export function sandboxHint(sandbox: ObsidianSandbox = obsidianSandbox()): string | undefined {
+  if (sandbox === "flatpak") {
+    return "This Obsidian runs in a Flatpak sandbox and reaches the host through flatpak-spawn. Allow it once with: flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian";
+  }
+  if (sandbox === "snap") {
+    return "This Obsidian runs in a Snap sandbox, which cannot start programs installed on the host. The AppImage or the Flatpak build can.";
+  }
+  return undefined;
+}
+
 async function runSpeechPopup(command: string, args: readonly string[]): Promise<SpeechPopupResult> {
   if (runnerOverride) return runnerOverride(command, args);
   let execFile: ExecFileModule["execFile"];
@@ -73,8 +121,9 @@ async function runSpeechPopup(command: string, args: readonly string[]): Promise
     // Mobile, or a host without Node: the app simply is not reachable.
     return { ok: false, stdout: "", stderr: "", error: formatError(error) };
   }
+  const spawned = hostSpawnCommand(command, args);
   return new Promise<SpeechPopupResult>((resolve) => {
-    execFile(command, args, { timeout: COMMAND_TIMEOUT_MS, windowsHide: true }, (error, stdout, stderr) => {
+    execFile(spawned.file, spawned.args, { timeout: COMMAND_TIMEOUT_MS, windowsHide: true }, (error, stdout, stderr) => {
       resolve({ ok: !error, stdout, stderr, error: error ? formatError(error) : undefined });
     });
   });
@@ -102,7 +151,10 @@ export function parseSpeechPopupStatus(stdout: string): SpeechPopupStatus {
 }
 
 function failureDetail(result: SpeechPopupResult): string | undefined {
-  return result.stderr.trim() || result.error || undefined;
+  const detail = result.stderr.trim() || result.error || undefined;
+  const hint = sandboxHint();
+  if (!hint) return detail;
+  return detail ? `${detail}\n${hint}` : hint;
 }
 
 export async function speechPopupStatus(command = ""): Promise<SpeechPopupStatus> {
