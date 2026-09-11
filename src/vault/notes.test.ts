@@ -13,7 +13,7 @@ import {
   proposeBulkEdit,
   proposeEdit,
 } from "./notes.js";
-import { findFileByName, readNote, resolveNoteFile } from "./notes.js";
+import { findFileByName, readNote, readNoteContext, resolveNoteFile } from "./notes.js";
 import { extractPdfText } from "./pdfText.js";
 import { PDFDocument } from "pdf-lib";
 
@@ -226,6 +226,32 @@ describe("resolveNoteFile", () => {
 });
 
 describe("readNote non-text files", () => {
+  it("reads an inclusive line range and reports its location", async () => {
+    const note = makeFile("Docs/long.md");
+    const app = makeApp([note]);
+    vi.mocked(app.vault.read).mockResolvedValueOnce("one\ntwo\nthree\nfour\n");
+
+    const result = await readNote(app, note.path, false, 1000, "extract-text", undefined, undefined, 2, 3);
+
+    expect(result).toMatchObject({ content: "two\nthree\n", startLine: 2, endLine: 3, totalLines: 4, truncated: false });
+  });
+
+  it("rejects an invalid text line range", async () => {
+    const note = makeFile("Docs/long.md");
+    const result = await readNote(makeApp([note]), note.path, false, 1000, "extract-text", undefined, undefined, 3, 2);
+
+    expect(result).toMatchObject({ success: false, error: expect.stringContaining("less than or equal") });
+  });
+
+  it("finds text with merged context windows", async () => {
+    const vault = new MockVault();
+    const note = vault.addMarkdownFile("Docs/long.md", "zero\nneedle one\nbetween\nneedle two\nlast");
+
+    const result = await readNoteContext(createMockApp(vault), note.path, false, "NEEDLE", 1, 1);
+
+    expect(result).toMatchObject({ success: true, matchCount: 1, matches: [{ startLine: 1, endLine: 5, content: "zero\nneedle one\nbetween\nneedle two\nlast" }] });
+  });
+
   it("reads Obsidian Base files as text", async () => {
     const base = makeFile("Dashboards/Projects.base");
     const app = makeApp([base]);

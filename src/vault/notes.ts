@@ -15,6 +15,7 @@ import {
   normalizeLookupTerm,
   splitFileName,
 } from "./fileTypes.js";
+import { findTextContexts, selectTextLines } from "./textLines.js";
 
 /** How much of a note read_note returns before truncating; hosts pass their own setting. */
 export const DEFAULT_MAX_NOTE_CHARS = 20000;
@@ -142,7 +143,9 @@ export async function readNote(
   pdfInputMode: PdfInputMode = "extract-text",
   startPage?: number,
   endPage?: number,
-): Promise<{ success: boolean; content?: string; path?: string; error?: string; truncated?: boolean; attachments?: Attachment[]; startPage?: number; endPage?: number }> {
+  startLine?: number,
+  endLine?: number,
+): Promise<{ success: boolean; content?: string; path?: string; error?: string; truncated?: boolean; attachments?: Attachment[]; startPage?: number; endPage?: number; startLine?: number; endLine?: number; totalLines?: number }> {
   let file: TFile | null = null;
 
   if (activeNote) {
@@ -168,6 +171,14 @@ export async function readNote(
     };
   }
 
+  if ((startLine !== undefined && (!Number.isInteger(startLine) || startLine < 1))
+    || (endLine !== undefined && (!Number.isInteger(endLine) || endLine < 1))) {
+    return { success: false, path: file.path, error: "startLine and endLine must be positive integers" };
+  }
+  if (startLine !== undefined && endLine !== undefined && startLine > endLine) {
+    return { success: false, path: file.path, error: "startLine must be less than or equal to endLine" };
+  }
+
   const extension = file.extension.toLowerCase();
   if (!isVaultTextFile(file) && extension !== "pdf") {
     return {
@@ -178,6 +189,9 @@ export async function readNote(
   }
 
   if (extension === "pdf") {
+    if (startLine !== undefined || endLine !== undefined) {
+      return { success: false, path: file.path, error: "Line ranges are supported for text files only." };
+    }
     if ((startPage !== undefined && (!Number.isInteger(startPage) || startPage < 1))
       || (endPage !== undefined && (!Number.isInteger(endPage) || endPage < 1))) {
       return { success: false, path: file.path, error: "startPage and endPage must be positive integers" };
@@ -233,6 +247,12 @@ export async function readNote(
   }
 
   let content = await app.vault.read(file);
+  const hasLineRange = startLine !== undefined || endLine !== undefined;
+  let lineSelection;
+  if (hasLineRange) {
+    lineSelection = selectTextLines(content, startLine, endLine);
+    content = lineSelection.content;
+  }
   let truncated = false;
 
   // Truncate if too long to prevent token explosion
@@ -241,7 +261,31 @@ export async function readNote(
     truncated = true;
   }
 
-  return { success: true, content, path: file.path, truncated };
+  return {
+    success: true, content, path: file.path, truncated,
+    ...(lineSelection ? {
+      startLine: lineSelection.startLine,
+      endLine: lineSelection.endLine,
+      totalLines: lineSelection.totalLines,
+    } : {}),
+  };
+}
+
+/** Find literal text and return the requested line context around every hit. */
+export async function readNoteContext(
+  app: App,
+  fileName: string | undefined,
+  activeNote: boolean | undefined,
+  searchTerm: string,
+  linesBefore = 2,
+  linesAfter = 2,
+): Promise<Record<string, unknown>> {
+  const file = activeNote ? app.workspace.getActiveFile() : fileName ? resolveNoteFile(app, fileName) : null;
+  if (!file) return { success: false, error: activeNote ? "No active note found. Please open a note first." : `Could not find note "${fileName ?? ""}". Please check the name and try again.` };
+  if (!isVaultTextFile(file)) return { success: false, path: file.path, error: "read_note_context supports text files only." };
+  const content = await app.vault.read(file);
+  const matches = findTextContexts(content, searchTerm, linesBefore, linesAfter);
+  return { success: true, path: file.path, searchTerm, matchCount: matches.length, matches };
 }
 
 // Create a new note

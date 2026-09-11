@@ -24,6 +24,7 @@ import {
   proposeEdit,
   proposeRename,
   readNote,
+  readNoteContext,
   updateNote,
   type PdfInputMode,
 } from "./notes.js";
@@ -144,6 +145,8 @@ function asPageNumber(value: unknown): number | undefined {
   return Number.isInteger(number) ? number : Number.NaN;
 }
 
+const asInteger = asPageNumber;
+
 function localDay(date = new Date()): string {
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -199,12 +202,24 @@ async function run<C extends VaultToolExecutionContext>(
       const fileName = asString(args.fileName);
       const startPage = asPageNumber(args.startPage);
       const endPage = asPageNumber(args.endPage);
+      const startLine = asInteger(args.startLine);
+      const endLine = asInteger(args.endLine);
       if ((startPage !== undefined && (Number.isNaN(startPage) || startPage < 1))
         || (endPage !== undefined && (Number.isNaN(endPage) || endPage < 1))) {
         return { success: false, error: "startPage and endPage must be positive integers" };
       }
       if (startPage !== undefined && endPage !== undefined && startPage > endPage) {
         return { success: false, error: "startPage must be less than or equal to endPage" };
+      }
+      if ((startLine !== undefined && (Number.isNaN(startLine) || startLine < 1))
+        || (endLine !== undefined && (Number.isNaN(endLine) || endLine < 1))) {
+        return { success: false, error: "startLine and endLine must be positive integers" };
+      }
+      if (startLine !== undefined && endLine !== undefined && startLine > endLine) {
+        return { success: false, error: "startLine must be less than or equal to endLine" };
+      }
+      if ((startPage !== undefined || endPage !== undefined) && (startLine !== undefined || endLine !== undefined)) {
+        return { success: false, error: "Page and line ranges cannot be used together" };
       }
       if (!isFileInScope(app, fileName, args.activeNote as boolean | undefined, context, true)) return deny();
       return readNote(
@@ -215,7 +230,22 @@ async function run<C extends VaultToolExecutionContext>(
         context?.pdfInputMode ?? "extract-text",
         startPage,
         endPage,
+        startLine,
+        endLine,
       );
+    }
+
+    case "read_note_context": {
+      const fileName = asString(args.fileName);
+      const searchTerm = asString(args.searchTerm);
+      const linesBefore = args.linesBefore == null ? 2 : asInteger(args.linesBefore);
+      const linesAfter = args.linesAfter == null ? 2 : asInteger(args.linesAfter);
+      if (!searchTerm) return { success: false, error: "searchTerm is required" };
+      if (linesBefore === undefined || linesAfter === undefined || Number.isNaN(linesBefore) || Number.isNaN(linesAfter) || linesBefore < 0 || linesAfter < 0) {
+        return { success: false, error: "linesBefore and linesAfter must be non-negative integers" };
+      }
+      if (!isFileInScope(app, fileName, args.activeNote as boolean | undefined, context, true)) return deny();
+      return readNoteContext(app, fileName, args.activeNote as boolean | undefined, searchTerm, linesBefore, linesAfter);
     }
 
     case "create_note": {
@@ -422,7 +452,7 @@ export function createVaultToolExecutor<C extends VaultToolExecutionContext = Va
 
 /** Built-in tool names, so a host can tell its own additions apart. */
 export const BUILT_IN_VAULT_TOOL_NAMES: readonly string[] = [
-  "read_timeline", "read_note", "create_note", "update_note", "delete_note", "rename_note",
+  "read_timeline", "read_note", "read_note_context", "create_note", "update_note", "delete_note", "rename_note",
   "search_notes", "list_notes", "list_folders", "create_folder", "get_active_note_info",
   "propose_edit", "apply_edit", "discard_edit", "propose_delete", "apply_delete", "discard_delete",
   "bulk_propose_edit", "bulk_propose_rename", "bulk_propose_delete",

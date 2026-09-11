@@ -75,6 +75,15 @@ describe("vault tools without a folder scope", () => {
     expect(String((await executeVaultTool(app, "read_note", { fileName: "Public/report.pdf", startPage: 7, endPage: 3 })).error))
       .toContain("less than or equal to");
   });
+
+  it("passes text line ranges and validates context arguments", async () => {
+    const app = makeApp([makeFile("Public/long.md", "one\ntwo\nthree")]);
+
+    expect(await executeVaultTool(app, "read_note", { fileName: "Public/long.md", startLine: 2, endLine: 3 }))
+      .toMatchObject({ success: true, content: "two\nthree", startLine: 2, endLine: 3, totalLines: 3 });
+    expect(await executeVaultTool(app, "read_note_context", { fileName: "Public/long.md", searchTerm: "two", linesBefore: -1 }))
+      .toMatchObject({ success: false, error: expect.stringContaining("non-negative integers") });
+  });
 });
 
 describe("vault tool folder scope", () => {
@@ -98,6 +107,13 @@ describe("vault tool folder scope", () => {
     const app = makeApp([makeFile("Public/Note.md", "public"), makeFile("Private/Secret.md", "secret")]);
 
     expect(await executeVaultTool(app, "read_note", { fileName: "Private/Secret.md" }, scoped(["Public"])))
+      .toMatchObject({ success: false, error: expect.stringContaining("Access denied") });
+  });
+
+  it("blocks a context read outside the configured folders", async () => {
+    const app = makeApp([makeFile("Private/Secret.md", "needle")]);
+
+    expect(await executeVaultTool(app, "read_note_context", { fileName: "Private/Secret.md", searchTerm: "needle" }, scoped(["Public"])))
       .toMatchObject({ success: false, error: expect.stringContaining("Access denied") });
   });
 

@@ -13,6 +13,7 @@ export type VaultToolMode = "all" | "noSearch" | "readOnly" | "none";
 export const READ_ONLY_VAULT_TOOL_NAMES: readonly string[] = [
   "read_timeline",
   "read_note",
+  "read_note_context",
   "search_notes",
   "list_notes",
   "list_folders",
@@ -74,7 +75,7 @@ export const VAULT_TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: "read_note",
     description:
-      "Read a supported vault file in Obsidian by name or by detecting the currently active file. Text files return their content; PDFs are attached for PDF-capable models or have their text extracted as a fallback. For PDFs, an inclusive page range can be selected with startPage and endPage.",
+      "Read a supported vault file in Obsidian by name or by detecting the currently active file. Text files can select an inclusive 1-based line range with startLine and endLine. PDFs can select pages with startPage and endPage.",
     parameters: {
       type: "object",
       properties: {
@@ -95,7 +96,24 @@ export const VAULT_TOOL_DEFINITIONS: ToolDefinition[] = [
           type: "integer",
           description: "For PDFs, the 1-based last page to read (inclusive). Defaults to the final page.",
         },
+        startLine: { type: "integer", description: "For text files, the 1-based first line to read (inclusive). Defaults to line 1." },
+        endLine: { type: "integer", description: "For text files, the 1-based last line to read (inclusive). Defaults to the final line." },
       },
+    },
+  },
+  {
+    name: "read_note_context",
+    description: "Find a literal search term in a text vault file and return the lines before and after every hit. Overlapping context windows are merged.",
+    parameters: {
+      type: "object",
+      properties: {
+        fileName: { type: "string", description: "The name or path of the text file to search" },
+        activeNote: { type: "boolean", description: "If no filename is provided, search the active note" },
+        searchTerm: { type: "string", description: "Case-insensitive literal text to find" },
+        linesBefore: { type: "integer", description: "Number of lines before each hit. Defaults to 2." },
+        linesAfter: { type: "integer", description: "Number of lines after each hit. Defaults to 2." },
+      },
+      required: ["searchTerm"],
     },
   },
   {

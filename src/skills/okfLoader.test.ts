@@ -88,4 +88,10 @@ describe("dynamic OKF loading", () => {
     const doc = await readOkfDocument(app, null, BUILTIN_OKF_BUNDLE_ID, "features/okf.md");
     expect(doc?.body).toContain("progressive-disclosure documents");
   });
+
+  it("reads an inclusive line range from an OKF document", async () => {
+    const result = await executeReadOkfDocumentTool(app, "Knowledge", ["team"], "team", "details.md", 3, 5);
+
+    expect(result).toMatchObject({ body: "First paragraph.\n\n- item one\n", startLine: 3, endLine: 5, totalLines: 6 });
+  });
 });
