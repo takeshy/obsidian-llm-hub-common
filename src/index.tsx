@@ -158,6 +158,7 @@ export interface ComposerProps extends StyleProps {
   sendLabel: string; stopLabel: string; compactingLabel?: string;
   contextToggle?: { hidden: boolean; onToggle: () => void; label: string };
   collapse?: { collapsed: boolean; onToggle: () => void; label: string };
+  expand?: { label: string; closeLabel: string };
   /** Detect a dictated command phrase in pasted text and hand the final text to the host. */
   voiceSubmit?: { enabled: boolean; phrase: string; onSubmit: (text: string) => void };
   /**
@@ -171,10 +172,12 @@ export interface ComposerProps extends StyleProps {
     onInsert: (text: string) => void;
   };
 }
-export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, contextToggle, collapse, voiceSubmit, voiceConversation }: ComposerProps) {
+export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, contextToggle, collapse, expand, voiceSubmit, voiceConversation }: ComposerProps) {
+  const [expanded, setExpanded] = useState(false);
   const { onPaste, onChange, ...textareaProps } = textarea;
-  return <>
-    <textarea ref={textareaRef} className={`${p}-input`} rows={3} {...textareaProps} onChange={event => {
+  return <div className={`${p}-composer${expanded ? ` ${p}-input-modal` : ""}`} role={expanded ? "dialog" : undefined} aria-modal={expanded ? "true" : undefined}>
+    <div className={`${p}-composer-panel${expanded ? ` ${p}-input-modal-panel` : ""}`}>
+    <textarea ref={textareaRef} className={`${p}-input${expanded ? ` ${p}-input-expanded` : ""}`} rows={expanded ? 12 : 3} {...textareaProps} onChange={event => {
       const nativeEvent = event.nativeEvent as InputEvent;
       if (voiceSubmit?.enabled && !nativeEvent.isComposing) {
         const result = resolveVoiceSubmitText(event.currentTarget.value, voiceSubmit.phrase);
@@ -222,19 +225,21 @@ export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isC
       onPaste?.(event);
     }} />
     <div className={`${p}-send-buttons`}>
-      {voiceConversation?.available && <button
+      {!expanded && voiceConversation?.available && <button
         className={[`${p}-mic-btn`, voiceConversation.active && `${p}-mic-btn-active`].filter(Boolean).join(" ")}
         onClick={voiceConversation.onOpen}
         title={voiceConversation.label}>
         <Mic size={18} />
       </button>}
-      {contextToggle && <button className={`${p}-context-toggle-btn`} onClick={contextToggle.onToggle} title={contextToggle.label}>{contextToggle.hidden ? <ChevronsUp size={18} /> : <ChevronsDown size={18} />}</button>}
+      {!expanded && contextToggle && <button className={`${p}-context-toggle-btn`} onClick={contextToggle.onToggle} title={contextToggle.label}>{contextToggle.hidden ? <ChevronsUp size={18} /> : <ChevronsDown size={18} />}</button>}
+      {expand && <button className={`${p}-${expanded ? "shrink" : "expand"}-input-btn`} onClick={() => setExpanded(!expanded)} title={expanded ? expand.closeLabel : expand.label}>{expanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}</button>}
       {isCompacting ? <button className={`${p}-send-btn`} disabled title={compactingLabel}><Loader2 size={18} className={`${p}-spinner`} /></button>
         : isLoading ? <button className={`${p}-stop-btn`} onClick={onStop} title={stopLabel}><StopCircle size={18} /></button>
         : <button className={`${p}-send-btn`} onClick={onSend} disabled={!canSend} title={sendLabel}><Send size={18} /></button>}
-      {collapse && <button className={`${p}-collapse-btn`} onClick={collapse.onToggle} title={collapse.label}>{collapse.collapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button>}
+      {!expanded && collapse && <button className={`${p}-collapse-btn`} onClick={collapse.onToggle} title={collapse.label}>{collapse.collapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button>}
     </div>
-  </>;
+    </div>
+  </div>;
 }
 
 export interface AutocompleteItem { id: string; label: ReactNode; description?: ReactNode; action?: ReactNode }
