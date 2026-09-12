@@ -227,7 +227,7 @@ export async function discoverSkills(app: App, skillsFolderPath = SKILLS_FOLDER)
  * Load a skill's content. Built-in skills return their full in-memory body
  * and references. Vault skills are returned in "lightweight" form (empty
  * instructions/references) because `buildSkillSystemPrompt` expects the chat
- * LLM to load SKILL.md on demand via `read_note`; reading every SKILL.md,
+ * LLM to load SKILL.md on demand via `read_skill`; reading every SKILL.md,
  * references/*, and workflows/* file up front would be wasted I/O on the
  * per-message hot path.
  */
@@ -348,7 +348,7 @@ export function buildSkillSystemPrompt(skills: LoadedSkill[], options?: { cliMod
     sawLazyVaultSkill = true;
     section += isCli
       ? `\n\nWorkflow / script IDs, their input variables, and full instructions all live in SKILL.md. Emit \`[READ_SKILL: ${skill.name}]\` on its own line (no backticks/code block) to receive the file as a follow-up user message, then invoke with the IDs you find.`
-      : `\n\nWorkflow / script IDs, their input variables, and full instructions all live in SKILL.md at \`${skill.skillFilePath}\`. Call \`read_note\` on that path before invoking this skill's tools.`;
+      : `\n\nWorkflow / script IDs, their input variables, and full instructions live in SKILL.md. Call \`read_skill\` with \`${skill.name}\` before invoking this skill's tools.`;
     return section;
   });
 
@@ -358,7 +358,7 @@ export function buildSkillSystemPrompt(skills: LoadedSkill[], options?: { cliMod
   if (sawLazyVaultSkill) {
     header.push(isCli
       ? "Vault skills show only their name and description here — their workflow / script list, input variables, and full instructions live in SKILL.md. Emit `[READ_SKILL: skillName]` on its own line to load it before invoking any of the skill's tools."
-      : "Vault skills show only their name and description here — their workflow / script list, input variables, and full instructions live in SKILL.md. Call `read_note` on the skill's SKILL.md path before invoking any of its tools. Built-in skills are fully inlined above.");
+      : "Vault skills show only their name and description here — their workflow / script list, input variables, and full instructions live in SKILL.md. Call `read_skill` with the active skill name before invoking any of its tools. Built-in skills are fully inlined above.");
   }
   header.push("Pass any required input variables to a workflow via the `variables` parameter as a JSON object. Infer values from the user's message when possible. If a required variable cannot be inferred, ask the user before calling the workflow.");
 
@@ -434,4 +434,3 @@ export function collectSkillWorkflows(skills: LoadedSkill[]): Map<string, {
 
   return map;
 }
-

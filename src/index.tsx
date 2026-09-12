@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ChangeEvent, type ReactNode, type Ref, type TextareaHTMLAttributes, type MouseEvent } from "react";
-import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, Database, Wrench, X, Paperclip, FileText, Maximize2, Minimize2, Volume2, Mic } from "lucide-react";
+import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Database, Wrench, X, Paperclip, FileText, Maximize2, Minimize2, Volume2, Mic } from "lucide-react";
 
 export interface ChatMessage {
   role: string;
@@ -156,6 +156,7 @@ export interface ComposerProps extends StyleProps {
   isLoading: boolean; isCompacting?: boolean; canSend: boolean;
   onSend: () => void; onStop?: () => void;
   sendLabel: string; stopLabel: string; compactingLabel?: string;
+  contextToggle?: { hidden: boolean; onToggle: () => void; label: string };
   collapse?: { collapsed: boolean; onToggle: () => void; label: string };
   /** Detect a dictated command phrase in pasted text and hand the final text to the host. */
   voiceSubmit?: { enabled: boolean; phrase: string; onSubmit: (text: string) => void };
@@ -170,7 +171,7 @@ export interface ComposerProps extends StyleProps {
     onInsert: (text: string) => void;
   };
 }
-export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, collapse, voiceSubmit, voiceConversation }: ComposerProps) {
+export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, contextToggle, collapse, voiceSubmit, voiceConversation }: ComposerProps) {
   const { onPaste, onChange, ...textareaProps } = textarea;
   return <>
     <textarea ref={textareaRef} className={`${p}-input`} rows={3} {...textareaProps} onChange={event => {
@@ -227,6 +228,7 @@ export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isC
         title={voiceConversation.label}>
         <Mic size={18} />
       </button>}
+      {contextToggle && <button className={`${p}-context-toggle-btn`} onClick={contextToggle.onToggle} title={contextToggle.label}>{contextToggle.hidden ? <ChevronsUp size={18} /> : <ChevronsDown size={18} />}</button>}
       {isCompacting ? <button className={`${p}-send-btn`} disabled title={compactingLabel}><Loader2 size={18} className={`${p}-spinner`} /></button>
         : isLoading ? <button className={`${p}-stop-btn`} onClick={onStop} title={stopLabel}><StopCircle size={18} /></button>
         : <button className={`${p}-send-btn`} onClick={onSend} disabled={!canSend} title={sendLabel}><Send size={18} /></button>}

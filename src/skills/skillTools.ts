@@ -1,5 +1,9 @@
+import type { App } from "obsidian";
 import type { ToolDefinition } from "../core/provider.js";
+import type { SkillMetadata } from "./skillsLoader.js";
+import { readSkillBody } from "./skillsLoader.js";
 
+export const READ_SKILL_TOOL_NAME = "read_skill";
 export const SKILL_WORKFLOW_TOOL_NAME = "run_skill_workflow";
 export const SKILL_SCRIPT_TOOL_NAME = "run_skill_script";
 
@@ -13,13 +17,45 @@ export interface SkillToolOptions {
   /**
    * Host resolves a `[READ_SKILL: skillName]` marker in the assistant's text
    * and feeds SKILL.md back as a follow-up message. Hosts without that handler
-   * leave the model with `read_note` alone.
+   * leave the model with the dedicated `read_skill` tool alone.
    */
   readSkillMarker: boolean;
 }
 
 function skillMdHint(options: SkillToolOptions): string {
-  return options.readSkillMarker ? "`read_note` or `[READ_SKILL: ...]`" : "`read_note`";
+  return options.readSkillMarker ? "`read_skill` or `[READ_SKILL: ...]`" : "`read_skill`";
+}
+
+/** Read only the SKILL.md body and references of a skill active in this chat. */
+export const READ_SKILL_TOOL: ToolDefinition = {
+  name: READ_SKILL_TOOL_NAME,
+  description: "Read the full instructions and references for an active skill. This is limited to skills selected in the current chat and does not provide general Vault access.",
+  parameters: {
+    type: "object",
+    properties: {
+      skillName: {
+        type: "string",
+        description: "Name of an active skill, exactly as shown in the system prompt",
+      },
+    },
+    required: ["skillName"],
+  },
+};
+
+export async function executeReadSkillTool(
+  app: App,
+  activeSkills: readonly SkillMetadata[],
+  skillName: string,
+): Promise<Record<string, unknown>> {
+  const skill = activeSkills.find(candidate => candidate.name === skillName);
+  if (!skill) return { error: `Skill is not active: ${skillName}` };
+  const loaded = await readSkillBody(app, skill);
+  if (!loaded.instructions) return { error: `SKILL.md could not be read for active skill: ${skillName}` };
+  return {
+    name: loaded.name,
+    instructions: loaded.instructions,
+    references: loaded.references,
+  };
 }
 
 /**

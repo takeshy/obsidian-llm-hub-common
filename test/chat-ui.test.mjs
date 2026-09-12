@@ -54,6 +54,15 @@ test("composer switches send, stop and compacting without a mobile toggle by def
   act(() => tree.unmount());
 });
 
+test("composer places the context toggle before send and keeps full collapse after it", () => {
+  const tree = render(h(Composer, {
+    ...baseComposer,
+    contextToggle: { hidden: false, label: "hide context", onToggle() {} },
+    collapse: { collapsed: false, label: "collapse all", onToggle() {} },
+  }));
+  assert.deepEqual(buttons(tree).map(button => button.props.title), ["hide context", "send", "collapse all"]);
+});
+
 test("IME and keyboard events reach the host composer unchanged", () => {
   const seen = [];
   const tree = render(h(Composer, { ...baseComposer, textarea: { ...baseComposer.textarea, onKeyDown: event => seen.push(event) } }));
