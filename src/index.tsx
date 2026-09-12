@@ -174,6 +174,10 @@ export interface ComposerProps extends StyleProps {
 }
 export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, contextToggle, collapse, expand, voiceSubmit, voiceConversation }: ComposerProps) {
   const [expanded, setExpanded] = useState(false);
+  // Reveal the response when a send starts, including keyboard and voice sends.
+  useEffect(() => {
+    if (isLoading) setExpanded(false);
+  }, [isLoading]);
   const { onPaste, onChange, ...textareaProps } = textarea;
   return <div className={`${p}-composer${expanded ? ` ${p}-input-modal` : ""}`} role={expanded ? "dialog" : undefined} aria-modal={expanded ? "true" : undefined}>
     <div className={`${p}-composer-panel${expanded ? ` ${p}-input-modal-panel` : ""}`}>
