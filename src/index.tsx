@@ -147,18 +147,72 @@ export interface ComposerProps extends StyleProps {
   isLoading: boolean; isCompacting?: boolean; canSend: boolean;
   onSend: () => void; onStop?: () => void;
   sendLabel: string; stopLabel: string; compactingLabel?: string;
-  collapse?: { collapsed: boolean; onToggle: () => void; label: string };
+  expand?: { label: string; closeLabel: string };
+  collapse?: { label: string; onCollapse: () => void };
 }
-export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, collapse }: ComposerProps) {
-  return <>
-    <textarea ref={textareaRef} className={`${p}-input`} rows={3} {...textarea} />
-    <div className={`${p}-send-buttons`}>
-      {isCompacting ? <button className={`${p}-send-btn`} disabled title={compactingLabel}><Loader2 size={18} className={`${p}-spinner`} /></button>
-        : isLoading ? <button className={`${p}-stop-btn`} onClick={onStop} title={stopLabel}><StopCircle size={18} /></button>
-        : <button className={`${p}-send-btn`} onClick={onSend} disabled={!canSend} title={sendLabel}><Send size={18} /></button>}
-      {collapse && <button className={`${p}-collapse-btn`} onClick={collapse.onToggle} title={collapse.label}>{collapse.collapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button>}
-    </div>
-  </>;
+export function Composer({ classPrefix: p, textareaRef, textarea, isLoading, isCompacting, canSend, onSend, onStop, sendLabel, stopLabel, compactingLabel, expand, collapse }: ComposerProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [visibleViewport, setVisibleViewport] = useState<{ top: number; height: number } | null>(null);
+  const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const selectionRef = useRef({ start: 0, end: 0 });
+  const assignTextareaRef = (element: HTMLTextAreaElement | null) => {
+    composerTextareaRef.current = element;
+    if (typeof textareaRef === "function") textareaRef(element);
+    else if (textareaRef) (textareaRef as { current: HTMLTextAreaElement | null }).current = element;
+  };
+  useEffect(() => {
+    if (!expanded) return;
+    const restoreFocus = () => {
+      const element = composerTextareaRef.current;
+      if (!element) return;
+      element.focus({ preventScroll: true });
+      element.setSelectionRange(selectionRef.current.start, selectionRef.current.end);
+    };
+    if (typeof requestAnimationFrame === "undefined") {
+      restoreFocus();
+      return;
+    }
+    const frame = requestAnimationFrame(restoreFocus);
+    return () => cancelAnimationFrame(frame);
+  }, [expanded]);
+  useEffect(() => {
+    if (!expanded || typeof window === "undefined" || !window.visualViewport) {
+      setVisibleViewport(null);
+      return;
+    }
+    const viewport = window.visualViewport;
+    const update = () => setVisibleViewport({ top: viewport.offsetTop, height: viewport.height });
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, [expanded]);
+  const input = <textarea ref={assignTextareaRef} className={`${p}-input${expanded ? ` ${p}-input-expanded` : ""}`} rows={expanded ? 12 : 3} {...textarea} />;
+  const action = isCompacting
+    ? <button className={`${p}-send-btn`} disabled title={compactingLabel}><Loader2 size={18} className={`${p}-spinner`} /></button>
+    : isLoading
+      ? <button className={`${p}-stop-btn`} onClick={onStop} title={stopLabel}><StopCircle size={18} /></button>
+      : <button className={`${p}-send-btn`} onClick={() => { if (expanded) setExpanded(false); onSend(); }} disabled={!canSend} title={sendLabel}><Send size={18} /></button>;
+  const controls = <div className={`${p}-send-buttons`}>
+    {expand && <button className={`${p}-${expanded ? "shrink" : "expand"}-input-btn`} onClick={() => {
+      const element = composerTextareaRef.current;
+      if (element) selectionRef.current = { start: element.selectionStart, end: element.selectionEnd };
+      setExpanded(!expanded);
+    }} title={expanded ? expand.closeLabel : expand.label} aria-label={expanded ? expand.closeLabel : expand.label}>
+      {expanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+    </button>}
+    {action}
+    {!expanded && collapse && <button className={`${p}-collapse-btn`} onClick={collapse.onCollapse} title={collapse.label} aria-label={collapse.label}><ChevronDown size={18} /></button>}
+  </div>;
+
+  return <div className={`${p}-composer${expanded ? ` ${p}-input-modal` : ""}`} role={expanded ? "dialog" : undefined} aria-modal={expanded ? "true" : undefined} aria-label={expanded ? expand?.label : undefined}
+    style={visibleViewport ? { top: visibleViewport.top, bottom: "auto", height: visibleViewport.height } : undefined}
+    onKeyDown={event => { if (event.key === "Escape") setExpanded(false); }}>
+    <div className={`${p}-composer-panel${expanded ? ` ${p}-input-modal-panel` : ""}`}>{input}{controls}</div>
+  </div>;
 }
 
 export interface AutocompleteItem { id: string; label: ReactNode; description?: ReactNode; action?: ReactNode }
@@ -194,6 +248,10 @@ export function InputArea({ classPrefix: p, modifiers, collapsed, beforeInput, a
     {!collapsed && <div className={`${p}-input-area`}>{accessories}{composer}</div>}
     {footer}
   </div>;
+}
+
+export function CollapsedInput({ classPrefix: p, label, onExpand }: StyleProps & { label: string; onExpand: () => void }) {
+  return <div className={`${p}-collapsed-bar`}><button className={`${p}-restore-input-btn`} onClick={onExpand} title={label} aria-label={label}><ChevronUp size={18} /></button></div>;
 }
 
 export interface ModelDropdownOption { value: string; label: string }
@@ -488,7 +546,3 @@ export function ToolIndicator({ classPrefix: p, icon, label, detail, onClick, wo
 
 export { ModelSelector, filterModelOptions, type ModelOption, type ModelSelectorProps } from "./ModelSelector.js";
 export { ChipSelector, type ChipChoice, type ChipSelectorProps } from "./ChipSelector.js";
-
-export function CollapsedInput({ classPrefix: p, label, onExpand }: StyleProps & { label: string; onExpand: () => void }) {
-  return <div className={`${p}-collapsed-bar`}><button className={`${p}-expand-btn`} onClick={onExpand} title={label}><ChevronUp size={18} /></button></div>;
-}

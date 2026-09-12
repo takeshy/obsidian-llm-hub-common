@@ -20,6 +20,9 @@ test("both plugin namespaces receive the same local UI and host mobile overrides
       assert.match(result, new RegExp(`\\.${prefix}-html-buttons \\{[^}]*gap: 8px`, "s"));
       assert.match(result, new RegExp(`\\.${prefix}-image-actions \\{[^}]*gap: 8px`, "s"));
       assert.match(result, new RegExp(`\\.${prefix}-mcp-app-expanded \\{[^}]*position: fixed`, "s"));
+      assert.match(result, new RegExp(`\\.${prefix}-input-modal-panel > \\.${prefix}-send-buttons \\{[^}]*position: absolute`, "s"));
+      assert.match(result, new RegExp(`\\.${prefix}-input\\.${prefix}-input-expanded \\{[^}]*height: 100% !important`, "s"));
+      assert.match(result, new RegExp(`\\.is-mobile \\.${prefix}-input-modal-panel \\{[^}]*height: min\\(42svh, 320px\\)`, "s"));
       assert.match(result, new RegExp(`\\.${prefix}-mcp-app-resize-handle \\{[^}]*cursor: nwse-resize`, "s"));
       assert.doesNotMatch(result, /@chat-ui-styles|\.chat-ui-/);
       outputs.push(result.replaceAll(`${prefix}-`, "chat-ui-"));

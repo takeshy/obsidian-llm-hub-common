@@ -3,33 +3,31 @@ import assert from "node:assert/strict";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import React, { useState, createRef } from "react";
+import React, { createRef } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageList, MessageBubble, MessageContent, Composer, InputArea, CollapsedInput, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection, ChatLayout, HeaderButton, SidebarWidthButton, SaveNoteButton, VaultToolControl } from "../dist/index.js";
+import { MessageList, MessageBubble, MessageContent, Composer, InputArea, HistoryList, Attachments, ModelSelector, filterModelOptions, VaultToolMenu, ChipSelector, VaultToolButton, McpServerToggles, EnabledMcpServers, InputButtons, SearchSelector, ModelDropdown, ModelRow, HistoryLimit, SourceBadges, ToolsUsed, SkillsUsed, VaultToolSection, ChatLayout, HeaderButton, SidebarWidthButton, SaveNoteButton, VaultToolControl } from "../dist/index.js";
 const h = React.createElement;
 const render = element => { let tree; act(() => { tree = TestRenderer.create(element); }); return tree; };
 const buttons = tree => tree.root.findAllByType("button");
 const baseComposer = { classPrefix: "gemini-helper", textareaRef: createRef(), textarea: { value: "draft", onChange() {} }, canSend: true, isLoading: false, onSend() {}, sendLabel: "send", stopLabel: "stop" };
 
-test("mobile Gemini collapse and expand retain draft and attachments", () => {
-  function MobileChat() {
-    const [collapsed, setCollapsed] = useState(false);
-    const [draft, setDraft] = useState("unsent draft");
-    return h(InputArea, {
-      classPrefix: "gemini-helper", collapsed, modifiers: ["keyboard-visible"],
-      beforeInput: !collapsed && h(Attachments, { classPrefix: "gemini-helper", attachments: [{ type: "pdf", name: "note.pdf" }], pending: true }),
-      composer: h(Composer, { ...baseComposer, textarea: { value: draft, onChange: e => setDraft(e.target.value) }, collapse: { collapsed, label: "collapse", onToggle: () => setCollapsed(true) } }),
-      footer: collapsed && h(CollapsedInput, { classPrefix: "gemini-helper", label: "expand", onExpand: () => setCollapsed(false) }),
-    });
-  }
-  const tree = render(h(MobileChat));
-  act(() => tree.root.findByType("textarea").props.onChange({ target: { value: "edited draft" } }));
-  act(() => buttons(tree).find(button => button.props.title === "collapse").props.onClick());
-  assert.equal(tree.root.findAllByType("textarea").length, 0);
-  assert.deepEqual(buttons(tree).map(button => button.props.title), ["expand"]);
+test("mobile composer expands only the input and puts its button before send", () => {
+  let collapsed = false;
+  const tree = render(h(InputArea, {
+    classPrefix: "gemini-helper",
+    beforeInput: h(Attachments, { classPrefix: "gemini-helper", attachments: [{ type: "pdf", name: "note.pdf" }], pending: true }),
+    composer: h(Composer, { ...baseComposer, expand: { label: "expand", closeLabel: "close" }, collapse: { label: "collapse", onCollapse: () => { collapsed = true; } } }),
+  }));
+  assert.deepEqual(buttons(tree).map(button => button.props.title), ["expand", "send", "collapse"]);
   act(() => buttons(tree)[0].props.onClick());
-  assert.equal(tree.root.findByType("textarea").props.value, "edited draft");
+  assert.equal(tree.root.findByProps({ role: "dialog" }).props["aria-modal"], "true");
+  assert.equal(tree.root.findByType("textarea").props.value, "draft");
+  assert.deepEqual(buttons(tree).map(button => button.props.title), ["close", "send"]);
+  assert.equal(tree.root.findByProps({ role: "dialog" }).findAll(node => node.props.className === "gemini-helper-pending-attachment").length, 0);
+  act(() => buttons(tree)[0].props.onClick());
+  act(() => buttons(tree).find(button => button.props.title === "collapse").props.onClick());
+  assert.equal(collapsed, true);
   assert.match(JSON.stringify(tree.toJSON()), /note.pdf/);
   act(() => tree.unmount());
 });
