@@ -22,6 +22,8 @@ export interface SlashCommandDraft {
   confirmEdits?: boolean;
   /** null = keep the chat's current Vault access mode. */
   vaultToolMode?: VaultToolMode | null;
+  /** null = do not change the chat's selected skills. */
+  skillPath?: string | null;
   /** null = keep the chat's current servers, [] = all off. */
   enabledMcpServers?: string[] | null;
 }
@@ -51,6 +53,8 @@ export interface SlashCommandModalOptions {
   };
   /** MCP servers a command may narrow to. Omit where the host has no MCP support. */
   mcpServers?: { name: string; enabled: boolean }[];
+  /** Skills a command may automatically select. */
+  skills?: { name: string; folderPath: string }[];
   /** Offer the per-command edit-confirmation toggle. Omit where the host always confirms. */
   editConfirmation?: boolean;
 }
@@ -98,6 +102,7 @@ export function createBlankSlashCommand(options: SlashCommandModalOptions): Slas
   if (options.models) draft.model = null;
   if (options.search) draft.searchSelection = null;
   if (options.mcpServers) draft.enabledMcpServers = null;
+  if (options.skills) draft.skillPath = null;
   return draft;
 }
 
@@ -140,6 +145,7 @@ export class SlashCommandModal<T extends SlashCommandDraft> extends Modal {
     if (this.options.search) this.renderSearch(contentEl, this.options.search);
     if (this.options.editConfirmation) this.renderEditConfirmation(contentEl);
     this.renderVaultToolMode(contentEl);
+    if (this.options.skills) this.renderSkill(contentEl, this.options.skills);
     if (this.options.mcpServers?.length) this.renderMcpServers(contentEl, this.options.mcpServers);
     this.renderActions(contentEl);
   }
@@ -259,6 +265,21 @@ export class SlashCommandModal<T extends SlashCommandDraft> extends Modal {
         dropdown.setValue(this.command.vaultToolMode ?? KEEP_CURRENT);
         dropdown.onChange((value) => {
           this.command.vaultToolMode = value === KEEP_CURRENT ? null : value as VaultToolMode;
+        });
+      });
+  }
+
+  private renderSkill(contentEl: HTMLElement, skills: { name: string; folderPath: string }[]): void {
+    new Setting(contentEl)
+      .setName(t("settings.skillOptional"))
+      .setDesc(t("settings.skillOptional.desc"))
+      .addDropdown((dropdown) => {
+        dropdown.addOption(KEEP_CURRENT, t("settings.keepCurrentSkills"));
+        if (!skills.some(skill => skill.folderPath === this.command.skillPath)) this.command.skillPath = null;
+        skills.forEach(skill => dropdown.addOption(skill.folderPath, skill.name));
+        dropdown.setValue(this.command.skillPath ?? KEEP_CURRENT);
+        dropdown.onChange((value) => {
+          this.command.skillPath = value === KEEP_CURRENT ? null : value;
         });
       });
   }

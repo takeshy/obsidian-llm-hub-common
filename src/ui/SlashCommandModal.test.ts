@@ -44,10 +44,12 @@ describe("createBlankSlashCommand", () => {
       models: [{ name: "m", displayName: "M" }],
       search: { webSearch: true, ragSettings: [], combinable: true },
       mcpServers: [{ name: "server", enabled: true }],
+      skills: [{ name: "Writer", folderPath: "skills/writer" }],
     });
     expect(blank.model).toBeNull();
     expect(blank.searchSelection).toBeNull();
     expect(blank.enabledMcpServers).toBeNull();
+    expect(blank.skillPath).toBeNull();
     expect(blank.vaultToolMode).toBeNull();
   });
 

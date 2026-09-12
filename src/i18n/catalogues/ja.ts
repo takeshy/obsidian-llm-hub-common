@@ -1,5 +1,8 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const ja = {
+  "settings.skillOptional": "スキル（任意）",
+  "settings.skillOptional.desc": "このコマンド使用時にスキルを自動選択",
+  "settings.keepCurrentSkills": "現在のスキルを維持",
   "voice.submitPhrase": "送信して",
   "input.autoReadAloud": "回答を自動で読み上げる",
   "input.readAloudRate": "速度",

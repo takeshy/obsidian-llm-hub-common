@@ -1,5 +1,8 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const en = {
+  "settings.skillOptional": "Skill (optional)",
+  "settings.skillOptional.desc": "Automatically select this skill when the command is used",
+  "settings.keepCurrentSkills": "Keep current skills",
   "voice.submitPhrase": "send it",
   "input.autoReadAloud": "Read responses aloud automatically",
   "input.readAloudRate": "Speed",
