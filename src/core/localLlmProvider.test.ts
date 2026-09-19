@@ -131,7 +131,23 @@ describe("local HTTP stream lifecycle", () => {
     expect(chunks.filter(chunk => chunk.type === "text")).toEqual([{ type: "text", content: "日本語" }]);
     const options = vi.mocked(mock.http.request).mock.calls[0][0];
     expect(options.headers["Content-Length"]).toBe(String(bytes(mock.request.write.mock.calls[0][0]).length));
-    expect(mock.request.destroy).toHaveBeenCalledOnce();
+    expect(mock.request.destroy).not.toHaveBeenCalled();
+  });
+  it("waits for HTTP end after a DONE marker before completing the turn", async () => {
+    let finishResponse: (() => void) | undefined;
+    const mock = mockHttp(response => {
+      response.emit("data", bytes("data: [DONE]\n"));
+      finishResponse = () => response.emit("end");
+    });
+    let settled = false;
+    const turn = collect(runLocalLlmChat({ config, messages, systemPrompt: "", http: mock.http }))
+      .then(chunks => { settled = true; return chunks; });
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+    expect(settled).toBe(false);
+    expect(mock.request.destroy).not.toHaveBeenCalled();
+    finishResponse?.();
+    expect((await turn).map(chunk => chunk.type)).toEqual(["done"]);
+    expect(mock.request.destroy).not.toHaveBeenCalled();
   });
   it("does not lose request errors that mark the stream done before waiting", async () => {
     const mock = mockHttp((_response, request) => request.emit("error", new Error("refused")));

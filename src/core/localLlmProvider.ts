@@ -116,8 +116,9 @@ export async function* runLocalLlmChat(options: {
     for await (const line of streamLocalLlmLines({ ...request, signal: options.signal,
       idleTimeoutMs: getStreamIdleTimeoutMs(options.config), http: options.http,
     })) {
-      yield* emit(parser.push(line));
-      if (parser.done) return;
+      // Wait for the HTTP response to end before starting a tool continuation.
+      // [DONE] can arrive before a proxy has finished closing the response.
+      if (!parser.done) yield* emit(parser.push(line));
     }
     if (!options.signal?.aborted) yield* emit(parser.finish());
   } catch (error) {

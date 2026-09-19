@@ -15,6 +15,7 @@ export async function* streamLocalLlmLines(options: {
   const queue: string[] = [];
   const wake = new StreamSignal();
   let done = false;
+  let responseEnded = false;
   let failure: Error | undefined;
   let req: NodeClientRequest | undefined;
   const fail = (error: unknown) => {
@@ -50,6 +51,7 @@ export async function* streamLocalLlmLines(options: {
         wake.notify();
       });
       res.on("end", () => {
+        responseEnded = true;
         if (done) return;
         decode(decoder.decode(), true);
         if (failedStatus) failure = new Error(`HTTP ${res.statusCode}: ${buffer || res.statusMessage}`);
@@ -73,6 +75,8 @@ export async function* streamLocalLlmLines(options: {
   } finally {
     done = true;
     options.signal?.removeEventListener("abort", onAbort);
-    req?.destroy();
+    // Let a completed response release its socket normally. Destroy only
+    // unfinished requests (abort, timeout, or early consumer return).
+    if (!responseEnded) req?.destroy();
   }
 }
