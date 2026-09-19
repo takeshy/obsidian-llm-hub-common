@@ -29,7 +29,17 @@ export async function* streamLocalLlmLines(options: {
     req = http.request({
       hostname: options.url.hostname, port: options.url.port,
       path: options.url.pathname + options.url.search, method: "POST",
-      headers: { ...options.headers, "Content-Length": String(new TextEncoder().encode(options.body).byteLength) },
+      // Streaming servers built on cpp-httplib (llama.cpp, llama-router) close
+      // the connection after a streamed response instead of honoring keep-alive,
+      // so a pooled socket handed to the next tool/reasoning turn is reset.
+      // An unaggregated request keeps every turn on its own connection, and the
+      // header lets a well-behaved server close its side cleanly.
+      headers: {
+        ...options.headers,
+        "Content-Length": String(new TextEncoder().encode(options.body).byteLength),
+        "Connection": "close",
+      },
+      agent: false,
     }, res => {
       const decoder = new TextDecoder();
       const failedStatus = res.statusCode !== undefined && (res.statusCode < 200 || res.statusCode >= 300);

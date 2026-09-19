@@ -131,6 +131,8 @@ describe("local HTTP stream lifecycle", () => {
     expect(chunks.filter(chunk => chunk.type === "text")).toEqual([{ type: "text", content: "日本語" }]);
     const options = vi.mocked(mock.http.request).mock.calls[0][0];
     expect(options.headers["Content-Length"]).toBe(String(bytes(mock.request.write.mock.calls[0][0]).length));
+    expect(options.headers["Connection"]).toBe("close");
+    expect(options.agent).toBe(false);
     expect(mock.request.destroy).not.toHaveBeenCalled();
   });
   it("waits for HTTP end after a DONE marker before completing the turn", async () => {

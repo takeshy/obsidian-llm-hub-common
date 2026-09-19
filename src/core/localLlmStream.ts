@@ -41,6 +41,7 @@ export interface NodeHttpModule {
       path: string;
       method: string;
       headers: Record<string, string>;
+      agent?: false;
     },
     callback: (res: NodeIncomingMessage) => void,
   ): NodeClientRequest;
