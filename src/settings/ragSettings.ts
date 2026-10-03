@@ -18,7 +18,7 @@ export interface RagSettingManager {
   selectRagSetting(name: string | null): Promise<void>;
 }
 
-/** The dropdown of saved RAG settings plus the button that adds one. */
+/** Saved RAG settings and an inline action to create a new one. */
 export function addRagSettingSelector(
   containerEl: HTMLElement,
   plugin: RagSettingManager,
@@ -29,37 +29,38 @@ export function addRagSettingSelector(
     .setName(t("settings.ragSetting"))
     .setDesc(t("settings.ragSetting.desc"));
 
-  setting.addDropdown((dropdown) => {
-    // Without an explicit "None" the box shows the first setting while nothing
-    // is selected, and there is no way to switch RAG off from here again.
-    dropdown.addOption("", t("common.none"));
-    for (const name of plugin.getRagSettingNames()) dropdown.addOption(name, name);
-    dropdown.setValue(selectedName || "").onChange((value) => {
-      void (async () => {
-        await plugin.selectRagSetting(value || null);
+  const createSetting = () => {
+    new RagSettingNameModal(plugin.app, t("settings.createRagSetting"), "", async name => {
+      try {
+        await plugin.createRagSetting(name);
+        await plugin.selectRagSetting(name);
         display();
-      })();
-    });
-  });
+        new Notice(t("settings.ragSettingCreated", { name }));
+      } catch (error) {
+        new Notice(t("error.failedToCreate", {
+          error: formatError(error),
+        }));
+      }
+    }).open();
+  };
 
-  setting.addExtraButton((btn) => {
-    btn
-      .setIcon("plus")
-      .setTooltip(t("settings.createRagSetting"))
-      .onClick(() => {
-        new RagSettingNameModal(plugin.app, t("settings.createRagSetting"), "", async (name) => {
-          try {
-            await plugin.createRagSetting(name);
-            // A new setting is selected straight away; creating one and then
-            // having to pick it is a step nobody wants.
-            await plugin.selectRagSetting(name);
-            display();
-            new Notice(t("settings.ragSettingCreated", { name }));
-          } catch (error) {
-            new Notice(t("error.failedToCreate", { error: formatError(error) }));
-          }
-        }).open();
+  const names = plugin.getRagSettingNames();
+  const selectedValue = selectedName ? `setting:${selectedName}` : "";
+  setting.addDropdown(dropdown => {
+    if (!selectedName) dropdown.addOption("", "");
+    for (const name of names) dropdown.addOption(`setting:${name}`, name);
+    dropdown.addOption("new", "+ New");
+    dropdown.setValue(selectedValue).onChange(value => {
+      if (value === "new") {
+        dropdown.setValue(selectedValue);
+        createSetting();
+        return;
+      }
+      if (!value) return;
+      void plugin.selectRagSetting(value.slice("setting:".length)).then(display).catch(error => {
+        new Notice(formatError(error));
       });
+    });
   });
 }
 
