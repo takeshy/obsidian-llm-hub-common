@@ -1,6 +1,6 @@
 {
   "name": "obsidian-llm-hub-common",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared React chat UI, workflow engine and core services for Obsidian AI plugins",
   "license": "MIT",
   "type": "module",

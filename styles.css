@@ -5070,9 +5070,10 @@
 }
 
 .chat-ui-workflow-generation-modal-content > .chat-ui-workflow-generation-plan-section:not(.is-collapsed):not(.is-hidden) .chat-ui-workflow-generation-plan {
-  flex: 1 1 0;
+  /* Use the content height in auto-height modals and shrink to fit smaller screens. */
+  flex: 1 1 auto;
   min-height: 0;
-  max-height: none;
+  max-height: 50vh;
   overflow-y: auto;
 }
 
