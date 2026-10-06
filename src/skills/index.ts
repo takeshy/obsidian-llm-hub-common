@@ -3,6 +3,7 @@ export * from "./skillMd.js";
 export * from "./skillsLoader.js";
 export * from "./builtinSkills.js";
 export * from "./skillSelection.js";
+export * from "./fileSkills.js";
 export * from "./runtimeSkills.js";
 export * from "./externalSkills.js";
 export * from "./agentPlugins.js";

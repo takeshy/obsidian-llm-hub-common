@@ -1029,8 +1029,11 @@ const ALL_BUILTIN_SKILLS: BuiltinSkillDefinition[] = [
   BASE,
 ];
 
-/** Default built-in skills to auto-activate in new chats. */
-export const DEFAULT_BUILTIN_SKILL_IDS = ["obsidian-markdown"];
+/**
+ * Built-in skills a first chat starts with. None: the empty chat suggests the
+ * skill that fits the open file instead of switching one on by default.
+ */
+export const DEFAULT_BUILTIN_SKILL_IDS: readonly string[] = [];
 
 /** Get the folder path used as identifier for a built-in skill. */
 export function builtinFolderPath(id: string): string {

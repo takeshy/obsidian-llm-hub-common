@@ -1259,4 +1259,11 @@ export const en = {
   "workflow.running": "Running...",
   "workflowSelector.selectWorkflow": "Select workflow",
   "message.ragCitationOpen": "Click to open at location",
+  "welcome.fileSkill.title": "Editing {{file}}",
+  "welcome.fileSkill.markdown": "Turn on the {{skill}} skill when you ask for edits, so wikilinks, callouts and properties keep valid Obsidian Markdown syntax.",
+  "welcome.fileSkill.canvas": "Turn on the {{skill}} skill when you ask for edits, so nodes and edges stay valid JSON Canvas.",
+  "welcome.fileSkill.base": "Turn on the {{skill}} skill when you ask for edits, so views, filters and formulas follow the Bases format.",
+  "welcome.fileSkill.dashboard": "Turn on the {{skill}} skill when you ask for edits, so widgets and layout follow the dashboard format.",
+  "welcome.fileSkill.enable": "Use the {{skill}} skill",
+  "welcome.fileSkill.enabled": "The {{skill}} skill is on",
 };

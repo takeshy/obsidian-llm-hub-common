@@ -1146,4 +1146,11 @@ export const zh = {
   "workflow.running": "运行中...",
   "workflowSelector.selectWorkflow": "选择工作流",
   "message.ragCitationOpen": "点击在该位置打开",
+  "welcome.fileSkill.title": "编辑 {{file}}",
+  "welcome.fileSkill.markdown": "请求编辑时启用 {{skill}} 技能，可让双链、标注和属性保持有效的 Obsidian Markdown 语法。",
+  "welcome.fileSkill.canvas": "请求编辑时启用 {{skill}} 技能，可让节点和连线保持有效的 JSON Canvas 格式。",
+  "welcome.fileSkill.base": "请求编辑时启用 {{skill}} 技能，可让视图、筛选和公式遵循 Bases 格式。",
+  "welcome.fileSkill.dashboard": "请求编辑时启用 {{skill}} 技能，可让组件和布局遵循仪表板格式。",
+  "welcome.fileSkill.enable": "使用 {{skill}} 技能",
+  "welcome.fileSkill.enabled": "{{skill}} 技能已启用",
 };

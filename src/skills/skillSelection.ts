@@ -1,24 +1,20 @@
-import { isBuiltinSkillPath } from "./builtinSkills.js";
 import type { SkillMetadata } from "./skillsLoader.js";
 
 /**
  * The skill selection a chat starts with.
  *
- * A selection the user built out of their own skills is a standing preference:
- * they went looking for it, and having every new chat forget it is what made the
- * feature tedious. It comes back exactly as it was - nothing is added to it, so a
- * built-in skill the user switched off stays off.
+ * A new chat carries over the selection of the previous one exactly as it was,
+ * including an empty one: a user who switched every skill off gets no skills,
+ * and a built-in skill the user switched off stays off.
  *
- * A selection that holds only built-in skills is left to the defaults instead.
- * Those are the shipped starting point rather than a choice, so they can change
- * with a release without a stale copy following the user around.
+ * Only a user who has never touched the list (nothing persisted yet) starts
+ * from the shipped defaults.
  */
 export function restoredSkillPaths(
   persisted: readonly string[] | undefined,
   defaults: readonly string[],
 ): string[] {
-  if (!persisted?.some((path) => !isBuiltinSkillPath(path))) return [...defaults];
-  return [...persisted];
+  return persisted ? [...persisted] : [...defaults];
 }
 
 /**

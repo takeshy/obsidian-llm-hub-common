@@ -1146,4 +1146,11 @@ export const ko = {
   "workflow.running": "실행 중...",
   "workflowSelector.selectWorkflow": "워크플로우 선택",
   "message.ragCitationOpen": "클릭하여 해당 위치에서 열기",
+  "welcome.fileSkill.title": "{{file}} 편집",
+  "welcome.fileSkill.markdown": "편집을 요청할 때 {{skill}} 스킬을 켜면 위키링크, 콜아웃, 속성이 올바른 Obsidian Markdown 문법을 유지합니다.",
+  "welcome.fileSkill.canvas": "편집을 요청할 때 {{skill}} 스킬을 켜면 노드와 엣지가 올바른 JSON Canvas 형식을 유지합니다.",
+  "welcome.fileSkill.base": "편집을 요청할 때 {{skill}} 스킬을 켜면 보기, 필터, 수식이 Bases 형식을 따릅니다.",
+  "welcome.fileSkill.dashboard": "편집을 요청할 때 {{skill}} 스킬을 켜면 위젯과 레이아웃이 대시보드 형식을 따릅니다.",
+  "welcome.fileSkill.enable": "{{skill}} 스킬 사용",
+  "welcome.fileSkill.enabled": "{{skill}} 스킬이 켜져 있습니다",
 };

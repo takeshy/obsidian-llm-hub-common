@@ -1,22 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { prunedSkillPaths, restoredSkillPaths } from "./skillSelection.js";
-import { builtinFolderPath, DEFAULT_BUILTIN_SKILL_IDS } from "./builtinSkills.js";
+import { builtinFolderPath } from "./builtinSkills.js";
 
-const defaults = DEFAULT_BUILTIN_SKILL_IDS.map(builtinFolderPath);
+const defaults = [builtinFolderPath("obsidian-markdown")];
 
 describe("restoredSkillPaths", () => {
-  it("brings back a selection the user built from their own skills", () => {
-    // Kept exactly: nothing is added, so a built-in switched off stays off.
+  it("carries over the previous selection exactly", () => {
+    // Nothing is added, so a built-in switched off stays off.
     expect(restoredSkillPaths(["skills/my-writing"], defaults)).toEqual(["skills/my-writing"]);
     expect(restoredSkillPaths(["skills/my-writing", ...defaults], defaults))
       .toEqual(["skills/my-writing", ...defaults]);
+    expect(restoredSkillPaths(defaults, defaults)).toEqual(defaults);
   });
 
-  it("leaves a selection of only built-in skills to the defaults", () => {
-    // The shipped set is a starting point, not a choice, so a release may change
-    // it without a stale copy following the user around.
-    expect(restoredSkillPaths(defaults, defaults)).toEqual(defaults);
-    expect(restoredSkillPaths([], defaults)).toEqual(defaults);
+  it("keeps an empty selection empty", () => {
+    expect(restoredSkillPaths([], defaults)).toEqual([]);
+  });
+
+  it("starts from the defaults only when nothing was ever saved", () => {
     expect(restoredSkillPaths(undefined, defaults)).toEqual(defaults);
   });
 });

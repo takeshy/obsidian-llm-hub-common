@@ -1,28 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { resolveEffectiveSkillPaths } from "./contextSkills.js";
+import { withRequestedSkillPath } from "./contextSkills.js";
 
 const MARKDOWN = "builtin:markdown";
-const DASHBOARD = "runtime:dashboard";
-const CANVAS = "builtin:canvas";
 const CUSTOM = "custom:review";
-const CONTEXT_SKILLS = new Set([MARKDOWN, DASHBOARD, CANVAS]);
 
-describe("resolveEffectiveSkillPaths", () => {
-	it("replaces the default context skill with the active file context", () => {
-		expect(resolveEffectiveSkillPaths(
-			[MARKDOWN, CUSTOM], DASHBOARD, new Set(), CONTEXT_SKILLS,
-		)).toEqual([DASHBOARD, CUSTOM]);
-	});
+describe("withRequestedSkillPath", () => {
+  it("keeps the selection when nothing is requested", () => {
+    const selection = [CUSTOM];
+    expect(withRequestedSkillPath(selection)).toBe(selection);
+  });
 
-	it("keeps an automatically selected context skill disabled after removal", () => {
-		expect(resolveEffectiveSkillPaths(
-			[CUSTOM], DASHBOARD, new Set([DASHBOARD]), CONTEXT_SKILLS,
-		)).toEqual([CUSTOM]);
-	});
+  it("adds a requested skill for the send", () => {
+    expect(withRequestedSkillPath([CUSTOM], MARKDOWN)).toEqual([CUSTOM, MARKDOWN]);
+  });
 
-	it("allows an explicitly requested context skill for a single send", () => {
-		expect(resolveEffectiveSkillPaths(
-			[MARKDOWN, CUSTOM], DASHBOARD, new Set([DASHBOARD]), CONTEXT_SKILLS, CANVAS,
-		)).toEqual([CUSTOM, CANVAS]);
-	});
+  it("does not repeat a skill that is already selected", () => {
+    expect(withRequestedSkillPath([MARKDOWN, CUSTOM], MARKDOWN)).toEqual([MARKDOWN, CUSTOM]);
+  });
 });

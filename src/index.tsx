@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ChangeEvent, type ReactNode, type Ref, type TextareaHTMLAttributes, type MouseEvent } from "react";
-import { BookOpen, LayoutDashboard, Plus, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Database, Wrench, X, Paperclip, FileText, Maximize2, Minimize2, Volume2, Mic } from "lucide-react";
+import { BookOpen, LayoutDashboard, Plus, Sparkles, Copy, Check, Send, StopCircle, Loader2, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, Database, Wrench, X, Paperclip, FileText, Maximize2, Minimize2, Volume2, Mic } from "lucide-react";
 
 export interface ChatMessage {
   role: string;
@@ -10,6 +10,8 @@ export interface ChatMessage {
 export type { StyleProps } from "./types.js";
 import type { StyleProps } from "./types.js";
 import type { SearchSelection } from "./core/events.js";
+import type { FileSkillKind } from "./skills/fileSkills.js";
+import { t } from "./i18n/index.js";
 import { resolveConversationPaste, resolveVoiceSubmitPaste, resolveVoiceSubmitText } from "./chat/voiceChat.js";
 
 /** The host owns lifecycle, persistence and provider execution. */
@@ -73,8 +75,10 @@ export interface WelcomeProps extends StyleProps {
   dashboard: { title: string; description: string; openLabel: string; createLabel: string; current?: { basename: string; path: string } | null; onOpen?: () => void; onCreate?: () => void };
   tips: readonly { icon?: string; text: string }[];
   cardStyle?: "card" | "dashboard";
+  /** The skill that fits the file open in the editor, offered rather than switched on. */
+  fileSkill?: { fileName: string; kind: FileSkillKind; skillName: string; enabled: boolean; onEnable: () => void } | null;
 }
-export function Welcome({ classPrefix: p, title, hint, help, dashboard, tips, cardStyle = "dashboard" }: WelcomeProps) {
+export function Welcome({ classPrefix: p, title, hint, help, dashboard, tips, cardStyle = "dashboard", fileSkill }: WelcomeProps) {
   const card = `${p}-empty-${cardStyle}`;
   return <div className={`${p}-empty-state`}>
     <p>{title}</p><p className={`${p}-empty-hint`}>{hint}</p>
@@ -82,6 +86,14 @@ export function Welcome({ classPrefix: p, title, hint, help, dashboard, tips, ca
       <div className={`${card}-heading`}><BookOpen size={16} aria-hidden="true" /><span>{help.title}</span></div>
       <p className={`${card}-description`}>{help.description}</p>
       <div className={`${card}-actions`}><button type="button" className={`${card}-${cardStyle === "card" ? "action" : "create"}`} onClick={help.onClick}><BookOpen size={14} aria-hidden="true" /><span>{help.label}</span></button></div>
+    </div>}
+    {fileSkill && <div className={card}>
+      <div className={`${card}-heading`}><Sparkles size={16} aria-hidden="true" /><span>{t("welcome.fileSkill.title", { file: fileSkill.fileName })}</span></div>
+      <p className={`${card}-description`}>{t(`welcome.fileSkill.${fileSkill.kind}`, { skill: fileSkill.skillName })}</p>
+      <div className={`${card}-actions`}><button type="button" className={`${card}-${cardStyle === "card" ? "action" : "create"}`} disabled={fileSkill.enabled} onClick={fileSkill.onEnable}>
+        {fileSkill.enabled ? <Check size={14} aria-hidden="true" /> : <Sparkles size={14} aria-hidden="true" />}
+        <span>{t(fileSkill.enabled ? "welcome.fileSkill.enabled" : "welcome.fileSkill.enable", { skill: fileSkill.skillName })}</span>
+      </button></div>
     </div>}
     <div className={card}>
       <div className={`${card}-heading`}><LayoutDashboard size={16} aria-hidden="true" /><span>{dashboard.title}</span></div>

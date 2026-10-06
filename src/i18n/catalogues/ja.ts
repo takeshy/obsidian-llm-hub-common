@@ -1259,4 +1259,11 @@ export const ja = {
   "workflow.running": "実行中...",
   "workflowSelector.selectWorkflow": "ワークフローを選択",
   "message.ragCitationOpen": "クリックして該当位置を開く",
+  "welcome.fileSkill.title": "{{file}} を編集するとき",
+  "welcome.fileSkill.markdown": "編集を頼むときは「{{skill}}」スキルを有効にすると、ウィキリンク・コールアウト・プロパティなど Obsidian の Markdown 記法に沿って編集できます。",
+  "welcome.fileSkill.canvas": "編集を頼むときは「{{skill}}」スキルを有効にすると、ノードやエッジを正しい JSON Canvas 形式のまま編集できます。",
+  "welcome.fileSkill.base": "編集を頼むときは「{{skill}}」スキルを有効にすると、ビュー・フィルター・数式を Bases の形式に沿って編集できます。",
+  "welcome.fileSkill.dashboard": "編集を頼むときは「{{skill}}」スキルを有効にすると、ウィジェットやレイアウトをダッシュボードの形式に沿って編集できます。",
+  "welcome.fileSkill.enable": "「{{skill}}」スキルを使う",
+  "welcome.fileSkill.enabled": "「{{skill}}」スキルは有効です",
 };

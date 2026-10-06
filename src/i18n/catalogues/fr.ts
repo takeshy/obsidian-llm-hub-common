@@ -1146,4 +1146,11 @@ export const fr = {
   "workflow.running": "Exécution...",
   "workflowSelector.selectWorkflow": "Sélectionner le workflow",
   "message.ragCitationOpen": "Cliquez pour ouvrir à cet endroit",
+  "welcome.fileSkill.title": "Modifier {{file}}",
+  "welcome.fileSkill.markdown": "Activez la compétence {{skill}} lorsque vous demandez des modifications, pour que les wikiliens, callouts et propriétés restent en Markdown Obsidian valide.",
+  "welcome.fileSkill.canvas": "Activez la compétence {{skill}} lorsque vous demandez des modifications, pour que les nœuds et liens restent un JSON Canvas valide.",
+  "welcome.fileSkill.base": "Activez la compétence {{skill}} lorsque vous demandez des modifications, pour que les vues, filtres et formules suivent le format Bases.",
+  "welcome.fileSkill.dashboard": "Activez la compétence {{skill}} lorsque vous demandez des modifications, pour que les widgets et la mise en page suivent le format du tableau de bord.",
+  "welcome.fileSkill.enable": "Utiliser la compétence {{skill}}",
+  "welcome.fileSkill.enabled": "La compétence {{skill}} est activée",
 };

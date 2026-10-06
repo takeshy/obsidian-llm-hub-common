@@ -1146,4 +1146,11 @@ export const es = {
   "workflow.running": "Ejecutando...",
   "workflowSelector.selectWorkflow": "Seleccionar workflow",
   "message.ragCitationOpen": "Haz clic para abrir en esa posición",
+  "welcome.fileSkill.title": "Editar {{file}}",
+  "welcome.fileSkill.markdown": "Activa la habilidad {{skill}} al pedir cambios para que los wikilinks, callouts y propiedades mantengan una sintaxis Markdown de Obsidian válida.",
+  "welcome.fileSkill.canvas": "Activa la habilidad {{skill}} al pedir cambios para que los nodos y conexiones sigan siendo JSON Canvas válido.",
+  "welcome.fileSkill.base": "Activa la habilidad {{skill}} al pedir cambios para que las vistas, filtros y fórmulas sigan el formato de Bases.",
+  "welcome.fileSkill.dashboard": "Activa la habilidad {{skill}} al pedir cambios para que los widgets y el diseño sigan el formato del panel.",
+  "welcome.fileSkill.enable": "Usar la habilidad {{skill}}",
+  "welcome.fileSkill.enabled": "La habilidad {{skill}} está activa",
 };
