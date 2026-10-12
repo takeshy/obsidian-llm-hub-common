@@ -127,6 +127,8 @@ export async function runSkillWorkflow(
         recordHistory: true,
         abortSignal: abortController.signal,
         vaultToolAllowedFolders: options.vaultToolAllowedFolders,
+        // Lets the workflow reference definitions shipped in its own skill folder.
+        workflowDefinitionRoot: entry.skill.folderPath,
       },
       callbacks,
     );

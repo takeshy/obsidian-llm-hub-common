@@ -370,3 +370,35 @@ export function createMcpToolExecutor(
 export function clearMcpToolsCache(): void {
   toolsCache.clear();
 }
+
+export interface McpToolset {
+  tools: McpToolDefinition[];
+  /** Whether the name is one of this toolset's tools. */
+  has(name: string): boolean;
+  execute(name: string, args: Record<string, unknown>): Promise<{ result?: string; error?: string; mcpApp?: McpAppInfo }>;
+  /** Close the sessions the toolset opened. */
+  cleanup(): Promise<void>;
+}
+
+/**
+ * Tools and an executor for one turn against the given servers, or null when
+ * they offer no tools. Calls ask for approval as configured unless skipApproval.
+ */
+export async function createMcpToolset(
+  servers: McpServerConfig[],
+  options: { traceId?: string | null; skipApproval?: boolean } = {},
+): Promise<McpToolset | null> {
+  const tools = servers.length > 0 ? await fetchMcpTools(servers) : [];
+  if (tools.length === 0) return null;
+  const executor = createMcpToolExecutor(tools, options.traceId ?? null, options.skipApproval);
+  const names = new Set(tools.map(tool => tool.name));
+  return {
+    tools,
+    has: name => names.has(name),
+    async execute(name, args) {
+      const result = await executor.execute(name, args);
+      return result.error ? { error: result.error } : { result: result.result, mcpApp: result.mcpApp };
+    },
+    cleanup: () => executor.cleanup(),
+  };
+}
