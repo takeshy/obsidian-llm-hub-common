@@ -42,3 +42,7 @@ export * from "./localLlmProvider.js";
 export * from "./geminiGenerationClient.js";
 export * from "./voiceChatSettings.js";
 export * from "./nodeModule.js";
+
+export * from "./externalWebSearch.js";
+
+export * from "./webSearchUsage.js";

@@ -9,3 +9,5 @@ export * from "./McpServerModal.js";
 export * from "./ragSettings.js";
 export * from "./controls.js";
 export * from "./voiceChatSettings.js";
+
+export * from "./webSearchUsage.js";
