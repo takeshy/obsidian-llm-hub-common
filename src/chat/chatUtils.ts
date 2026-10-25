@@ -130,6 +130,7 @@ export function isValidCliProvider(provider: string): provider is ChatProvider {
 }
 
 export interface ChatHistory {
+	autoSaveDisabledByGrounding?: boolean;
 	id: string;
 	title: string;
 	messages: Message[];

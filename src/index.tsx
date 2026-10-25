@@ -648,3 +648,5 @@ export { ChipSelector, type ChipChoice, type ChipSelectorProps } from "./ChipSel
 export function CollapsedInput({ classPrefix: p, label, onExpand }: StyleProps & { label: string; onExpand: () => void }) {
   return <div className={`${p}-collapsed-bar`}><button className={`${p}-expand-btn`} onClick={onExpand} title={label}><ChevronUp size={18} /></button></div>;
 }
+
+export { GoogleSearchSuggestions, GroundingAutoSaveNotice, canRenderGoogleSearchSuggestions } from "./ui/GoogleSearchSuggestions.js";

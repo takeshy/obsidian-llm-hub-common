@@ -1,5 +1,14 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const ja = {
+  "grounding.searchSuggestions": "Google Search Suggestions",
+  "grounding.autoSaveTitle": "この会話は自動保存されません",
+  "grounding.autoSaveDescription": "Gemini Web検索を有効にしたため、自動保存は無効です。会話を残す場合は、手動で保存してください。",
+  "grounding.confirmTitle": "Gemini Web検索を有効にしますか？",
+  "grounding.confirmMessage": "Google Search Groundingの利用規約に対応するため、この会話の自動保存は無効になります。\n\n会話を残したい場合は、明示的に保存してください。\n\n一度有効にすると、この会話でWeb検索をオフにしても自動保存は再開されません。",
+  "grounding.enable": "有効にする",
+  "grounding.save": "会話を保存",
+  "grounding.unsupported": "この画面ではSearch Suggestionsを表示できないため、Google検索を利用できません。外部Web検索を選択してください。",
+
   "settings.webSearch.usage.remainingCredits": "残りクレジット",
   "settings.webSearch.usage.remainingRequests": "残りリクエスト数",
   "settings.webSearch.usage.showCredits": "残りクレジットを表示",

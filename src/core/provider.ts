@@ -65,7 +65,7 @@ export interface StreamChunk {
    */
   type: "text" | "thinking" | "tool_call" | "tool_result" | "error" | "done"
     | "rag_used" | "web_search_used" | "image_generated" | "session_id"
-    | "replace_text" | "incomplete_tool_call";
+    | "replace_text" | "incomplete_tool_call" | "search_suggestions";
   content?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
@@ -82,6 +82,8 @@ export interface StreamChunk {
   /** Interactions API interaction id; set on "done" chunks. */
   interactionId?: string;
   /** Cited web sources, in display order. */
+  searchSuggestions?: string[];
+  googleSearchGrounding?: boolean;
   webSearchSources?: WebSearchSource[];
   webSearchCitations?: WebSearchCitation[];
   /** Opaque native context, so a stateless provider can replay the turn. */

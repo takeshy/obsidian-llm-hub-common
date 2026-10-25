@@ -1,3 +1,4 @@
+import { messageForPersistence, type ChatSession } from "./groundingPolicy.js";
 import type { Message } from "../core/message.js";
 import {
 	isEncryptedFile,
@@ -14,8 +15,9 @@ export interface EncryptionConfig {
 	salt?: string;
 }
 
-export function messagesToCompactMarkdown(msgs: Message[]): string {
-	return msgs.map((msg) => {
+export function messagesToCompactMarkdown(msgs: Message[], session?: Partial<ChatSession>): string {
+	const prefix = (session?.autoSaveDisabledByGrounding || msgs.some(msg => msg.googleSearchGrounding)) ? "---\nautoSaveDisabledByGrounding: true\n---\n\n" : "";
+	return prefix + msgs.map((msg) => {
 		const role = msg.role === "user" ? "You" : (msg.modelDisplayName || msg.model || "AI");
 		return `## ${role}\n\n${msg.content.trim()}`;
 	}).join("\n\n");
@@ -28,10 +30,13 @@ export async function messagesToMarkdown(
 	createdAt: number,
 	encryption: EncryptionConfig | undefined,
 	session?: CliSessionInfo,
+	chatSession?: Partial<ChatSession>,
 ): Promise<string> {
+	chatSession = { autoSaveDisabledByGrounding: chatSession?.autoSaveDisabledByGrounding === true || msgs.some(msg => msg.googleSearchGrounding === true) };
 	const date = new Date(createdAt);
 	let md = `---\ntitle: "${title.replace(/"/g, '\\"')}"\ncreatedAt: ${createdAt}\nupdatedAt: ${Date.now()}\n`;
-	if (session) {
+	if (chatSession?.autoSaveDisabledByGrounding) md += "autoSaveDisabledByGrounding: true\n";
+	if (session && !chatSession?.autoSaveDisabledByGrounding) {
 		md += `cliSessionProvider: "${session.provider}"\n`;
 		md += `cliSessionId: "${session.sessionId}"\n`;
 	}
@@ -39,7 +44,8 @@ export async function messagesToMarkdown(
 	md += `# ${title}\n\n`;
 	md += `*Created: ${date.toLocaleString()}*\n\n---\n\n`;
 
-	for (const msg of msgs) {
+	for (const original of msgs) {
+		const msg = messageForPersistence(original, chatSession);
 		const role = msg.role === "user" ? "**You**" : `**${msg.model || "AI"}**`;
 		const time = new Date(msg.timestamp).toLocaleTimeString();
 
@@ -107,7 +113,7 @@ export async function messagesToMarkdown(
 }
 
 // Parse Markdown back to messages
-export function parseMarkdownToMessages(content: string): { messages: Message[]; createdAt: number; cliSession?: CliSessionInfo; isEncrypted?: boolean } | null {
+export function parseMarkdownToMessages(content: string): { messages: Message[]; createdAt: number; cliSession?: CliSessionInfo; isEncrypted?: boolean; autoSaveDisabledByGrounding?: boolean } | null {
 	try {
 		// Check if content is encrypted (YAML frontmatter format)
 		if (isEncryptedFile(content)) {
@@ -119,6 +125,7 @@ export function parseMarkdownToMessages(content: string): { messages: Message[];
 		const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 		let createdAt = Date.now();
 		let cliSession: CliSessionInfo | undefined;
+		const autoSaveDisabledByGrounding = !!frontmatterMatch?.[1].match(/^autoSaveDisabledByGrounding:\s*true\s*$/m);
 
 		if (frontmatterMatch) {
 			const createdAtMatch = frontmatterMatch[1].match(/createdAt:\s*(\d+)/);
@@ -225,7 +232,7 @@ export function parseMarkdownToMessages(content: string): { messages: Message[];
 			}
 		}
 
-		return { messages, createdAt, cliSession, isEncrypted: false };
+		return { messages, createdAt, cliSession, isEncrypted: false, ...(autoSaveDisabledByGrounding ? { autoSaveDisabledByGrounding: true } : {}) };
 	} catch {
 		return null;
 	}

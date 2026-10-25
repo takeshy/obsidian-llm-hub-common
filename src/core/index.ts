@@ -46,3 +46,5 @@ export * from "./nodeModule.js";
 export * from "./externalWebSearch.js";
 
 export * from "./webSearchUsage.js";
+
+export * from "./googleSearchSuggestions.js";

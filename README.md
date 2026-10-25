@@ -113,3 +113,5 @@ in the plugin's usual `styles.css` release artifact.
 External Web search adapters (`createWebSearchSession`, `searchWeb`) normalize Tavily and Brave Search results for client function calling. Hosts own provider selection, credential storage, proxy transport, and function-call budgets. `generateWithWebReferences` supports reference retrieval before image generation without native grounding.
 
 `fetchTavilyUsage` retrieves account/key credit allowances on demand. Brave quota windows are observed from real search response headers. `addWebSearchUsageSetting` provides the corresponding manual Tavily button and passive Brave quota row; hosts must dispose the returned observer when the settings UI unmounts. Usage snapshots are API-key-scoped and remain in memory only.
+
+Grounding-aware chat storage supports irreversible per-conversation automatic-save restrictions, explicit snapshots and safe Markdown metadata. The optional host policy callbacks leave ordinary/external chat behavior compatible. Google Search Suggestions are runtime display data with SDK-neutral extractors for both Gemini APIs and a sandboxed shared renderer.

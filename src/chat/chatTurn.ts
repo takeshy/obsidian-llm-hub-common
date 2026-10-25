@@ -47,7 +47,7 @@ export interface ChatTurnOutcome {
 export interface ChatTurnStart<C> {
   /** How the message reads in the chat; only the host knows that. */
   userMessage: Message;
-  trace: { name: string; input?: unknown; sessionId?: string; metadata?: Record<string, unknown> };
+  trace: { enabled?: boolean; name: string; input?: unknown; sessionId?: string; metadata?: Record<string, unknown> };
   /** Whatever the preparation worked out that the rest of the turn needs. */
   context?: C;
 }
@@ -114,7 +114,7 @@ export async function runChatTurn<C = void>(ui: ChatTurnUi, request: ChatTurnReq
     ui.setStreamingThinking("");
   }
 
-  const traceId = tracing.traceStart(start.trace.name, {
+  const traceId = start.trace.enabled === false ? null : tracing.traceStart(start.trace.name, {
     sessionId: start.trace.sessionId ?? session.myChatId,
     input: start.trace.input,
     metadata: start.trace.metadata,

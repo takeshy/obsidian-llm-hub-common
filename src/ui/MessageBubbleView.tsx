@@ -1,3 +1,4 @@
+import { GoogleSearchSuggestions } from "./GoogleSearchSuggestions.js";
 import {
   ToolIndicator,
   MessageBubble as SharedMessageBubble,
@@ -516,6 +517,8 @@ export default function MessageBubble({
         onRead: () => { readAloud(message.content, undefined, speechKey); },
         onStop: stopReadingAloud,
       }}>
+
+      {message.searchSuggestions?.map((html, index) => <GoogleSearchSuggestions classPrefix={classPrefix} key={index} html={html} />)}
 
       {/* Web search indicator */}
       {message.webSearchUsed && (

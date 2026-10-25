@@ -1,5 +1,14 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const en = {
+  "grounding.searchSuggestions": "Google Search suggestions",
+  "grounding.autoSaveTitle": "This conversation is not saved automatically",
+  "grounding.autoSaveDescription": "Automatic saving is disabled because Gemini Web search was enabled. Save this conversation manually if you want to keep it.",
+  "grounding.confirmTitle": "Enable Gemini Web search?",
+  "grounding.confirmMessage": "To accommodate the Google Search Grounding terms, automatic saving will be disabled for this entire conversation.\n\nSave the conversation manually if you want to keep it. Turning Web search off later will not restore automatic saving.",
+  "grounding.enable": "Enable",
+  "grounding.save": "Save conversation",
+  "grounding.unsupported": "Google Search is unavailable in this view because Search Suggestions cannot be displayed. Use external Web search instead.",
+
   "settings.webSearch.usage.remainingCredits": "Remaining credits",
   "settings.webSearch.usage.remainingRequests": "Remaining requests",
   "settings.webSearch.usage.showCredits": "Show remaining credits",

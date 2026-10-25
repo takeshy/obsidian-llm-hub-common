@@ -1,3 +1,4 @@
+import { GroundingChatPolicies, type ChatSession } from "./groundingPolicy.js";
 import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { Notice } from "obsidian";
 import { formatError } from "../core/error.js";
@@ -21,6 +22,8 @@ import { generateChatId } from "./chatId.js";
 export type SaveNoteState = "idle" | "saving" | "saved";
 
 export interface SaveChatOptions {
+  /** Explicit user save; permitted even when automatic history is disabled. */
+  manual?: boolean;
   /**
    * The CLI session to record with the chat. Undefined keeps whatever the saved chat
    * already had; null clears it. Hosts without CLI providers never pass it.
@@ -36,6 +39,11 @@ export interface ChatHistoriesApi {
   currentChatId: string | null;
   setCurrentChatId: Dispatch<SetStateAction<string | null>>;
   saveNoteState: SaveNoteState;
+  autoSaveDisabledByGrounding: boolean;
+  getCurrentChatId: () => string | null;
+  getChatSession: (chatId?: string | null) => ChatSession;
+  disableAutoSaveByGrounding: () => Promise<string>;
+  restoreChatSession: (chatId: string, session?: Partial<ChatSession>) => void;
   /** Re-reads the history folder into `chatHistories`. */
   loadChatHistories: () => Promise<void>;
   /** Saves a chat by id — used by background streams, which must not touch the current chat. */
@@ -47,7 +55,7 @@ export interface ChatHistoriesApi {
   /** Writes the conversation out as a readable note and reports it with a Notice. */
   saveAsNote: (msgs: Message[]) => Promise<void>;
   /** Reads an encrypted chat back with the given password. */
-  decryptChat: (chatId: string, password: string) => Promise<{ messages: Message[]; createdAt: number; cliSession?: CliSessionInfo }>;
+  decryptChat: (chatId: string, password: string) => Promise<{ messages: Message[]; createdAt: number; cliSession?: CliSessionInfo; autoSaveDisabledByGrounding?: boolean }>;
 }
 
 /**
@@ -57,7 +65,12 @@ export interface ChatHistoriesApi {
  */
 export function useChatHistories(host: ChatStorageHost): ChatHistoriesApi {
   const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [currentChatId, setCurrentChatIdState] = useState<string | null>(null);
+  const currentChatIdRef = useRef<string | null>(null);
+  const activeChatRevisionRef = useRef(0);
+  const [, setPolicyRevision] = useState(0);
+  const historiesRef = useRef(chatHistories);
+  historiesRef.current = chatHistories;
   const [saveNoteState, setSaveNoteState] = useState<SaveNoteState>("idle");
   // Chats the user deleted while a stream was still running: a late save must not resurrect them.
   const deletedChatIdsRef = useRef<Set<string>>(new Set());
@@ -68,8 +81,36 @@ export function useChatHistories(host: ChatStorageHost): ChatHistoriesApi {
   const hostRef = useRef(host);
   hostRef.current = host;
 
+  const policies = useRef(new GroundingChatPolicies(id => hostRef.current.isChatAutoSaveDisabled?.(id) === true));
+  const getChatSession = useCallback((id?: string | null) => policies.current.get(id === undefined ? currentChatIdRef.current : id), []);
+  const getCurrentChatId = useCallback(() => currentChatIdRef.current, []);
+  const setCurrentChatId: Dispatch<SetStateAction<string | null>> = useCallback(value => {
+    const next = typeof value === "function" ? value(currentChatIdRef.current) : value;
+    activeChatRevisionRef.current++;
+    currentChatIdRef.current = next;
+    setCurrentChatIdState(next);
+  }, []);
+  const restoreChatSession = useCallback((id: string, session?: Partial<ChatSession>) => {
+    policies.current.restore(id, session);
+    setPolicyRevision(value => value + 1);
+  }, []);
+  const disableAutoSaveByGrounding = useCallback(async () => {
+    const id = currentChatIdRef.current ?? generateChatId();
+    policies.current.restrict(id);
+    setCurrentChatId(id);
+    setPolicyRevision(value => value + 1);
+    await hostRef.current.onGroundingChatRestricted?.(id);
+    return id;
+  }, [setCurrentChatId]);
+  const storageHost = (): ChatStorageHost => ({ ...hostRef.current,
+    isChatAutoSaveDisabled: id => getChatSession(id).autoSaveDisabledByGrounding,
+  });
+
   const loadChatHistories = useCallback(async () => {
-    setChatHistories(await readChatHistories(hostRef.current));
+    const histories = await readChatHistories(hostRef.current);
+    for (const history of histories) policies.current.restore(history.id, history);
+    historiesRef.current = histories;
+    setChatHistories(histories);
   }, []);
 
   const saveChatToDisk = useCallback(async (
@@ -77,9 +118,10 @@ export function useChatHistories(host: ChatStorageHost): ChatHistoriesApi {
     chatId: string,
     opts: SaveChatOptions = {},
   ) => {
-    const current = hostRef.current;
+    const current = storageHost();
+    const foregroundRevision = activeChatRevisionRef.current;
     if (msgs.length === 0) return;
-    if (!current.isHistoryEnabled()) return;
+    if (!opts.manual && (!current.isHistoryEnabled() || !policies.current.canAutoSave(chatId))) return;
     if (deletedChatIdsRef.current.has(chatId)) return;
 
     const { session, foreground = false } = opts;
@@ -89,31 +131,31 @@ export function useChatHistories(host: ChatStorageHost): ChatHistoriesApi {
       // Folder might already exist
     }
 
-    // Read the latest list through the functional updater rather than the render closure,
-    // so a background stream saving late still sees the current entry.
+    if (!opts.manual && !policies.current.canAutoSave(chatId)) return;
+    const existing = historiesRef.current.find(history => history.id === chatId);
+    const createdAt = existing?.createdAt || Date.now();
+    const effectiveSession = session === undefined ? existing?.cliSession : session ?? undefined;
+    const chatSession = getChatSession(chatId);
+    try {
+      await writeChatFile(current, msgs, chatId, createdAt, effectiveSession, { manual: opts.manual, chatSession });
+    } catch (error) {
+      if (opts.manual) throw error;
+      console.warn("Failed to write chat file:", chatId, error);
+      return;
+    }
+    if (!opts.manual && !policies.current.canAutoSave(chatId)) return;
     setChatHistories(prev => {
-      const existing = prev.find(h => h.id === chatId);
-      const createdAt = existing?.createdAt || Date.now();
-      // session explicitly passed → use it; undefined → keep what the chat already had
-      const effectiveSession = session === undefined ? existing?.cliSession : session ?? undefined;
-
-      // Fire-and-forget the disk write; the state update itself stays synchronous.
-      void writeChatFile(current, msgs, chatId, createdAt, effectiveSession)
-        .catch((e: unknown) => { console.warn("Failed to write chat file:", chatId, e); });
-
       const { histories, expired } = mergeChatHistory(prev, {
-        id: chatId,
-        title: chatTitleFromMessages(msgs),
-        messages: msgs,
-        createdAt,
-        updatedAt: Date.now(),
+        id: chatId, title: chatTitleFromMessages(msgs), messages: msgs, createdAt, updatedAt: Date.now(),
         cliSession: effectiveSession,
+        ...(chatSession.autoSaveDisabledByGrounding ? { autoSaveDisabledByGrounding: true } : {}),
       }, current.getMaxSavedChatHistories());
+      historiesRef.current = histories;
       pruneExpiredChats(current, expired);
       return histories;
     });
 
-    if (foreground) {
+    if (foreground && foregroundRevision === activeChatRevisionRef.current) {
       setCurrentChatId(chatId);
     }
   }, []);
@@ -123,11 +165,11 @@ export function useChatHistories(host: ChatStorageHost): ChatHistoriesApi {
     opts: SaveChatOptions & { chatId?: string } = {},
   ) => {
     const { chatId, ...saveOpts } = opts;
-    await saveChatToDisk(msgs, chatId || currentChatId || generateChatId(), {
+    await saveChatToDisk(msgs, chatId || currentChatIdRef.current || generateChatId(), {
       ...saveOpts,
       foreground: true,
     });
-  }, [currentChatId, saveChatToDisk]);
+  }, [saveChatToDisk]);
 
   const deleteChat = useCallback(async (chatId: string) => {
     // Prevent background streams from resurrecting this chat
@@ -137,14 +179,16 @@ export function useChatHistories(host: ChatStorageHost): ChatHistoriesApi {
   }, []);
 
   const saveAsNote = useCallback(async (msgs: Message[]) => {
-    if (saveNoteState !== "idle" || msgs.length === 0) return;
+    if (saveNoteState === "saving" || msgs.length === 0) return;
     setSaveNoteState("saving");
     try {
-      const chatKey = currentChatId ?? String(msgs[0].timestamp);
+      const currentId = currentChatIdRef.current;
+      const chatKey = currentId ?? String(msgs[0].timestamp);
       const filePath = await writeChatNote(
         hostRef.current,
         msgs,
         savedNotePathsRef.current.get(chatKey),
+        getChatSession(currentId),
       );
       savedNotePathsRef.current.set(chatKey, filePath);
       new Notice(t("chat.savedAsNote", { path: filePath }));
@@ -168,6 +212,8 @@ export function useChatHistories(host: ChatStorageHost): ChatHistoriesApi {
     currentChatId,
     setCurrentChatId,
     saveNoteState,
+    autoSaveDisabledByGrounding: getChatSession(currentChatId).autoSaveDisabledByGrounding,
+    getCurrentChatId, getChatSession, disableAutoSaveByGrounding, restoreChatSession,
     loadChatHistories,
     saveChatToDisk,
     saveCurrentChat,

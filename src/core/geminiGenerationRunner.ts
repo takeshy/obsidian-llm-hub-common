@@ -1,3 +1,4 @@
+import { extractGoogleSearchSuggestions } from "./googleSearchSuggestions.js";
 import type { StreamChunk } from "./provider.js";
 import type { WebSearchSource } from "./message.js";
 import { tracing, type TracingUsage } from "./tracingHooks.js";
@@ -18,7 +19,7 @@ export interface GeminiGenerationContent { role?: string; parts?: GeminiGenerati
 export interface GeminiGenerationResponse {
   text?: string;
   usageMetadata?: GeminiUsageMetadata;
-  candidates?: Array<{ finishReason?: string; content?: { parts?: GeminiGenerationPart[] } }>;
+  candidates?: Array<{ groundingMetadata?: unknown; finishReason?: string; content?: { parts?: GeminiGenerationPart[] } }>;
 }
 
 export async function* runGeminiGenerateContentTools(options: {
@@ -37,6 +38,7 @@ export async function* runGeminiGenerateContentTools(options: {
   const execution = { output: "", toolCallCount: 0 };
   const totalUsage: TracingUsage = { input: 0, output: 0, total: 0 };
   const webSources: WebSearchSource[] = [];
+  const suggestions = new Set<string>();
   let contents = options.contents;
   let roundNumber = 0;
   let webSearchUsed = false;
@@ -58,6 +60,9 @@ export async function* runGeminiGenerateContentTools(options: {
         if (error) {
           if (rawUsage) accumulateGeminiUsage(totalUsage, extractGeminiUsage(rawUsage, { model, webSearchUsed: roundSearchUsed })!);
           throw new Error(error);
+        }
+        for (const html of extractGoogleSearchSuggestions(chunk)) {
+          if (!suggestions.has(html)) { suggestions.add(html); yield { type: "search_suggestions", searchSuggestions: [html] }; }
         }
         const grounding = extractGeminiGroundingWebSearch(chunk);
         if (grounding.used) {

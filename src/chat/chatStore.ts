@@ -1,4 +1,5 @@
-import { TFile, type App } from "obsidian";
+import type { ChatSession } from "./groundingPolicy.js";
+import { TFile, normalizePath, type App } from "obsidian";
 import { isEncryptedFile, decryptFileContent } from "../core/crypto.js";
 import { cryptoCache } from "../core/cryptoCache.js";
 import { formatError } from "../core/error.js";
@@ -19,6 +20,8 @@ import {
  */
 export interface ChatStorageHost {
   app: App;
+  isChatAutoSaveDisabled?: (chatId: string) => boolean;
+  onGroundingChatRestricted?: (chatId: string) => void | Promise<void>;
   /** Folder holding the chat history files. */
   getChatHistoryFolder(): string;
   /** Folder that "save as note" writes into; empty means the vault root. */
@@ -109,6 +112,7 @@ export async function readChatHistories(host: ChatStorageHost): Promise<ChatHist
           createdAt: createdAtMatch ? parseInt(createdAtMatch[1]) : ctime,
           updatedAt: updatedAtMatch ? parseInt(updatedAtMatch[1]) : mtime,
           cliSession: parsed?.cliSession,
+          autoSaveDisabledByGrounding: parsed?.autoSaveDisabledByGrounding,
           isEncrypted: false,
         });
       } catch {
@@ -132,6 +136,7 @@ export async function writeChatFile(
   chatId: string,
   createdAt: number,
   session?: CliSessionInfo,
+  options?: { manual?: boolean; chatSession?: Partial<ChatSession> },
 ): Promise<void> {
   const { app } = host;
   const markdown = await messagesToMarkdown(
@@ -140,12 +145,14 @@ export async function writeChatFile(
     createdAt,
     host.getEncryption(),
     session,
+    options?.chatSession,
   );
   const basePath = chatFilePath(host, chatId);
   const encrypted = isEncryptedFile(markdown);
   const filePath = encrypted ? `${basePath}.encrypted` : basePath;
   const oldPath = encrypted ? basePath : `${basePath}.encrypted`;
 
+  if (!options?.manual && (options?.chatSession?.autoSaveDisabledByGrounding || msgs.some(msg => msg.googleSearchGrounding) || host.isChatAutoSaveDisabled?.(chatId))) return;
   await app.vault.adapter.write(filePath, markdown);
   if (await app.vault.adapter.exists(oldPath)) {
     await app.vault.adapter.remove(oldPath);
@@ -177,7 +184,7 @@ export async function decryptChat(
   host: ChatStorageHost,
   chatId: string,
   password: string,
-): Promise<{ messages: Message[]; createdAt: number; cliSession?: CliSessionInfo }> {
+): Promise<{ messages: Message[]; createdAt: number; cliSession?: CliSessionInfo; autoSaveDisabledByGrounding?: boolean }> {
   // Try .md.encrypted first, then fall back to .md
   const basePath = chatFilePath(host, chatId);
   let file = host.app.vault.getAbstractFileByPath(`${basePath}.encrypted`);
@@ -225,12 +232,19 @@ export async function writeChatNote(
   host: ChatStorageHost,
   msgs: Message[],
   existingPath?: string,
+  chatSession?: Partial<ChatSession>,
 ): Promise<string> {
-  const folder = host.getManualChatSaveFolder().trim();
+  const configuredFolder = host.getManualChatSaveFolder().trim();
+  const folder = configuredFolder ? normalizePath(configuredFolder) : "";
   if (folder) await ensureFolderExists(host.app, folder);
-  const filePath = existingPath
-    ?? `${folder ? `${folder}/` : ""}${chatNoteFileName(chatTitleFromMessages(msgs))}`;
-  await host.app.vault.adapter.write(filePath, messagesToCompactMarkdown(msgs));
+  const previousFolder = existingPath?.includes("/") ? existingPath.slice(0, existingPath.lastIndexOf("/")) : "";
+  const filePath = existingPath && previousFolder === folder ? existingPath
+    : `${folder ? `${folder}/` : ""}${chatNoteFileName(chatTitleFromMessages(msgs))}`;
+  const restricted = chatSession?.autoSaveDisabledByGrounding || msgs.some(msg => msg.googleSearchGrounding);
+  const markdown = restricted
+    ? await messagesToMarkdown(msgs, chatTitleFromMessages(msgs), msgs[0]?.timestamp ?? Date.now(), undefined, undefined, { autoSaveDisabledByGrounding: true })
+    : messagesToCompactMarkdown(msgs);
+  await host.app.vault.adapter.write(filePath, markdown);
   return filePath;
 }
 
@@ -260,7 +274,7 @@ export function mergeChatHistory(
 /** Deletes the files of chats that aged out of the history list. */
 export function pruneExpiredChats(host: ChatStorageHost, expired: ChatHistory[]): void {
   if (expired.length === 0) return;
-  void Promise.all(expired.map(history => removeChatFiles(host, history.id)))
+  void Promise.all(expired.filter(history => !history.autoSaveDisabledByGrounding && !host.isChatAutoSaveDisabled?.(history.id)).map(history => removeChatFiles(host, history.id)))
     .catch((error: unknown) => {
       console.warn("Failed to prune old chat histories:", formatError(error));
     });

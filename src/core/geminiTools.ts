@@ -68,6 +68,8 @@ export function extractGeminiGroundingWebSearch(chunk: unknown): {
     candidates?: Array<{
       groundingMetadata?: {
         webSearchQueries?: unknown[];
+        imageSearchQueries?: unknown[];
+        searchEntryPoint?: { renderedContent?: string };
         groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
       };
     }>;
@@ -79,7 +81,9 @@ export function extractGeminiGroundingWebSearch(chunk: unknown): {
     sources.push({ title: groundingChunk.web?.title || url, url });
   }
   return {
-    used: (groundingMetadata?.webSearchQueries?.length ?? 0) > 0 || sources.length > 0,
+    used: (groundingMetadata?.webSearchQueries?.length ?? 0) > 0
+      || (groundingMetadata?.imageSearchQueries?.length ?? 0) > 0
+      || !!groundingMetadata?.searchEntryPoint?.renderedContent || sources.length > 0,
     sources,
   };
 }

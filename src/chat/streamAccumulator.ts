@@ -25,6 +25,8 @@ export interface StreamAccumulation {
   ragUsed: boolean;
   ragSources: string[];
   ragContexts: RagContext[];
+  searchSuggestions: string[];
+  googleSearchGrounding?: boolean;
   webSearchUsed: boolean;
   webSearchSources: WebSearchSource[];
   /** Offsets a provider reports instead of linking the sources itself. */
@@ -50,6 +52,7 @@ export function createStreamAccumulation(): StreamAccumulation {
     ragUsed: false,
     ragSources: [],
     ragContexts: [],
+    searchSuggestions: [],
     webSearchUsed: false,
     webSearchSources: [],
     webSearchCitations: [],
@@ -102,6 +105,11 @@ export function accumulateStreamChunk(into: StreamAccumulation, chunk: StreamChu
         }
       }
       break;
+    case "search_suggestions":
+      for (const html of chunk.searchSuggestions ?? []) {
+        if (!into.searchSuggestions.includes(html)) into.searchSuggestions.push(html);
+      }
+      break;
     case "web_search_used":
       into.webSearchUsed = true;
       break;
@@ -116,6 +124,8 @@ export function accumulateStreamChunk(into: StreamAccumulation, chunk: StreamChu
       throw new Error(chunk.error || "Unknown error");
     case "done":
       // The totals only exist once the stream has finished.
+      if (chunk.searchSuggestions) into.searchSuggestions = chunk.searchSuggestions;
+      if (chunk.googleSearchGrounding) into.googleSearchGrounding = true;
       if (chunk.usage) into.usage = chunk.usage;
       if (chunk.interactionId) into.interactionId = chunk.interactionId;
       if (chunk.webSearchSources) into.webSearchSources = chunk.webSearchSources;

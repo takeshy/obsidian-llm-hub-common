@@ -1,3 +1,5 @@
+import { extractGoogleSearchSuggestions } from "./googleSearchSuggestions.js";
+import { extractGeminiGroundingWebSearch } from "./geminiTools.js";
 import type { StreamChunk } from "./provider.js";
 import { tracing, type TracingUsage } from "./tracingHooks.js";
 import { formatError } from "./error.js";
@@ -65,6 +67,7 @@ export async function* runGeminiTextStream(options: GeminiGenerationTrace & {
 
 export async function* runGeminiImageGeneration(options: GeminiGenerationTrace & {
   webSearchEnabled: boolean;
+  requireSearchSuggestions?: boolean;
   generate: () => Promise<GeminiGenerationResponse>;
 }): AsyncGenerator<StreamChunk> {
   const id = tracing.generationStart(options.traceId ?? null, "generateImageStream", {
@@ -74,7 +77,9 @@ export async function* runGeminiImageGeneration(options: GeminiGenerationTrace &
     const response = await options.generate();
     const error = getGeminiFinishReasonError(response.candidates);
     if (error) throw new Error(error);
-    if (options.webSearchEnabled) yield { type: "web_search_used" };
+    const suggestions = extractGoogleSearchSuggestions(response);
+    if (suggestions.length) yield { type: "search_suggestions", searchSuggestions: suggestions };
+    if (options.requireSearchSuggestions ? extractGeminiGroundingWebSearch(response).used : options.webSearchEnabled) yield { type: "web_search_used" };
     for (const part of response.candidates?.[0]?.content?.parts ?? []) {
       if (part.text) yield { type: "text", content: part.text };
       if (part.inlineData?.mimeType && part.inlineData.data) {

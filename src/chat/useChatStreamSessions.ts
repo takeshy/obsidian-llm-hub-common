@@ -27,6 +27,7 @@ export interface ChatStreamSessionsOptions {
   setMessages: Dispatch<SetStateAction<Message[]>>;
   saveChatToDisk: (msgs: Message[], chatId: string, opts?: SaveChatOptions) => Promise<void>;
   currentChatId: string | null;
+  getCurrentChatId?: () => string | null;
   /**
    * Host teardown when a running stream is pushed to the background: the stream still owns
    * its resources, so the host should only let go of them (drop the MCP executor reference).
@@ -87,7 +88,7 @@ export function useChatStreamSessions(options: ChatStreamSessionsOptions): ChatS
   const createStreamSession = useCallback((): StreamSession => {
     const { currentChatId, setMessages, saveChatToDisk } = optionsRef.current;
     const mySessionId = activeSessionIdRef.current;
-    const myChatId = currentChatId || generateChatId();
+    const myChatId = (optionsRef.current.getCurrentChatId?.() ?? currentChatId) || generateChatId();
     const isActive = () => mySessionId === activeSessionIdRef.current;
 
     const saveResult = async (msgs: Message[], session?: CliSessionInfo | null) => {

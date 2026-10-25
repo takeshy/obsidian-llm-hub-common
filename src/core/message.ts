@@ -25,6 +25,9 @@ export interface Message {
   toolResults?: ToolResult[];
   ragUsed?: boolean;  // RAG（File Search）が使用されたか
   ragSources?: string[];  // RAG検索で見つかったソースファイル
+  /** Runtime-only Google display data. Never serialized. */
+  searchSuggestions?: string[];
+  googleSearchGrounding?: boolean;
   webSearchUsed?: boolean;  // Web Searchが使用されたか
   webSearchSources?: WebSearchSource[];  // Cited web sources in display order
   providerContinuation?: ProviderContinuation;  // Opaque native context for stateless replay

@@ -1,3 +1,4 @@
+import { extractGoogleSearchSuggestions } from "./googleSearchSuggestions.js";
 import type { RagContext, WebSearchSource } from "./message.js";
 import {
   collectGeminiInteractionAnnotationSources,
@@ -21,18 +22,20 @@ export interface GeminiInteractionRoundState {
   contexts: RagContext[];
   webSources: WebSearchSource[];
   fileSearchUsed: boolean;
+  searchSuggestions: string[];
   webSearchUsed: boolean;
 }
 
 export type GeminiInteractionStreamEffect =
   | { type: "text" | "thinking"; content: string }
+  | { type: "search_suggestions"; searchSuggestions: string[] }
   | { type: "web_search_used" }
   | { type: "error"; error: string };
 
 export function createGeminiInteractionRound(searchPolicy: GeminiInteractionSearchPolicy): GeminiInteractionRoundState {
   return {
     searchPolicy, hasReceivedEvent: false, functionCalls: [], pendingCalls: {},
-    sources: [], contexts: [], webSources: [], fileSearchUsed: false, webSearchUsed: false,
+    sources: [], contexts: [], webSources: [], fileSearchUsed: false, webSearchUsed: false, searchSuggestions: [],
   };
 }
 
@@ -47,11 +50,17 @@ export function reduceGeminiInteractionEvent(
   raw: unknown,
 ): { state: GeminiInteractionRoundState; effects: GeminiInteractionStreamEffect[] } {
   const state: GeminiInteractionRoundState = {
-    ...previous, hasReceivedEvent: true,
+    ...previous, hasReceivedEvent: true, searchSuggestions: [...previous.searchSuggestions],
     functionCalls: [...previous.functionCalls], pendingCalls: { ...previous.pendingCalls },
     sources: [...previous.sources], contexts: [...previous.contexts], webSources: [...previous.webSources],
   };
   const effects: GeminiInteractionStreamEffect[] = [];
+  for (const html of extractGoogleSearchSuggestions(raw)) {
+    if (!state.searchSuggestions.includes(html)) {
+      state.searchSuggestions.push(html);
+      effects.push({ type: "search_suggestions", searchSuggestions: [html] });
+    }
+  }
   const event = record(raw);
   const index = typeof event.index === "number" ? event.index : undefined;
   const nativeSearch = state.searchPolicy === "native";
@@ -90,6 +99,7 @@ export function reduceGeminiInteractionEvent(
           break;
         }
         case "text_annotation_delta":
+          collectGeminiWebSources(Array.isArray(delta.annotations) ? delta.annotations.filter(annotation => record(annotation).type === "url_citation") : [], state.webSources);
           if (nativeSearch) collectGeminiInteractionAnnotationSources(state.sources, delta.annotations);
           break;
         case "file_search_call":
@@ -135,6 +145,12 @@ export function reduceGeminiInteractionEvent(
       const interaction = record(event.interaction);
       if (interaction.usage != null) state.usage = interaction.usage;
       if (nativeSearch) collectGeminiInteractionStepSources(state, interaction.steps);
+      for (const step of Array.isArray(interaction.steps) ? interaction.steps : []) {
+        for (const content of Array.isArray(record(step).content) ? record(step).content as unknown[] : []) {
+          const annotations = record(content).annotations;
+          collectGeminiWebSources(Array.isArray(annotations) ? annotations.filter(annotation => record(annotation).type === "url_citation") : [], state.webSources);
+        }
+      }
       const error = getGeminiInteractionStatusError(interaction.status);
       if (error) effects.push({ type: "error", error });
       break;
