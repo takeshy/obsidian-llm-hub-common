@@ -6,6 +6,7 @@ import { t } from "../i18n/index.js";
 import type { Message } from "../core/message.js";
 import type { ChatHistory, CliSessionInfo } from "./chatUtils.js";
 import { generateChatId } from "./chatId.js";
+import { normalizeGroundedMessages, type LegacyGroundingPredicate } from "../core/grounding.js";
 import {
   messagesToMarkdown,
   messagesToCompactMarkdown,
@@ -29,6 +30,12 @@ export interface ChatStorageHost {
   getMaxSavedChatHistories(): number;
   /** Undefined writes plaintext Markdown. */
   getEncryption(): EncryptionConfig | undefined;
+  /**
+   * Which messages saved before grounding retention existed were Google Grounded Results.
+   * Defaults to every recorded web search (see isLegacyGoogleGroundedResult); hosts whose
+   * other providers also search the web may narrow it.
+   */
+  isLegacyGoogleGrounded?: LegacyGroundingPredicate;
 }
 
 /**
@@ -101,13 +108,20 @@ export async function readChatHistories(host: ChatStorageHost): Promise<ChatHist
         const createdAtMatch = frontmatterMatch[1].match(/createdAt:\s*(\d+)/);
         const updatedAtMatch = frontmatterMatch[1].match(/updatedAt:\s*(\d+)/);
         const parsed = parseMarkdownToMessages(content);
+        const createdAt = createdAtMatch ? parseInt(createdAtMatch[1]) : ctime;
+        const updatedAt = updatedAtMatch ? parseInt(updatedAtMatch[1]) : mtime;
+        const messages = parsed
+          ? await enforceGroundingRetention(host, chatId, parsed.messages, createdAt, parsed.cliSession, updatedAt)
+          : [];
+        // Every message was an expired Grounded Result: the file is gone, so is the entry.
+        if (parsed && parsed.messages.length > 0 && messages.length === 0) continue;
 
         histories.push({
           id: chatId,
           title: titleMatch ? titleMatch[1] : chatId,
-          messages: parsed?.messages || [],
-          createdAt: createdAtMatch ? parseInt(createdAtMatch[1]) : ctime,
-          updatedAt: updatedAtMatch ? parseInt(updatedAtMatch[1]) : mtime,
+          messages,
+          createdAt,
+          updatedAt,
           cliSession: parsed?.cliSession,
           isEncrypted: false,
         });
@@ -132,6 +146,7 @@ export async function writeChatFile(
   chatId: string,
   createdAt: number,
   session?: CliSessionInfo,
+  updatedAt?: number,
 ): Promise<void> {
   const { app } = host;
   const markdown = await messagesToMarkdown(
@@ -140,6 +155,7 @@ export async function writeChatFile(
     createdAt,
     host.getEncryption(),
     session,
+    updatedAt,
   );
   const basePath = chatFilePath(host, chatId);
   const encrypted = isEncryptedFile(markdown);
@@ -201,7 +217,44 @@ export async function decryptChat(
   if (!parsed) {
     throw new Error("Failed to parse decrypted content");
   }
-  return parsed;
+  // Encrypted chats can only be migrated once they can be read, i.e. here.
+  const messages = await enforceGroundingRetention(host, chatId, parsed.messages, parsed.createdAt, parsed.cliSession);
+  return { ...parsed, messages };
+}
+
+/**
+ * Applies the Google grounding retention rules to a chat read from disk and, when that changed
+ * anything, writes the result back. The rewrite only happens after the new file is checked to
+ * parse back to the same messages, so a failure leaves the old file as it was; the cleaned
+ * messages are returned either way, so expired results never reach the view or a model.
+ */
+export async function enforceGroundingRetention(
+  host: ChatStorageHost,
+  chatId: string,
+  messages: Message[],
+  createdAt: number,
+  session?: CliSessionInfo,
+  updatedAt?: number,
+  now: number = Date.now(),
+): Promise<Message[]> {
+  const normalized = normalizeGroundedMessages(messages, { now, isLegacyGrounded: host.isLegacyGoogleGrounded });
+  if (!normalized.changed) return messages;
+  try {
+    if (normalized.messages.length === 0) {
+      await removeChatFiles(host, chatId);
+      return normalized.messages;
+    }
+    const plain = await messagesToMarkdown(
+      normalized.messages, chatTitleFromMessages(normalized.messages), createdAt, undefined, session, updatedAt,
+    );
+    if (parseMarkdownToMessages(plain)?.messages.length !== normalized.messages.length) {
+      throw new Error("Migrated chat does not round-trip");
+    }
+    await writeChatFile(host, normalized.messages, chatId, createdAt, session, updatedAt);
+  } catch (error) {
+    console.warn("Failed to apply grounding retention to chat:", chatId, formatError(error));
+  }
+  return normalized.messages;
 }
 
 /** A file name that survives every vault: no path separators, no leading or trailing dots. */

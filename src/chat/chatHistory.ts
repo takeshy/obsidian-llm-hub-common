@@ -4,6 +4,7 @@ import {
 	encryptFileContent,
 } from "../core/index.js";
 import { formatError } from "../core/index.js";
+import { isGroundedResult, toPersistableMessage } from "../core/grounding.js";
 import { t } from "../i18n/index.js";
 import { isValidCliProvider, type CliSessionInfo } from "./chatUtils.js";
 
@@ -14,10 +15,17 @@ export interface EncryptionConfig {
 	salt?: string;
 }
 
+/**
+ * The conversation as a readable note. A whole-chat export must not bulk-save Google Grounded
+ * Results, so their text is left out; copying a single answer is the explicit way to keep one.
+ */
 export function messagesToCompactMarkdown(msgs: Message[]): string {
 	return msgs.map((msg) => {
 		const role = msg.role === "user" ? "You" : (msg.modelDisplayName || msg.model || "AI");
-		return `## ${role}\n\n${msg.content.trim()}`;
+		const body = msg.role !== "user" && (isGroundedResult(msg) || msg.searchSuggestions !== undefined)
+			? `*${t("chat.groundedResultOmitted")}*`
+			: msg.content.trim();
+		return `## ${role}\n\n${body}`;
 	}).join("\n\n");
 }
 
@@ -28,9 +36,10 @@ export async function messagesToMarkdown(
 	createdAt: number,
 	encryption: EncryptionConfig | undefined,
 	session?: CliSessionInfo,
+	updatedAt: number = Date.now(),
 ): Promise<string> {
 	const date = new Date(createdAt);
-	let md = `---\ntitle: "${title.replace(/"/g, '\\"')}"\ncreatedAt: ${createdAt}\nupdatedAt: ${Date.now()}\n`;
+	let md = `---\ntitle: "${title.replace(/"/g, '\\"')}"\ncreatedAt: ${createdAt}\nupdatedAt: ${updatedAt}\n`;
 	if (session) {
 		md += `cliSessionProvider: "${session.provider}"\n`;
 		md += `cliSessionId: "${session.sessionId}"\n`;
@@ -39,7 +48,9 @@ export async function messagesToMarkdown(
 	md += `# ${title}\n\n`;
 	md += `*Created: ${date.toLocaleString()}*\n\n---\n\n`;
 
-	for (const msg of msgs) {
+	// Search Suggestions, and the sources and redirect links of Grounded Results, never reach disk —
+	// encrypted or not, since encryption happens on this output.
+	for (const msg of msgs.map(toPersistableMessage)) {
 		const role = msg.role === "user" ? "**You**" : `**${msg.model || "AI"}**`;
 		const time = new Date(msg.timestamp).toLocaleTimeString();
 
@@ -68,6 +79,7 @@ export async function messagesToMarkdown(
 		if (msg.ragSources) metadata.ragSources = msg.ragSources;
 		if (msg.webSearchUsed) metadata.webSearchUsed = msg.webSearchUsed;
 		if (msg.webSearchSources) metadata.webSearchSources = msg.webSearchSources;
+		if (msg.grounding) metadata.grounding = msg.grounding;
 		if (msg.providerContinuation) metadata.providerContinuation = msg.providerContinuation;
 		if (msg.imageGenerationUsed) metadata.imageGenerationUsed = msg.imageGenerationUsed;
 		if (msg.generatedImages) metadata.generatedImages = msg.generatedImages;
@@ -200,7 +212,10 @@ export function parseMarkdownToMessages(content: string): { messages: Message[];
 						if (meta.ragUsed) message.ragUsed = meta.ragUsed as boolean;
 						if (meta.ragSources) message.ragSources = meta.ragSources as string[];
 						if (meta.webSearchUsed) message.webSearchUsed = meta.webSearchUsed as boolean;
-						if (meta.webSearchSources) message.webSearchSources = meta.webSearchSources as Message["webSearchSources"];
+						const grounding = parseGroundingRetention(meta.grounding);
+						if (grounding) message.grounding = grounding;
+						// A Grounded Result's sources are never kept, even if an old file has them.
+						else if (meta.webSearchSources) message.webSearchSources = meta.webSearchSources as Message["webSearchSources"];
 						if (meta.providerContinuation) message.providerContinuation = meta.providerContinuation as Message["providerContinuation"];
 						if (meta.imageGenerationUsed) message.imageGenerationUsed = meta.imageGenerationUsed as boolean;
 						if (meta.generatedImages) message.generatedImages = meta.generatedImages as Message["generatedImages"];
@@ -229,6 +244,13 @@ export function parseMarkdownToMessages(content: string): { messages: Message[];
 	} catch {
 		return null;
 	}
+}
+
+function parseGroundingRetention(value: unknown): Message["grounding"] {
+	if (!value || typeof value !== "object") return undefined;
+	const { provider, displayedAt, expiresAt } = value as Record<string, unknown>;
+	if (provider !== "google_search" || typeof displayedAt !== "number" || typeof expiresAt !== "number") return undefined;
+	return { provider, displayedAt, expiresAt };
 }
 
 export function formatHistoryDate(timestamp: number): string {

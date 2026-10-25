@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { extractGeminiResearchText, runGeminiChat, runGeminiDeepResearch, runGeminiImageGeneration, runGeminiTextStream } from "./geminiChatRunners.js";
 import { tracing } from "./tracingHooks.js";
+import { GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR } from "./geminiTools.js";
 import type { StreamChunk } from "./provider.js";
 async function* stream<T>(chunks: T[]) { yield* chunks; }
 async function collect(generator: AsyncIterable<StreamChunk>) {
@@ -43,11 +44,29 @@ describe("Gemini chat runners", () => {
   });
   it("extracts image and text parts in order, ignoring incomplete image data", async () => {
     const chunks = await collect(runGeminiImageGeneration({ model, webSearchEnabled: true, generate: async () => ({
-      candidates: [{ content: { parts: [{ text: "caption" }, { inlineData: { mimeType: "image/png", data: "abc" } }, { inlineData: { mimeType: "image/png" } }] } }],
+      candidates: [{ content: { parts: [{ text: "caption" }, { inlineData: { mimeType: "image/png", data: "abc" } }, { inlineData: { mimeType: "image/png" } }] },
+        groundingMetadata: { webSearchQueries: ["q"], searchEntryPoint: { renderedContent: "<div>chips</div>" } } }],
       usageMetadata: { totalTokenCount: 3 },
     }) }));
-    expect(chunks.slice(0, -1)).toEqual([{ type: "web_search_used" }, { type: "text", content: "caption" }, { type: "image_generated", generatedImage: { mimeType: "image/png", data: "abc" } }]);
+    expect(chunks.slice(0, -1)).toEqual([
+      { type: "web_search_used", groundingProvider: "google_search" },
+      { type: "search_suggestions", renderedContent: "<div>chips</div>" },
+      { type: "text", content: "caption" },
+      { type: "image_generated", generatedImage: { mimeType: "image/png", data: "abc" } },
+    ]);
     expect(chunks.at(-1)).toMatchObject({ type: "done", usage: { totalTokens: 3 } });
+  });
+  it("does not report web search when the image model did not ground", async () => {
+    const chunks = await collect(runGeminiImageGeneration({ model, webSearchEnabled: true, generate: async () => ({
+      candidates: [{ content: { parts: [{ text: "caption" }] } }],
+    }) }));
+    expect(chunks.map(chunk => chunk.type)).toEqual(["text", "done"]);
+  });
+  it("withholds a grounded image answer that came without Search Suggestions", async () => {
+    const chunks = await collect(runGeminiImageGeneration({ model, webSearchEnabled: true, generate: async () => ({
+      candidates: [{ content: { parts: [{ text: "caption" }] }, groundingMetadata: { webSearchQueries: ["q"] } }],
+    }) }));
+    expect(chunks).toEqual([{ type: "error", error: GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR }]);
   });
   it("never emits image/search/done after a blocked image response", async () => {
     const chunks = await collect(runGeminiImageGeneration({ model, webSearchEnabled: true, generate: async () => ({ candidates: [{ finishReason: "SAFETY" }] }) }));

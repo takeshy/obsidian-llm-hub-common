@@ -3,7 +3,7 @@ import type { WebSearchSource } from "./message.js";
 import { tracing, type TracingUsage } from "./tracingHooks.js";
 import { formatError } from "./error.js";
 import { accumulateGeminiUsage, extractGeminiUsage, getGeminiFinishReasonError, toGeminiStreamChunkUsage, type GeminiUsageMetadata } from "./geminiUsage.js";
-import { collectGeminiWebSources, extractGeminiGroundingWebSearch, parseGeminiGenerateContentParts } from "./geminiTools.js";
+import { collectGeminiWebSources, extractGeminiGroundingWebSearch, extractGeminiSearchSuggestions, GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR, parseGeminiGenerateContentParts } from "./geminiTools.js";
 import { executeGeminiTools, GeminiToolBudget, type GeminiExecutableCall, type GeminiToolLimitPolicy, type GeminiToolMode } from "./geminiToolExecution.js";
 
 /** SDK-neutral structural shapes. Original parts are retained intact, including thought signatures. */
@@ -18,7 +18,11 @@ export interface GeminiGenerationContent { role?: string; parts?: GeminiGenerati
 export interface GeminiGenerationResponse {
   text?: string;
   usageMetadata?: GeminiUsageMetadata;
-  candidates?: Array<{ finishReason?: string; content?: { parts?: GeminiGenerationPart[] } }>;
+  candidates?: Array<{
+    finishReason?: string;
+    content?: { parts?: GeminiGenerationPart[] };
+    groundingMetadata?: unknown;
+  }>;
 }
 
 export async function* runGeminiGenerateContentTools(options: {
@@ -40,6 +44,7 @@ export async function* runGeminiGenerateContentTools(options: {
   let contents = options.contents;
   let roundNumber = 0;
   let webSearchUsed = false;
+  let searchSuggestions: string | undefined;
   let finalRound = false;
   const metadata = () => ({ toolCallCount: execution.toolCallCount, roundCount: roundNumber, useGenerateContentApi: true });
   try {
@@ -62,8 +67,13 @@ export async function* runGeminiGenerateContentTools(options: {
         const grounding = extractGeminiGroundingWebSearch(chunk);
         if (grounding.used) {
           roundSearchUsed = true;
-          if (!webSearchUsed) { webSearchUsed = true; yield { type: "web_search_used" }; }
+          if (!webSearchUsed) { webSearchUsed = true; yield { type: "web_search_used", groundingProvider: "google_search" }; }
           for (const source of grounding.sources) collectGeminiWebSources(source, webSources);
+        }
+        const suggestions = extractGeminiSearchSuggestions(chunk);
+        if (suggestions !== undefined && suggestions !== searchSuggestions) {
+          searchSuggestions = suggestions;
+          yield { type: "search_suggestions", renderedContent: suggestions };
         }
         const parts = chunk.candidates?.[0]?.content?.parts ?? [];
         modelParts.push(...parts);
@@ -75,7 +85,7 @@ export async function* runGeminiGenerateContentTools(options: {
         }
         if (parsed.webSearchResponses.length > 0) {
           roundSearchUsed = true;
-          if (!webSearchUsed) { webSearchUsed = true; yield { type: "web_search_used" }; }
+          if (!webSearchUsed) { webSearchUsed = true; yield { type: "web_search_used", groundingProvider: "google_search" }; }
           for (const response of parsed.webSearchResponses) collectGeminiWebSources(response, webSources);
         }
       }
@@ -107,6 +117,8 @@ export async function* runGeminiGenerateContentTools(options: {
       }
       contents = [...contents, { role: "user", parts: responseParts }];
     }
+    // A Grounded Result may only be shown with its Search Suggestions; fail rather than show it bare.
+    if (webSearchUsed && searchSuggestions === undefined) throw new Error(GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR);
     tracing.generationEnd(generationId, { output: execution.output, usage: totalUsage.total ? totalUsage : undefined, metadata: metadata() });
     yield { type: "done", usage: toGeminiStreamChunkUsage(totalUsage.total ? totalUsage : undefined),
       webSearchSources: webSources.length > 0 ? webSources : undefined,

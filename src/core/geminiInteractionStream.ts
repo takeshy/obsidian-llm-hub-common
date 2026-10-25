@@ -5,7 +5,7 @@ import {
   collectGeminiInteractionStepSources,
 } from "./geminiInteractions.js";
 import { GeminiFunctionCallAccumulator, getGeminiInteractionStatusError, type GeminiPendingFunctionCall } from "./geminiToolLoop.js";
-import { collectGeminiWebSources } from "./geminiTools.js";
+import { collectGeminiWebSources, extractGeminiInteractionSearchSuggestions } from "./geminiTools.js";
 
 /** Required policy: native File Search and pre-retrieved RAG have different source contracts. */
 export type GeminiInteractionSearchPolicy = "native" | "pre-retrieved";
@@ -22,11 +22,14 @@ export interface GeminiInteractionRoundState {
   webSources: WebSearchSource[];
   fileSearchUsed: boolean;
   webSearchUsed: boolean;
+  /** Latest Google Search Suggestions of this round. */
+  searchSuggestions?: string;
 }
 
 export type GeminiInteractionStreamEffect =
   | { type: "text" | "thinking"; content: string }
-  | { type: "web_search_used" }
+  | { type: "web_search_used"; groundingProvider: "google_search" }
+  | { type: "search_suggestions"; renderedContent: string }
   | { type: "error"; error: string };
 
 export function createGeminiInteractionRound(searchPolicy: GeminiInteractionSearchPolicy): GeminiInteractionRoundState {
@@ -39,6 +42,31 @@ export function createGeminiInteractionRound(searchPolicy: GeminiInteractionSear
 function record(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown> : {};
+}
+
+function applyGoogleSearchResult(
+  state: GeminiInteractionRoundState,
+  effects: GeminiInteractionStreamEffect[],
+  raw: unknown,
+): void {
+  const searchResult = record(raw);
+  // Search Suggestion chips link to Google result pages; they are not sources of the answer.
+  const results = Array.isArray(searchResult.result)
+    ? searchResult.result.map(result => {
+      const { search_suggestions: _suggestions, ...rest } = record(result);
+      return rest;
+    })
+    : searchResult.result;
+  collectGeminiWebSources({ ...searchResult, result: results }, state.webSources);
+  if (!state.webSearchUsed) {
+    state.webSearchUsed = true;
+    effects.push({ type: "web_search_used", groundingProvider: "google_search" });
+  }
+  const suggestions = extractGeminiInteractionSearchSuggestions(searchResult);
+  if (suggestions !== undefined && suggestions !== state.searchSuggestions) {
+    state.searchSuggestions = suggestions;
+    effects.push({ type: "search_suggestions", renderedContent: suggestions });
+  }
 }
 
 /** Pure per-round reducer. The host owns yielding, tracing, pricing and API calls. */
@@ -103,11 +131,7 @@ export function reduceGeminiInteractionEvent(
           }
           break;
         case "google_search_result":
-          collectGeminiWebSources(delta, state.webSources);
-          if (!state.webSearchUsed) {
-            state.webSearchUsed = true;
-            effects.push({ type: "web_search_used" });
-          }
+          applyGoogleSearchResult(state, effects, delta);
           break;
       }
       break;
@@ -135,6 +159,11 @@ export function reduceGeminiInteractionEvent(
       const interaction = record(event.interaction);
       if (interaction.usage != null) state.usage = interaction.usage;
       if (nativeSearch) collectGeminiInteractionStepSources(state, interaction.steps);
+      if (Array.isArray(interaction.steps)) {
+        for (const step of interaction.steps) {
+          if (record(step).type === "google_search_result") applyGoogleSearchResult(state, effects, step);
+        }
+      }
       const error = getGeminiInteractionStatusError(interaction.status);
       if (error) effects.push({ type: "error", error });
       break;

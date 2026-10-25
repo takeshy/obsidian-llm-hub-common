@@ -3,6 +3,7 @@ import { runGeminiInteractions } from "./geminiInteractionsRunner.js";
 import { runGeminiGenerateContentTools, type GeminiGenerationResponse } from "./geminiGenerationRunner.js";
 import { GeminiToolBudget, executeGeminiTools, selectGeminiInteractionTools, selectGeminiGenerationTools } from "./geminiToolExecution.js";
 import { tracing } from "./tracingHooks.js";
+import { GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR } from "./geminiTools.js";
 import type { StreamChunk } from "./provider.js";
 
 async function* stream<T>(events: T[]) { yield* events; }
@@ -106,10 +107,18 @@ describe("Interactions runner", () => {
       { event_type: "step.start", step: { type: "file_search_call" } },
       { event_type: "step.delta", delta: { type: "file_search_result", result: [{ title: "note", text: "context" }] } },
       { event_type: "step.delta", delta: { type: "google_search_result", result: [{ url: "https://a.test" }] } }, ...call("1"),
-    ])).mockResolvedValueOnce(stream([{ event_type: "step.delta", delta: { type: "google_search_result", result: [{ url: "https://a.test" }, { url: "https://b.test" }] } }, complete]));
+    ])).mockResolvedValueOnce(stream([{ event_type: "step.delta", delta: { type: "google_search_result", result: [{ url: "https://a.test" }, { url: "https://b.test" }, { search_suggestions: "<div>chips</div>" }] } }, complete]));
     const chunks = await collect(runGeminiInteractions({ ...interactionBase, searchPolicy, create, executeToolCall: async () => ({}) }));
     expect(chunks.filter(chunk => chunk.type === "rag_used")).toHaveLength(searchPolicy === "native" ? 1 : 0);
+    expect(chunks).toContainEqual({ type: "search_suggestions", renderedContent: "<div>chips</div>" });
     expect(chunks.at(-1)?.webSearchSources).toHaveLength(2);
+  });
+  it("fails a grounded Interactions answer that came without Search Suggestions", async () => {
+    const create = vi.fn().mockResolvedValueOnce(stream([
+      { event_type: "step.delta", delta: { type: "google_search_result", result: [{ url: "https://a.test" }] } }, complete,
+    ]));
+    const chunks = await collect(runGeminiInteractions({ ...interactionBase, create }));
+    expect(chunks.at(-1)).toEqual({ type: "error", error: GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR });
   });
   it("rejects empty final streams instead of emitting done", async () => {
     const create = vi.fn().mockResolvedValueOnce(stream(call("1"))).mockResolvedValueOnce(stream([]));
@@ -163,11 +172,22 @@ describe("GenerateContent tool runner", () => {
       { usageMetadata: { promptTokenCount: 1, candidatesTokenCount: 1, totalTokenCount: 2 } },
       response([{ toolResponse: { toolType: "GOOGLE_SEARCH_WEB", response: { url: "https://a.test" } } }]),
       response([{ toolResponse: { toolType: "GOOGLE_SEARCH_WEB", response: { url: "https://a.test" } } }]),
+      { candidates: [{ groundingMetadata: { searchEntryPoint: { renderedContent: "<div>chips</div>" } } }] },
     ]);
     const chunks = await collect(runGeminiGenerateContentTools({ ...base, contents: [], create }));
     expect(chunks.filter(chunk => chunk.type === "web_search_used")).toHaveLength(1);
+    expect(chunks.filter(chunk => chunk.type === "search_suggestions")).toEqual([{ type: "search_suggestions", renderedContent: "<div>chips</div>" }]);
     expect(chunks.at(-1)?.usage?.totalCost).toBeGreaterThan(0.014);
     expect(chunks.at(-1)?.webSearchSources).toHaveLength(1);
+  });
+  it("fails a grounded answer that came without Search Suggestions, and stays quiet without search", async () => {
+    const grounded = await collect(runGeminiGenerateContentTools({ ...base, contents: [], create: async () => stream([
+      { candidates: [{ content: { parts: [{ text: "answer" }] }, groundingMetadata: { webSearchQueries: ["q"] } }] },
+    ]) }));
+    expect(grounded.at(-1)).toEqual({ type: "error", error: GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR });
+    const plain = await collect(runGeminiGenerateContentTools({ ...base, contents: [], create: async () => stream([response([{ text: "answer" }])]) }));
+    expect(plain.some(chunk => chunk.type === "search_suggestions" || chunk.type === "web_search_used")).toBe(false);
+    expect(plain.at(-1)?.type).toBe("done");
   });
   it.each([[], [{ candidates: [{ finishReason: "SAFETY" }] }]])("reports empty or blocked streams", async events => {
     const chunks = await collect(runGeminiGenerateContentTools({ ...base, contents: [], create: async () => stream(events) }));

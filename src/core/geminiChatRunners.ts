@@ -3,6 +3,7 @@ import { tracing, type TracingUsage } from "./tracingHooks.js";
 import { formatError } from "./error.js";
 import { extractGeminiUsage, extractGeminiInteractionsUsage, getGeminiFinishReasonError, toGeminiStreamChunkUsage, type GeminiInteractionsUsage } from "./geminiUsage.js";
 import type { GeminiGenerationResponse } from "./geminiGenerationRunner.js";
+import { extractGeminiGroundingWebSearch, extractGeminiSearchSuggestions, GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR } from "./geminiTools.js";
 
 interface GeminiGenerationTrace {
   model: string;
@@ -74,7 +75,13 @@ export async function* runGeminiImageGeneration(options: GeminiGenerationTrace &
     const response = await options.generate();
     const error = getGeminiFinishReasonError(response.candidates);
     if (error) throw new Error(error);
-    if (options.webSearchEnabled) yield { type: "web_search_used" };
+    const suggestions = options.webSearchEnabled ? extractGeminiSearchSuggestions(response) : undefined;
+    if (options.webSearchEnabled && (extractGeminiGroundingWebSearch(response).used || suggestions !== undefined)) {
+      // A Grounded Result may only be shown with its Search Suggestions; fail rather than show it bare.
+      if (suggestions === undefined) throw new Error(GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR);
+      yield { type: "web_search_used", groundingProvider: "google_search" };
+      yield { type: "search_suggestions", renderedContent: suggestions };
+    }
     for (const part of response.candidates?.[0]?.content?.parts ?? []) {
       if (part.text) yield { type: "text", content: part.text };
       if (part.inlineData?.mimeType && part.inlineData.data) {

@@ -48,6 +48,33 @@ Two rules keep the three plugins from drifting apart again, and both are enforce
 `react` and `lucide-react` are peer dependencies, so consumers bundle their own
 single React instance. The package ships compiled ESM and TypeScript declarations.
 
+## Google Search Grounding
+
+Gemini's Google Search Grounding comes with display and retention terms (Gemini API Additional
+Terms, English version effective 2026-03-23). The library enforces them so a host cannot drift:
+
+- **Search Suggestions are shown.** The Gemini runners emit a `search_suggestions` chunk with
+  Google's `renderedContent` (generateContent: `searchEntryPoint.renderedContent`; Interactions:
+  `google_search_result.result[].search_suggestions`). `MessageBubbleView` renders it unmodified in
+  a sandboxed frame with no script execution. A grounded answer that arrives without suggestions
+  fails with `GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR` instead of being shown bare.
+- **Hosts build the message with `webSearchMessageFields(acc)`.** It carries the session-only
+  `searchSuggestions`/`webSearchSources` and stamps `grounding` (`displayedAt`, `expiresAt` two
+  years later). Request context should be built from `withoutExpiredGroundedResults(messages)`.
+- **Nothing grounding-derived is persisted.** `messagesToMarkdown` (plain and encrypted) writes only
+  `webSearchUsed` and the `grounding` stamp: no suggestions, grounding URLs/titles or
+  grounding redirect links. A whole-chat note export leaves grounded answers out; copying a single
+  answer is the explicit way to keep one.
+- **Expired answers are removed per message**, on load, on decrypt, on save and on the first use
+  after the date changes (`pruneExpiredGroundedResults`). Other messages stay, and
+  `maxSavedChatHistories` applies independently. Legacy chats are migrated the same way when read
+  (encrypted ones once decrypted); `ChatStorageHost.isLegacyGoogleGrounded` narrows the
+  conservative default.
+- **Limits.** Nothing can be deleted while Obsidian is not running, and copies held by Obsidian Sync,
+  Git or backups are outside the plugin's reach. Surfaces that cannot show Search Suggestions
+  (workflow command nodes, Dashboard timeline answers) must not offer Google Search Grounding;
+  hosts disable it there.
+
 ## Mobile
 
 `Composer.collapse`, `InputArea.collapsed` and `CollapsedInput` provide the

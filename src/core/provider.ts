@@ -62,10 +62,12 @@ export interface StreamChunk {
    *
    * `incomplete_tool_call` reports that a tool call arrived truncated, so the
    * caller can retry the round rather than continue without it.
+   *
+   * `search_suggestions` carries Google Search Suggestions in `renderedContent`.
    */
   type: "text" | "thinking" | "tool_call" | "tool_result" | "error" | "done"
     | "rag_used" | "web_search_used" | "image_generated" | "session_id"
-    | "replace_text" | "incomplete_tool_call";
+    | "replace_text" | "incomplete_tool_call" | "search_suggestions";
   content?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
@@ -81,6 +83,13 @@ export interface StreamChunk {
   usage?: StreamChunkUsage;
   /** Interactions API interaction id; set on "done" chunks. */
   interactionId?: string;
+  /** Set on "web_search_used" when the search was Google Search Grounding. */
+  groundingProvider?: "google_search";
+  /**
+   * Google Search Suggestions HTML/CSS; set on "search_suggestions" chunks. Must be shown
+   * unmodified next to the answer and never persisted. A later chunk replaces an earlier one.
+   */
+  renderedContent?: string;
   /** Cited web sources, in display order. */
   webSearchSources?: WebSearchSource[];
   webSearchCitations?: WebSearchCitation[];

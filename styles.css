@@ -6314,3 +6314,16 @@
   min-height: 80px;
   resize: vertical;
 }
+
+/* Google Search Suggestions: shown unmodified in an isolated frame next to a grounded answer */
+.chat-ui-search-suggestions {
+  margin: 8px 0;
+}
+
+.chat-ui-search-suggestions-frame {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  background: transparent;
+}

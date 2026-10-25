@@ -64,9 +64,25 @@ describe("Gemini Interactions round reducer", () => {
       { event_type: "step.delta", delta: { type: "google_search_result" } },
       ...["https://a.test", "https://b.test", "https://a.test"].map(url => ({ event_type: "step.delta", delta: { type: "google_search_result", result: [{ url, title: url }] } })),
     ], policy);
-    expect(effects).toEqual([{ type: "web_search_used" }]);
+    expect(effects).toEqual([{ type: "web_search_used", groundingProvider: "google_search" }]);
     expect(state.webSources.map(source => source.url)).toEqual(["https://a.test", "https://b.test"]);
     expect(createGeminiInteractionRound(policy).webSearchUsed).toBe(false);
+  });
+
+  it("passes Search Suggestions through untouched and keeps their links out of the sources", () => {
+    const html = '<style>.c{color:red}</style><a class="c" href="https://www.google.com/search?q=x">x</a>';
+    const { state, effects } = replay([
+      { event_type: "step.delta", delta: { type: "google_search_result", result: [{ search_suggestions: html }] } },
+      { event_type: "step.delta", delta: { type: "google_search_result", result: [{ search_suggestions: html }] } },
+      { event_type: "interaction.completed", interaction: { steps: [{ type: "google_search_result", result: [{ search_suggestions: html + "<b>2</b>" }] }] } },
+    ]);
+    expect(effects).toEqual([
+      { type: "web_search_used", groundingProvider: "google_search" },
+      { type: "search_suggestions", renderedContent: html },
+      { type: "search_suggestions", renderedContent: html + "<b>2</b>" },
+    ]);
+    expect(state.searchSuggestions).toBe(html + "<b>2</b>");
+    expect(state.webSources).toEqual([]);
   });
 
   it("keeps native annotations/context fallback separate from pre-retrieved RAG", () => {

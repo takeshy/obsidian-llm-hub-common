@@ -13,6 +13,7 @@ import type {
 } from "../core/message.js";
 import type { StreamChunk } from "../core/provider.js";
 import type { StreamChunkUsage } from "../core/usage.js";
+import { createGroundingRetention } from "../core/grounding.js";
 
 /** Everything a stream says, gathered as it arrives. */
 export interface StreamAccumulation {
@@ -29,6 +30,10 @@ export interface StreamAccumulation {
   webSearchSources: WebSearchSource[];
   /** Offsets a provider reports instead of linking the sources itself. */
   webSearchCitations: WebSearchCitation[];
+  /** Set when the web search was Google Search Grounding. */
+  groundingProvider?: "google_search";
+  /** Latest Google Search Suggestions; shown with the answer, never persisted. */
+  searchSuggestions?: string;
   imageGenerationUsed: boolean;
   generatedImages: GeneratedImage[];
   /** A tool call arrived truncated; the round is worth retrying. */
@@ -104,6 +109,14 @@ export function accumulateStreamChunk(into: StreamAccumulation, chunk: StreamChu
       break;
     case "web_search_used":
       into.webSearchUsed = true;
+      if (chunk.groundingProvider) into.groundingProvider = chunk.groundingProvider;
+      break;
+    case "search_suggestions":
+      // Several can arrive while streaming; the last valid one is what goes with the answer.
+      if (chunk.renderedContent) {
+        into.searchSuggestions = chunk.renderedContent;
+        into.groundingProvider = "google_search";
+      }
       break;
     case "image_generated":
       into.imageGenerationUsed = true;
@@ -123,6 +136,24 @@ export function accumulateStreamChunk(into: StreamAccumulation, chunk: StreamChu
       if (chunk.providerContinuation) into.providerContinuation = chunk.providerContinuation;
       break;
   }
+}
+
+type WebSearchFields = Pick<Message, "webSearchUsed" | "webSearchSources" | "searchSuggestions" | "grounding">;
+
+/**
+ * The web-search fields of a finished assistant message. A Google Grounded Result also gets its
+ * retention stamp here, dated from when the answer is shown; hosts spread this into the message
+ * rather than copying the fields one by one, so none of them is forgotten.
+ */
+export function webSearchMessageFields(acc: StreamAccumulation, displayedAt: number = Date.now()): WebSearchFields {
+  if (!acc.webSearchUsed && !acc.searchSuggestions) return {};
+  const grounded = acc.groundingProvider === "google_search";
+  return {
+    webSearchUsed: true,
+    ...(acc.webSearchSources.length > 0 ? { webSearchSources: acc.webSearchSources } : {}),
+    ...(acc.searchSuggestions ? { searchSuggestions: acc.searchSuggestions } : {}),
+    ...(grounded ? { grounding: createGroundingRetention(displayedAt) } : {}),
+  };
 }
 
 /** What the confirming tool executor did during a turn. */

@@ -5,7 +5,7 @@ import { formatError } from "./error.js";
 import { createGeminiInteractionRound, reduceGeminiInteractionEvent, type GeminiInteractionSearchPolicy } from "./geminiInteractionStream.js";
 import { buildGeminiInteractionAttachmentStep, buildGeminiInteractionFunctionResultStep, buildGeminiInteractionTextStep, type GeminiInteractionInputStep } from "./geminiInteractions.js";
 import { accumulateGeminiUsage, extractGeminiInteractionsUsage, GEMINI_SEARCH_GROUNDING_COST, toGeminiStreamChunkUsage, type GeminiInteractionsUsage } from "./geminiUsage.js";
-import { collectGeminiWebSources } from "./geminiTools.js";
+import { collectGeminiWebSources, GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR } from "./geminiTools.js";
 import { executeGeminiTools, GeminiToolBudget, type GeminiToolLimitPolicy, type GeminiToolMode } from "./geminiToolExecution.js";
 
 export interface GeminiInteractionsRunnerOptions<Input> {
@@ -39,6 +39,8 @@ export async function* runGeminiInteractions<Input>(options: GeminiInteractionsR
   let input: Input | string | GeminiInteractionInputStep[] = options.input;
   let finalRound = false;
   let ragEmitted = options.ragAlreadyEmitted;
+  let webSearchUsed = false;
+  let searchSuggestions: string | undefined;
   let roundSpan: string | null = null;
   const metadata = () => ({ toolCallCount: execution.toolCallCount, roundCount: roundNumber });
   try {
@@ -73,6 +75,8 @@ export async function* runGeminiInteractions<Input>(options: GeminiInteractionsR
         totalUsage.totalCost = (totalUsage.totalCost ?? 0) + GEMINI_SEARCH_GROUNDING_COST[model];
       }
       for (const source of round.webSources) collectGeminiWebSources(source, webSources);
+      if (round.webSearchUsed) webSearchUsed = true;
+      if (round.searchSuggestions !== undefined) searchSuggestions = round.searchSuggestions;
       if (roundError) throw new Error(roundError);
       if (!round.hasReceivedEvent) throw new Error("No response received from API (possible server error)");
       if (!ragEmitted && (options.searchPolicy === "native"
@@ -119,6 +123,8 @@ export async function* runGeminiInteractions<Input>(options: GeminiInteractionsR
       } });
       roundSpan = null;
     }
+    // A Grounded Result may only be shown with its Search Suggestions; fail rather than show it bare.
+    if (webSearchUsed && searchSuggestions === undefined) throw new Error(GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR);
     const generationMetadata: Record<string, unknown> = metadata();
     if (totalUsage.toolUsePromptTokens) {
       generationMetadata.toolUsePromptTokens = totalUsage.toolUsePromptTokens;

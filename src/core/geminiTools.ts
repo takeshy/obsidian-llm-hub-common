@@ -84,6 +84,30 @@ export function extractGeminiGroundingWebSearch(chunk: unknown): {
   };
 }
 
+/** generateContent Search Suggestions: `groundingMetadata.searchEntryPoint.renderedContent`, untouched. */
+export function extractGeminiSearchSuggestions(chunk: unknown): string | undefined {
+  const rendered = (chunk as {
+    candidates?: Array<{ groundingMetadata?: { searchEntryPoint?: { renderedContent?: unknown } } }>;
+  } | undefined)?.candidates?.[0]?.groundingMetadata?.searchEntryPoint?.renderedContent;
+  return typeof rendered === "string" && rendered.trim() ? rendered : undefined;
+}
+
+/** Interactions API Search Suggestions: `google_search_result.result[].search_suggestions`, untouched. */
+export function extractGeminiInteractionSearchSuggestions(searchResult: unknown): string | undefined {
+  const results = (searchResult as { result?: unknown } | undefined)?.result;
+  if (!Array.isArray(results)) return undefined;
+  let latest: string | undefined;
+  for (const result of results) {
+    const rendered = (result as { search_suggestions?: unknown } | undefined)?.search_suggestions;
+    if (typeof rendered === "string" && rendered.trim()) latest = rendered;
+  }
+  return latest;
+}
+
+/** Thrown when Google grounding ran but nothing was returned to show as Search Suggestions. */
+export const GEMINI_SEARCH_SUGGESTIONS_MISSING_ERROR =
+  "Google Search grounding returned no Search Suggestions, so the answer cannot be shown. Please retry.";
+
 export interface ParsedGeminiContentParts {
   textSegments: Array<{ type: "text" | "thinking"; content: string }>;
   functionCalls: Array<{ id?: string; name: string; args: Record<string, unknown> }>;

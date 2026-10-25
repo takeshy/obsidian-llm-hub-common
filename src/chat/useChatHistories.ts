@@ -17,6 +17,7 @@ import {
   type ChatStorageHost,
 } from "./chatStore.js";
 import { generateChatId } from "./chatId.js";
+import { groundingRetentionDay, withoutExpiredGroundedResults } from "../core/grounding.js";
 
 export type SaveNoteState = "idle" | "saving" | "saved";
 
@@ -46,6 +47,12 @@ export interface ChatHistoriesApi {
   deleteChat: (chatId: string) => Promise<void>;
   /** Writes the conversation out as a readable note and reports it with a Notice. */
   saveAsNote: (msgs: Message[]) => Promise<void>;
+  /**
+   * Drops expired Google Grounded Results from every loaded chat and rewrites the changed files.
+   * Runs by itself on load, on save and on the first use after the date changes; hosts may call
+   * it on plugin start. Obsidian cannot delete anything while it is not running.
+   */
+  pruneExpiredGroundedResults: () => void;
   /** Reads an encrypted chat back with the given password. */
   decryptChat: (chatId: string, password: string) => Promise<{ messages: Message[]; createdAt: number; cliSession?: CliSessionInfo }>;
 }
@@ -68,19 +75,55 @@ export function useChatHistories(host: ChatStorageHost): ChatHistoriesApi {
   const hostRef = useRef(host);
   hostRef.current = host;
 
+  // The UTC day retention was last enforced on, for "first use after the date changed".
+  const retentionDayRef = useRef(groundingRetentionDay());
+
+  const pruneExpiredGroundedResults = useCallback(() => {
+    const current = hostRef.current;
+    const now = Date.now();
+    retentionDayRef.current = groundingRetentionDay(now);
+    setChatHistories(prev => {
+      let changed = false;
+      const next: ChatHistory[] = [];
+      for (const history of prev) {
+        const messages = withoutExpiredGroundedResults(history.messages, now);
+        if (messages === history.messages) { next.push(history); continue; }
+        changed = true;
+        if (messages.length === 0) {
+          void removeChatFiles(current, history.id);
+          continue;
+        }
+        void writeChatFile(current, messages, history.id, history.createdAt, history.cliSession, history.updatedAt)
+          .catch((e: unknown) => { console.warn("Failed to write chat file:", history.id, e); });
+        next.push({ ...history, messages });
+      }
+      return changed ? next : prev;
+    });
+  }, []);
+
+  /** Enforces retention once per day of use. */
+  const pruneIfDayChanged = useCallback(() => {
+    if (groundingRetentionDay() !== retentionDayRef.current) pruneExpiredGroundedResults();
+  }, [pruneExpiredGroundedResults]);
+
   const loadChatHistories = useCallback(async () => {
+    // Reading enforces retention on every plaintext chat and rewrites what changed.
+    retentionDayRef.current = groundingRetentionDay();
     setChatHistories(await readChatHistories(hostRef.current));
   }, []);
 
   const saveChatToDisk = useCallback(async (
-    msgs: Message[],
+    allMsgs: Message[],
     chatId: string,
     opts: SaveChatOptions = {},
   ) => {
     const current = hostRef.current;
-    if (msgs.length === 0) return;
     if (!current.isHistoryEnabled()) return;
     if (deletedChatIdsRef.current.has(chatId)) return;
+    pruneIfDayChanged();
+    // Expired Grounded Results are never written back.
+    const msgs = withoutExpiredGroundedResults(allMsgs);
+    if (msgs.length === 0) return;
 
     const { session, foreground = false } = opts;
     try {
@@ -116,7 +159,7 @@ export function useChatHistories(host: ChatStorageHost): ChatHistoriesApi {
     if (foreground) {
       setCurrentChatId(chatId);
     }
-  }, []);
+  }, [pruneIfDayChanged]);
 
   const saveCurrentChat = useCallback(async (
     msgs: Message[],
@@ -173,6 +216,7 @@ export function useChatHistories(host: ChatStorageHost): ChatHistoriesApi {
     saveCurrentChat,
     deleteChat,
     saveAsNote,
+    pruneExpiredGroundedResults,
     decryptChat: decrypt,
   };
 }

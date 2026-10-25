@@ -1,6 +1,7 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { Message } from "../core/message.js";
 import { tracing } from "../core/tracingHooks.js";
+import { withoutExpiredGroundedResults } from "../core/grounding.js";
 import type { CliSessionInfo } from "./chatUtils.js";
 import type { StreamSession } from "./useChatStreamSessions.js";
 
@@ -88,7 +89,9 @@ export async function runChatTurn<C = void>(ui: ChatTurnUi, request: ChatTurnReq
   // after it, a chat switch in that window would send the answer to whichever
   // chat the user had just opened instead of the one they typed in.
   const session = ui.createStreamSession();
-  const history = ui.messages;
+  // A Grounded Result past its retention date is neither shown nor saved again. Hosts building
+  // the request from their own state filter it the same way (withoutExpiredGroundedResults).
+  const history = withoutExpiredGroundedResults(ui.messages);
 
   // Register before preparation so navigating away can detach this controller too.
   const abortController = new AbortController();
@@ -108,7 +111,7 @@ export async function runChatTurn<C = void>(ui: ChatTurnUi, request: ChatTurnReq
   const context = start.context as C;
 
   if (session.isActive()) {
-    ui.setMessages(prev => [...prev, userMessage]);
+    ui.setMessages(prev => [...withoutExpiredGroundedResults(prev), userMessage]);
     ui.setIsLoading(true);
     ui.setStreamingContent("");
     ui.setStreamingThinking("");

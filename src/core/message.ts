@@ -26,7 +26,11 @@ export interface Message {
   ragUsed?: boolean;  // RAG（File Search）が使用されたか
   ragSources?: string[];  // RAG検索で見つかったソースファイル
   webSearchUsed?: boolean;  // Web Searchが使用されたか
-  webSearchSources?: WebSearchSource[];  // Cited web sources in display order
+  webSearchSources?: WebSearchSource[];  // Cited web sources in display order (session-only for Google grounding)
+  /** Google Search Suggestions HTML/CSS (`renderedContent`). Session-only: never persisted. */
+  searchSuggestions?: string;
+  /** Retention stamp of a Google Search Grounded Result; set only on such results. */
+  grounding?: GroundingRetention;
   providerContinuation?: ProviderContinuation;  // Opaque native context for stateless replay
   imageGenerationUsed?: boolean;  // Image Generationが使用されたか
   generatedImages?: GeneratedImage[];  // 生成された画像
@@ -40,6 +44,13 @@ export interface Message {
   ragCitations?: RagCitation[];   // per-chunk citation locations (new chats)
   toolCallId?: string;          // tool call ID (for tool role messages, LM Studio)
   toolName?: string;            // tool name (for tool role messages, Ollama)
+}
+
+/** When a Google Search Grounded Result was shown and when it must be gone (see core/grounding). */
+export interface GroundingRetention {
+  provider: "google_search";
+  displayedAt: number;
+  expiresAt: number;
 }
 
 export interface ToolCall {

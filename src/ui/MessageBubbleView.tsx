@@ -24,6 +24,7 @@ import { chatLinkFileRef } from "../chat/localFileLink.js";
 import { readAloud, speechKeyForMessage, stopReadingAloud, useSpeakingMessageKey } from "../chat/voiceChat.js";
 import { getReadNotePageRange } from "../chat/toolDisplay.js";
 import { ConfirmModal } from "./ConfirmModal.js";
+import { SearchSuggestions } from "./SearchSuggestions.js";
 
 /** Where skills live when the host does not say otherwise. */
 const SKILLS_FOLDER = "skills";
@@ -528,6 +529,15 @@ export default function MessageBubble({
             title: source.url,
             onOpen: () => window.open(source.url, "_blank"),
           }))}
+        />
+      )}
+
+      {/* Google Search Suggestions: required with every Google grounded answer, session-only */}
+      {message.searchSuggestions && (
+        <SearchSuggestions
+          classPrefix={classPrefix}
+          renderedContent={message.searchSuggestions}
+          title={t("message.searchSuggestions")}
         />
       )}
 

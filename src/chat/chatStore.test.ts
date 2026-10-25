@@ -201,3 +201,53 @@ describe("mergeChatHistory", () => {
     expect(expired).toEqual([]);
   });
 });
+
+describe("grounding retention on disk", () => {
+  const REDIRECT = "https://vertexaisearch.cloud.google.com/grounding-api-redirect/x";
+  const legacyFile = (timestamp: number) => [
+    "---", 'title: "q"', "createdAt: 42", "updatedAt: 99", "---", "", "# q", "",
+    "## **You** (1:00)", "", "q", "", `<!-- msg-meta:{"timestamp":${timestamp}} -->`, "", "---", "",
+    "## **gemini-2.5-flash** (1:00)", "", `Answer [s](${REDIRECT})`, "",
+    `<!-- msg-meta:${JSON.stringify({ webSearchUsed: true, webSearchSources: [{ title: "s", url: REDIRECT }], timestamp })} -->`,
+    "", "---", "",
+  ].join("\n");
+
+  it("migrates a legacy grounded chat on load, keeping its order and other messages (T09)", async () => {
+    adapter.files.set("AI/chats/chat_1.md", legacyFile(Date.now() - 1000));
+    const [history] = await readChatHistories(host);
+    expect(history.messages.map(m => m.content)).toEqual(["q", "Answer s"]);
+    expect(history.updatedAt).toBe(99);
+    const saved = adapter.files.get("AI/chats/chat_1.md")!;
+    expect(saved).not.toContain(REDIRECT);
+    expect(saved).toContain('"grounding":{"provider":"google_search"');
+    expect(saved).toContain("updatedAt: 99");
+    // Re-running changes nothing (T13).
+    await readChatHistories(host);
+    expect(adapter.files.get("AI/chats/chat_1.md")).toBe(saved);
+  });
+
+  it("removes expired grounded answers from disk and from what is returned (T07)", async () => {
+    adapter.files.set("AI/chats/chat_1.md", legacyFile(Date.now() - 3 * 365 * 86_400_000));
+    const [history] = await readChatHistories(host);
+    expect(history.messages.map(m => m.content)).toEqual(["q"]);
+    expect(adapter.files.get("AI/chats/chat_1.md")).not.toContain("Answer");
+  });
+
+  it("returns the cleaned messages and leaves the file intact when the rewrite fails", async () => {
+    const original = legacyFile(Date.now() - 1000);
+    adapter.files.set("AI/chats/chat_1.md", original);
+    adapter.write = async () => { throw new Error("disk full"); };
+    const [history] = await readChatHistories(host);
+    expect(history.messages[1].webSearchSources).toBeUndefined();
+    expect(adapter.files.get("AI/chats/chat_1.md")).toBe(original);
+  });
+
+  it("keeps a host's own narrowing of legacy web search", async () => {
+    host.isLegacyGoogleGrounded = () => false;
+    const original = legacyFile(Date.now() - 1000);
+    adapter.files.set("AI/chats/chat_1.md", original);
+    const [history] = await readChatHistories(host);
+    expect(history.messages[1].webSearchSources).toHaveLength(1);
+    expect(adapter.files.get("AI/chats/chat_1.md")).toBe(original);
+  });
+});
