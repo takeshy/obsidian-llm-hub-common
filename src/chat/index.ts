@@ -20,3 +20,4 @@ export * from "./voiceChat.js";
 export * from "./speechPopup.js";
 
 export * from "./groundingPolicy.js";
+export * from "./fileMentions.js";

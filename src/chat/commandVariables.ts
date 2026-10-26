@@ -113,10 +113,9 @@ export function isMentionableFile(file: TFile): boolean {
   return MENTIONABLE_EXTENSIONS.has(file.extension.toLowerCase());
 }
 
-// File mentions stay as bare vault paths whenever the model has vault tools
-// (see resolveMessageVariables), so it has to fetch their contents itself.
+// Reference metadata is request-only; fetching instructions belong in the system prompt.
 export const FILE_MENTION_TOOL_PROMPT =
-  "\n\nA bare vault-relative path in the user's message (for example `folder/note.md` or `folder/document.pdf`) is a file the user referenced by mention, not a literal string. Its content is not inlined into the message. Call read_note with that exact path before answering anything that depends on it.";
+  "\n\nVault file references are shown as [[vault-relative/path]] with file type and byte size. Their content is not included unless explicitly supplied. Call read_note with the exact vault-relative path before answering anything that depends on the file. To avoid excessive token use on large files, prefer relevant line or PDF page ranges when the tool supports them, and read more only as needed.";
 
 export interface MessageVariableOptions extends CommandVariableSources {
   /**
@@ -141,7 +140,17 @@ export async function resolveMessageVariables(
   content: string,
   options: MessageVariableOptions,
 ): Promise<string> {
-  let result = await resolveCommandVariables(app, content, options);
+  const resolved = await resolveCommandVariables(app, content, options);
+  return resolveFileMentionContent(app, resolved, options);
+}
+
+/** Expand file text without resolving command variables a second time. */
+export async function resolveFileMentionContent(
+  app: App,
+  content: string,
+  options: Omit<MessageVariableOptions, keyof CommandVariableSources>,
+): Promise<string> {
+  let result = content;
   const scopedFolders = options.vaultToolAllowedFolders;
   const vaultToolScopeLimited = (scopedFolders?.length ?? 0) > 0;
   if (!options.inlineFileMentions && !vaultToolScopeLimited) return result;
