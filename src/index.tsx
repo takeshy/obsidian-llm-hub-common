@@ -120,12 +120,12 @@ export function MessageBubble({ classPrefix: p, isUser, isStreaming, roleLabel, 
       <span className={`${p}-message-role`}>{roleLabel}</span>
       <span className={`${p}-message-time`}>{timeLabel}</span>
       {!isStreaming && speech && <button
-        className={[`${p}-speech-btn`, speech.speaking && `${p}-speech-btn-speaking`].filter(Boolean).join(" ")}
+        type="button" className={["clickable-icon", `${p}-speech-btn`, speech.speaking && `${p}-speech-btn-speaking`].filter(Boolean).join(" ")}
         onClick={speech.speaking ? speech.onStop : speech.onRead}
         title={speech.speaking ? speech.stopLabel : speech.readLabel}>
         {speech.speaking ? <StopCircle size={14} /> : <Volume2 size={14} />}
       </button>}
-      {!isStreaming && <button className={`${p}-copy-btn`} onClick={onCopy} title={copyLabel}>{copied ? <Check size={14} /> : <Copy size={14} />}</button>}
+      {!isStreaming && <button type="button" className={`${p}-copy-btn clickable-icon`} onClick={onCopy} title={copyLabel}>{copied ? <Check size={14} /> : <Copy size={14} />}</button>}
     </div>
     {children}
   </div>;

@@ -69,36 +69,37 @@ The local transport integration tests bind temporary loopback HTTP servers. They
 socket access but no external API keys or running model. Real-model and Obsidian checks are still
 needed before release.
 
-Each plugin pins a full commit SHA from this GitHub repository:
+## Consumer packages
+
+Plugins currently pin prebuilt archives checked into their own `vendor/` directory:
 
 ```json
-"obsidian-llm-hub-common": "git+https://github.com/takeshy/obsidian-llm-hub-common.git#<full-commit-sha>"
+"obsidian-llm-hub-common": "file:vendor/obsidian-llm-hub-common-<version>.tgz"
 ```
 
-On installation, npm runs `prepare` to compile the Git checkout into `dist/`.
-The generated ESM and declarations are included in the installed package; they
-are not tracked in Git. Registry publication and checked-in tarballs are not
-needed. Consumers can run `npm ci` from a standalone checkout. Lifecycle scripts
-must be enabled for Git dependency preparation.
+`npm pack` runs the build and tests through `prepack`, and includes compiled ESM,
+TypeScript declarations and the MIT license. Consumers can install the archive
+with `npm ci --ignore-scripts`; they do not need to compile this library during
+installation or have its source repository checked out.
 
-For subsequent updates, build and test the library, commit and push it to `main`,
-then synchronize the consumers from that clean commit:
+To update a consumer, bump the library version when changing package contents,
+build and test the library, commit its source, then create an archive with `npm pack`.
+Copy the archive into the intended consumer's `vendor/` directory and update its pin:
 
 ```sh
-npm run build
-npm test
-git add <changed-files>
-git commit -m "Describe the library change"
-git push origin main
-npm run sync-plugins -- ../obsidian-gemini-helper ../obsidian-llm-hub ../obsidian-local-llm-hub
+npm install --ignore-scripts --no-audit --no-fund --save-exact ./vendor/obsidian-llm-hub-common-<version>.tgz
 ```
 
-The sync script verifies that the clean local HEAD matches GitHub's `main`, then
-updates each consumer's dependency and lockfile to that exact SHA. It runs npm
-with lifecycle scripts enabled so `prepare` generates the package's build output.
-Run each consumer's build, lint and relevant tests afterward, then commit its
-`package.json`, `package-lock.json` and any regenerated styles. A version bump is
-optional for Git-only updates because the full SHA identifies the exact source.
+Record the source commit and archive integrity in the consumer's `vendor/README.md`.
+Run that consumer's build, lint and relevant tests, then commit the archive,
+dependency, lockfile, provenance and any regenerated styles. Each consumer pins
+its own tested package version; a library update does not change other plugins
+automatically.
+
+The optional `sync-plugins` script supports Git dependencies instead. It verifies
+that the clean local HEAD matches GitHub's `main` and changes the supplied
+consumers to that exact Git SHA. It does not update vendored archives. Git installs
+require lifecycle scripts so `prepare` can compile the checkout.
 
 ## Styles
 
@@ -110,8 +111,40 @@ class prefix. The esbuild `chatStylesPlugin` and `import "chat-ui:styles"` regis
 the source styles and package styles in the development watch graph. CSS stays
 in the plugin's usual `styles.css` release artifact.
 
-External Web search adapters (`createWebSearchSession`, `searchWeb`) normalize Tavily and Brave Search results for client function calling. Hosts own provider selection, credential storage, proxy transport, and function-call budgets. `generateWithWebReferences` supports reference retrieval before image generation without native grounding.
+## External Web search and usage
 
-`fetchTavilyUsage` retrieves account/key credit allowances on demand. Brave quota windows are observed from real search response headers. `addWebSearchUsageSetting` provides the corresponding manual Tavily button and passive Brave quota row; hosts must dispose the returned observer when the settings UI unmounts. Usage snapshots are API-key-scoped and remain in memory only.
+`createWebSearchSession` and `searchWeb` normalize Tavily and Brave Search results
+for function calling. Hosts own provider selection, credential storage, transport
+and function-call budgets. `generateWithWebReferences` retrieves search references
+before image generation without native grounding.
 
-Grounding-aware chat storage supports irreversible per-conversation automatic-save restrictions, explicit snapshots and safe Markdown metadata. The optional host policy callbacks leave ordinary/external chat behavior compatible. Google Search Suggestions are runtime display data with SDK-neutral extractors for both Gemini APIs and a sandboxed shared renderer.
+`fetchTavilyUsage` retrieves account/key credit allowances on demand. Brave quota
+windows come from real search response headers without an extra search request.
+`addWebSearchUsageSetting` supplies a manual Tavily credits button or passive Brave
+remaining-requests row. Hosts must dispose the returned observer when the settings
+UI unmounts. Usage snapshots are API-key-scoped and remain in memory only.
+
+## Google grounding and chat storage
+
+Hosts can opt into an irreversible per-conversation
+`autoSaveDisabledByGrounding` policy. They obtain confirmation before enabling
+Google Search, retain the restriction when search is turned off or providers
+change, and display the shared persistent notice. Ordinary and external-search
+conversations retain their existing automatic-save behavior.
+
+Restricted conversations skip automatic history writes. Explicit manual saves
+write the whole conversation to `getManualChatSaveFolder()`; an empty folder means
+the vault root. Re-saving updates the exported note only while its parent matches
+the current setting. After a folder change, the next save uses the new destination.
+Existing automatic history files are not overwritten by manual exports.
+
+Ordinary manual exports use compact Markdown. Restricted exports retain the
+conversation restriction for restoration, but exclude Search Suggestions, search
+sources, raw grounding metadata, tool results and provider continuation data.
+Manual saving does not re-enable automatic saving. Previously stored metadata is
+not migrated or automatically deleted.
+
+Google Search Suggestions are runtime display data, with SDK-neutral extractors
+for GenerateContent and Interactions and a shared sandboxed HTML renderer. They
+are not persisted in Markdown. Hosts must restrict native grounding to UI paths
+that can display Suggestions; source badges alone do not replace them.
