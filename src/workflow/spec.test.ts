@@ -23,6 +23,13 @@ describe("workflow specification", () => {
     expect(spec).toContain("notes");
   });
 
+  it("documents the optional Jev override and inherited per-index preference", () => {
+    const spec = getWorkflowNodeSpec(["command"], context);
+    expect(spec).toContain("ragSearchUntilFound");
+    expect(spec).toContain("Jev-capable hosts only");
+    expect(spec).toContain("saved per-index preference");
+  });
+
   it("still renders with nothing configured", () => {
     expect(WORKFLOW_SPECIFICATION.length).toBeGreaterThan(1000);
   });

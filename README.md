@@ -148,3 +148,9 @@ Google Search Suggestions are runtime display data, with SDK-neutral extractors
 for GenerateContent and Interactions and a shared sandboxed HTML renderer. They
 are not persisted in Markdown. Hosts must restrict native grounding to UI paths
 that can display Suggestions; source badges alone do not replace them.
+
+## Optional Jev workflow controls
+
+A host that supports Jev can implement `WorkflowHost.getRagSearchOptions(name?)`, returning `{ jevEnabled, searchUntilFound }`. An omitted name means the currently selected index. Command nodes show **Search until an answer is found** only when Jev is active for the selected index. Hosts without this hook keep their existing UI.
+
+The checkbox initially follows the host's saved per-index preference. Changing it saves `ragSearchUntilFound: "true"` or `"false"` in the node properties; reopening the editor preserves that explicit override. When the property is omitted, the host uses its saved preference. The host must apply the override during command execution. Jev credentials, API calls, result filtering, and repeated Top K searches stay in the host; this hook alone does not add Jev support to another Hub.

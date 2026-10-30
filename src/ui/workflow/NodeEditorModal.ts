@@ -1,4 +1,4 @@
-import { App, Modal, Setting, TFile } from "obsidian";
+import { App, Modal, Setting, TFile, type ToggleComponent } from "obsidian";
 import { SidebarNode } from "../../workflow/types.js";
 import { t } from "../../i18n/index.js";
 import { cls } from "../../core/classPrefix.js";
@@ -267,6 +267,33 @@ export class NodeEditorModal extends Modal {
             this.editedProperties["ragSetting"] = value;
           });
         });
+
+        // Only Jev-capable hosts offer this override; the API and search remain in the host.
+        if (workflowHost().getRagSearchOptions) {
+          let untilFoundToggle: ToggleComponent | undefined;
+          const untilFoundSetting = new Setting(container)
+            .setName(t("search.searchUntilFound"))
+            .setDesc(t("search.topKJevNote"))
+            .addToggle(toggle => {
+              untilFoundToggle = toggle;
+              toggle.onChange(enabled => {
+                this.editedProperties["ragSearchUntilFound"] = String(enabled);
+              });
+            });
+          const updateUntilFound = () => {
+            const name = this.editedProperties["ragSetting"];
+            const options = workflowHost().getRagSearchOptions?.(name);
+            const active = Boolean(options?.jevEnabled && !searchDropdown?.disabled
+              && name !== "__none__" && name !== "__websearch__" && name !== "");
+            untilFoundSetting.settingEl.toggle(active);
+            untilFoundToggle?.setDisabled(!active);
+            untilFoundToggle?.setValue(this.editedProperties["ragSearchUntilFound"] === undefined
+              ? options?.searchUntilFound ?? false
+              : this.editedProperties["ragSearchUntilFound"] === "true");
+          };
+          updateUntilFound();
+          container.addEventListener("change", updateUntilFound);
+        }
 
         // Vault Tools dropdown
         new Setting(container).setName(t("nodeEditor.vaultTools")).addDropdown((dropdown) => {

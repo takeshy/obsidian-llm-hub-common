@@ -1072,6 +1072,8 @@ export const en = {
   "search.refineWithAI": "Refine with AI",
   "search.refining": "Refining...",
   "search.removeFilter": "Remove condition",
+  "search.searchUntilFound": "Search until an answer is found",
+  "search.topKJevNote": "With Jev enabled, check Top K candidates at a time until matching results are found or eligible candidates run out. Return all matches from the first successful batch. When off, check one batch only. Repeated checks can increase API usage and search time.",
   "search.results": "Results",
   "search.scoreThreshold": "Min score",
   "search.search": "Search",

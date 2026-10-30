@@ -54,6 +54,16 @@ nodes:
   });
 
   describe("block scalar indentation fix", () => {
+    it("keeps the Jev override outside an under-indented prompt", () => {
+      const input = `- id: answer
+  type: command
+  prompt: |
+  Find the answer
+  ragSearchUntilFound: true
+  saveTo: result`;
+      expect(normalizeYamlText(input)).toContain("    Find the answer\n  ragSearchUntilFound: true\n  saveTo: result");
+    });
+
     it("fixes block scalar content at same indent as key", () => {
       const input = `- id: step1
   type: command

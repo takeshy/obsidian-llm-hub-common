@@ -85,6 +85,8 @@ export interface WorkflowHost {
   getModelOptions(): WorkflowModelOption[];
   /** Names of the configured RAG indexes, empty when the host has none. */
   getRagSettingNames(): string[];
+  /** Optional Jev support. Omitted by hosts without Jev; undefined selects the current index. */
+  getRagSearchOptions?(name?: string): { jevEnabled: boolean; searchUntilFound: boolean };
   /** Names of the configured MCP servers, empty when the host has no MCP support. */
   getMcpServerNames(): string[];
   /** The model the host is chatting with right now, used when a node picks no model of its own. */

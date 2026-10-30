@@ -37,7 +37,7 @@ const WORKFLOW_YAML_KEYS = new Set([
   "name", "value", "comment", "saveTo", "timeout", "path", "mode",
   "condition", "code", "prompt", "content", "source", "title", "message",
   // command
-  "enableThinking", "model", "attachments", "enableTools", "saveImageTo",
+  "enableThinking", "model", "attachments", "enableTools", "saveImageTo", "ragSearchUntilFound",
   // http
   "url", "method", "contentType", "responseType", "headers", "body",
   "saveStatus", "throwOnError",

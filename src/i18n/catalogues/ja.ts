@@ -1072,6 +1072,8 @@ export const ja = {
   "search.refineWithAI": "AIで整形",
   "search.refining": "整形中...",
   "search.removeFilter": "条件を削除",
+  "search.searchUntilFound": "回答が見つかるまで検索する",
+  "search.topKJevNote": "Jev有効時にTop K件ずつ判定し、一致する結果が見つかるか候補が尽きるまで続けます。最初に一致した回の一致結果をすべて返します。オフの場合は1回だけ判定します。繰り返すとAPI使用量と検索時間が増える場合があります。",
   "search.results": "件",
   "search.scoreThreshold": "最低スコア",
   "search.search": "検索",

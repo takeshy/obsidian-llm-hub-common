@@ -191,6 +191,7 @@ Execute LLM prompt.
 - **prompt** (required): Prompt template (supports {{variables}})
 - **model** (optional): Model override. Available: ${modelList}
 - **ragSetting** (optional): __websearch__, __none__, or RAG setting name. ${ragList}
+- **ragSearchUntilFound** (optional, Jev-capable hosts only): true/false. With Jev active, check Top K batches until matching results are found or eligible candidates run out, returning all matches from the first successful batch. Omit to use the host's saved per-index preference.
 - **vaultTools** (optional): "all" (default), "noSearch", "readOnly" (search/read without file changes), "none"
 - **mcpServers** (optional): Comma-separated MCP server names. ${mcpServerList}
 - **enableThinking** (optional): "true" (default) or "false". Enable deep thinking mode
