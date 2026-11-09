@@ -126,7 +126,10 @@ export interface WorkflowHost {
   runMcpNode?(request: NodeRequest): Promise<unknown>;
   /** Runs a shell node, for hosts that allow shell commands. */
   runShellNode?(request: NodeRequest): Promise<void>;
-  /** Runs a RAG index sync node, for hosts with a local index. */
+  /**
+   * Runs a RAG index sync node, for hosts with a local index.
+   * Optional for hosts without RAG; executing rag-sync without this hook throws.
+   */
   runRagSyncNode?(request: NodeRequest): Promise<void>;
 }
 
