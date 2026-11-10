@@ -452,10 +452,10 @@ Execute sub-workflow.
 - **prefix** (optional): Prefix for all imported variables
 
 #### rag-sync
-Run a full incremental sync of a local RAG setting. The setting's target folders,
-exclude patterns, embedding model, and multimodal behavior are applied.
-- **ragSetting** (optional): Local RAG setting name (defaults to the selected setting)
-- **path** (deprecated): Accepted for compatibility but does not limit the sync to one file
+Run an incremental sync of a RAG setting. The setting's target folders,
+exclude patterns, and embedding configuration are applied during a full sync.
+- **ragSetting** (optional): RAG setting name (supports {{variables}}; omitted or empty uses the selected setting)
+- **path** (optional): Omit this property or leave it empty to run a full sync. It is never required. Hosts with single-file sync support can use a path (supports {{variables}}); other hosts run a full sync.
 - **saveTo** (optional): Variable for result
 
 **Example**:

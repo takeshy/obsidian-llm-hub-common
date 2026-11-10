@@ -72,6 +72,29 @@ describe("rag-sync execution", () => {
     });
   });
 
+  it("accepts an omitted path and records the resolved RAG setting in logs and history", async () => {
+    vi.spyOn(ExecutionHistoryManager.prototype, "saveRecord").mockResolvedValue();
+    const handler = vi.fn(async ({ context }: NodeRequest) => {
+      context.variables.set("result", '{"indexedFiles":3}');
+    });
+    configureWorkflowHost({ ...workflowHost(), runRagSyncNode: handler });
+    const variableNode = { ...node, properties: { ragSetting: "{{settingName}}", saveTo: "result" } };
+    const result = await new WorkflowExecutor(app).execute(
+      { nodes: new Map([[variableNode.id, variableNode]]), edges: [], startNode: variableNode.id },
+      { variables: new Map([["settingName", "notes"]]) },
+      undefined,
+      { workflowPath: "sync.md", recordHistory: true },
+    );
+
+    expect(handler).toHaveBeenCalledOnce();
+    expect(result.context.logs.find(log => log.status === "success")).toMatchObject({
+      input: { path: "", ragSetting: "notes" },
+    });
+    expect(result.historyRecord?.steps[0]).toMatchObject({
+      status: "success", input: { path: "", ragSetting: "notes" },
+    });
+  });
+
   it("propagates host sync failures without recording success", async () => {
     const save = vi.spyOn(ExecutionHistoryManager.prototype, "saveRecord").mockResolvedValue();
     const failure = new Error("Embedding server unavailable");

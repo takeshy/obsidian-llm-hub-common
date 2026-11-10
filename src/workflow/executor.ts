@@ -1107,7 +1107,7 @@ export class WorkflowExecutor {
 
           case "rag-sync": {
             const ragSyncPath = replaceVariables(node.properties["path"] || "", context);
-            const ragSettingName = node.properties["ragSetting"] || "";
+            const ragSettingName = replaceVariables(node.properties["ragSetting"] || "", context);
             log(
               node.id,
               node.type,

@@ -1456,8 +1456,10 @@ Fix the problem and output ONLY the complete, valid YAML workflow starting with 
         this.resolvePromise(null);
       }
     } catch (error) {
-      generationModal.close();
       const message = formatError(error);
+      // Keep the request and failure visible after transient Notices disappear.
+      generationModal.setComplete();
+      generationModal.setStatus(`Error: ${message}`);
       workflowTracing().traceEnd(traceId, { metadata: { status: "error", error: message } });
       workflowTracing().score(traceId, { name: "status", value: 0, comment: message });
       new Notice(`Error: ${message}`);
@@ -1604,6 +1606,7 @@ Check for:
 2. **Correctness**: Are node types valid? Are connections (next, trueNext, falseNext) properly set? Are variables initialized before use? NOTE: The \`value\` field on a variable node is OPTIONAL — omitting it defaults to "" for new variables and preserves the existing value for variables already set (input declaration). Do NOT flag missing \`value\` as an issue; only flag real problems (wrong type, broken references, undefined variables being read, etc.).
    IMPORTANT: Do NOT flag "workflow does not output variable X to chat" as an issue. When a skill workflow runs, ALL variables whose name does not start with \`_\` are automatically returned to the chat AI, which presents them to the user as guided by the SKILL.md instructions. A final \`command\` node just to "display" a value is UNNECESSARY — a \`command\` node runs an LLM call inside the workflow and saves to a variable; it does not write directly to the chat. If the concern is that the user should see a specific variable, the fix belongs in the SKILL.md instructions body (e.g., "output \`ogpMarkdown\` verbatim"), not in the workflow YAML.
    IMPORTANT: A successful \`prompt-file\` node always resolves and validates a file before setting \`saveFileTo\`. In hotkey mode it uses the active Markdown file; otherwise it opens the picker. Cancellation, an invalid path, or a read failure throws and stops the workflow. Do NOT claim that execution can continue with an empty \`saveFileTo.path\`, and do NOT request a redundant script/if path-presence guard before a downstream \`rag-sync\` node. Flag the path only when \`saveFileTo\` itself is missing or the workflow references the wrong variable.
+   IMPORTANT: For a \`rag-sync\` node, \`path\` is OPTIONAL. Omitting the property or setting it to an empty string runs a full incremental sync. Do NOT reject a workflow because this node omits \`path\`, and do NOT ask for a redundant path input variable. \`ragSetting\` supports \`{{variables}}\`; omitted or empty values use the selected RAG setting.
 3. **Data flow**: Do saveTo variables match where they're referenced? Are there dangling references?
 4. **Best practices**: Descriptive node IDs? Comments on complex nodes? Proper error handling?
 5. **Variable interpolation in script nodes**: \`{{var:json}}\` does NOT add quotes — it only escapes content. Flag any occurrence where \`{{var:json}}\` appears without surrounding quotes in a JavaScript string context (e.g., \`var x = {{var:json}}\`, \`JSON.parse({{var:json}})\`). The correct form is \`"{{var:json}}"\` when the value should be a string literal.

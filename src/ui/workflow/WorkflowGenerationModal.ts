@@ -195,6 +195,8 @@ export class WorkflowGenerationModal extends Modal {
     this.currentPhase = phase;
     this.renderPhaseIndicator();
     this.updateStatusText();
+    // Confirmation hides the main Cancel button; every active phase restores it.
+    this.cancelBtn?.removeClass("is-hidden");
     // Record phase on contentEl so CSS can style sections based on active phase
     this.contentEl.dataset.phase = phase;
 
@@ -229,12 +231,11 @@ export class WorkflowGenerationModal extends Modal {
 
   private updateStatusText(): void {
     if (!this.statusEl) return;
-    const loadingDots = this.statusEl.querySelector(`.${cls("workflow-generation-loading-dots")}`);
     const statusKey = `workflow.generation.${this.currentPhase}` as const;
     this.statusEl.textContent = t(statusKey);
-    if (loadingDots) {
-      this.statusEl.appendChild(loadingDots);
-    }
+    // Confirmation removes loading dots. Recreate them when generation resumes.
+    const loadingDots = this.statusEl.createSpan({ cls: cls("workflow-generation-loading-dots") });
+    for (let i = 0; i < 3; i++) loadingDots.createSpan({ cls: "dot" });
   }
 
   private setupDragHandle(dragHandle: HTMLElement, modalEl: HTMLElement): void {
