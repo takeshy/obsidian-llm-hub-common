@@ -1119,11 +1119,12 @@ export class WorkflowExecutor {
             if (!host.runRagSyncNode) {
               throw new Error("rag-sync requires the workflow host to implement runRagSyncNode.");
             }
-            await host.runRagSyncNode({ node, context, app: this.app, callbacks: promptCallbacks, abortSignal: options?.abortSignal });
+            const ragSyncOutcome = await host.runRagSyncNode({ node, context, app: this.app, callbacks: promptCallbacks, abortSignal: options?.abortSignal });
 
             const ragSyncSaveTo = node.properties["saveTo"];
             const ragSyncResult = ragSyncSaveTo ? context.variables.get(ragSyncSaveTo) : undefined;
-            const ragSyncInput = { path: ragSyncPath, ragSetting: ragSettingName };
+            // Prefer the setting the host actually used (e.g. its selected-setting fallback).
+            const ragSyncInput = { path: ragSyncPath, ragSetting: ragSyncOutcome?.ragSetting ?? ragSettingName };
             log(
               node.id,
               node.type,

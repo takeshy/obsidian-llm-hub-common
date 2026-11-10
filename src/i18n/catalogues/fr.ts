@@ -218,6 +218,7 @@ export const fr = {
   "nodeEditor.ragOldPath": "Ancien chemin (pour renommage)",
   "nodeEditor.ragOldPath.placeholder": "Ancien chemin à supprimer du store (optionnel, supporte {{variables}})",
   "nodeEditor.ragSetting": "Paramètre RAG",
+  "nodeEditor.ragSetting.placeholder": "Nom du paramètre ou {{variable}} (vide : paramètre sélectionné)",
   "nodeEditor.ragSetting.select": "Sélectionner le paramètre RAG",
   "nodeEditor.recursive": "Récursif",
   "nodeEditor.recursive.desc": "Inclure les sous-dossiers",

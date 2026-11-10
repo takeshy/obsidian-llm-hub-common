@@ -1458,8 +1458,7 @@ Fix the problem and output ONLY the complete, valid YAML workflow starting with 
     } catch (error) {
       const message = formatError(error);
       // Keep the request and failure visible after transient Notices disappear.
-      generationModal.setComplete();
-      generationModal.setStatus(`Error: ${message}`);
+      generationModal.showError(`Error: ${message}`);
       workflowTracing().traceEnd(traceId, { metadata: { status: "error", error: message } });
       workflowTracing().score(traceId, { name: "status", value: 0, comment: message });
       new Notice(`Error: ${message}`);

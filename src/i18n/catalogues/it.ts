@@ -218,6 +218,7 @@ export const it = {
   "nodeEditor.ragOldPath": "Vecchio percorso (per rinomina)",
   "nodeEditor.ragOldPath.placeholder": "Percorso precedente da eliminare dallo store (opzionale, supporta {{variables}})",
   "nodeEditor.ragSetting": "Impostazione RAG",
+  "nodeEditor.ragSetting.placeholder": "Nome impostazione o {{variable}} (vuoto: impostazione selezionata)",
   "nodeEditor.ragSetting.select": "Seleziona impostazione RAG",
   "nodeEditor.recursive": "Ricorsivo",
   "nodeEditor.recursive.desc": "Includi sottocartelle",

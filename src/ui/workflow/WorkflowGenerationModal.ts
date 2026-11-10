@@ -43,6 +43,7 @@ export class WorkflowGenerationModal extends Modal {
   private abortController: AbortController;
   private onCancel: () => void;
   private isCancelled = false;
+  private isOpen = false;
   private executionStepsCount: number;
   private thinkingText = "";
   private reviewText = "";
@@ -68,6 +69,7 @@ export class WorkflowGenerationModal extends Modal {
   }
 
   onOpen(): void {
+    this.isOpen = true;
     const { contentEl, modalEl, containerEl } = this;
     contentEl.empty();
     contentEl.addClass(cls("workflow-generation-modal-content"));
@@ -143,13 +145,8 @@ export class WorkflowGenerationModal extends Modal {
 
     // Status indicator
     this.statusEl = contentEl.createDiv({ cls: cls("workflow-generation-status") });
+    // Also creates the loading dots.
     this.updateStatusText();
-
-    // Add loading animation
-    const loadingDotsEl = this.statusEl.createSpan({ cls: cls("workflow-generation-loading-dots") });
-    loadingDotsEl.createSpan({ cls: "dot" });
-    loadingDotsEl.createSpan({ cls: "dot" });
-    loadingDotsEl.createSpan({ cls: "dot" });
 
     // Cancel button
     const buttonContainer = contentEl.createDiv({ cls: cls("workflow-generation-buttons") });
@@ -544,14 +541,8 @@ export class WorkflowGenerationModal extends Modal {
       this.planContainerEl.empty();
       this.planContainerEl.removeClass("workflow-generation-plan-rendered");
     }
-    // Restore loading dots
-    if (this.statusEl) {
-      this.updateStatusText();
-      const loadingDotsEl = this.statusEl.createSpan({ cls: cls("workflow-generation-loading-dots") });
-      loadingDotsEl.createSpan({ cls: "dot" });
-      loadingDotsEl.createSpan({ cls: "dot" });
-      loadingDotsEl.createSpan({ cls: "dot" });
-    }
+    // Restore the status label and its loading dots
+    this.updateStatusText();
     // Restore cancel button
     if (this.cancelBtn) {
       this.cancelBtn.removeClass("is-hidden");
@@ -663,6 +654,25 @@ export class WorkflowGenerationModal extends Modal {
   }
 
   /**
+   * Shown when generation fails. Keeps the request and the error visible and
+   * replaces the Cancel button, which has nothing left to cancel, with Close.
+   * Does nothing once the modal has been closed.
+   */
+  showError(message: string): void {
+    if (!this.isOpen) return;
+    this.setComplete();
+    this.setStatus(message);
+    this.statusEl?.removeClass(cls("workflow-generation-status-active"));
+    this.cancelBtn?.addClass("is-hidden");
+    // A pending plan or review confirmation can no longer be answered.
+    this.contentEl.querySelectorAll(`.${cls("workflow-generation-plan-confirm")}`).forEach(el => el.remove());
+
+    const buttons = this.contentEl.createDiv({ cls: cls("workflow-generation-buttons") });
+    const closeBtn = buttons.createEl("button", { text: t("common.close"), cls: "mod-cta" });
+    closeBtn.addEventListener("click", () => this.close());
+  }
+
+  /**
    * Shown when YAML parsing fails after all auto-repair attempts have been
    * exhausted. Keeps the modal open with the raw response + error so the user
    * can copy the prompt result into a stronger external LLM.
@@ -741,6 +751,7 @@ export class WorkflowGenerationModal extends Modal {
   }
 
   onClose(): void {
+    this.isOpen = false;
     if (this.markdownComponent) {
       this.markdownComponent.unload();
       this.markdownComponent = null;

@@ -218,6 +218,7 @@ export const es = {
   "nodeEditor.ragOldPath": "Ruta anterior (para renombrar)",
   "nodeEditor.ragOldPath.placeholder": "Ruta anterior a eliminar del almacén (opcional, soporta {{variables}})",
   "nodeEditor.ragSetting": "Configuración RAG",
+  "nodeEditor.ragSetting.placeholder": "Nombre de configuración o {{variable}} (vacío: configuración seleccionada)",
   "nodeEditor.ragSetting.select": "Seleccionar configuración RAG",
   "nodeEditor.recursive": "Recursivo",
   "nodeEditor.recursive.desc": "Incluir subcarpetas",

@@ -252,6 +252,7 @@ export const ja = {
   "nodeEditor.ragOldPath": "旧パス（リネーム用）",
   "nodeEditor.ragOldPath.placeholder": "ストアから削除する旧パス（任意、{{変数}}対応）",
   "nodeEditor.ragSetting": "RAG設定",
+  "nodeEditor.ragSetting.placeholder": "設定名または{{variable}}（空欄: 選択中の設定）",
   "nodeEditor.ragSetting.select": "RAG設定を選択",
   "nodeEditor.recursive": "再帰的",
   "nodeEditor.recursive.desc": "サブフォルダを含める",

@@ -218,6 +218,7 @@ export const zh = {
   "nodeEditor.ragOldPath": "旧路径（用于重命名）",
   "nodeEditor.ragOldPath.placeholder": "要从存储中删除的旧路径（可选，支持 {{variables}}）",
   "nodeEditor.ragSetting": "RAG 设置",
+  "nodeEditor.ragSetting.placeholder": "设置名称或 {{variable}}（留空：使用所选设置）",
   "nodeEditor.ragSetting.select": "选择 RAG 设置",
   "nodeEditor.recursive": "递归",
   "nodeEditor.recursive.desc": "包含子文件夹",

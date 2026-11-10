@@ -252,6 +252,7 @@ export const en = {
   "nodeEditor.ragOldPath": "Old path (for rename)",
   "nodeEditor.ragOldPath.placeholder": "Previous path to delete from store (optional, supports {{variables}})",
   "nodeEditor.ragSetting": "RAG setting",
+  "nodeEditor.ragSetting.placeholder": "Setting name or {{variable}} (empty: selected setting)",
   "nodeEditor.ragSetting.select": "Select RAG setting",
   "nodeEditor.recursive": "Recursive",
   "nodeEditor.recursive.desc": "Include subfolders",

@@ -459,11 +459,12 @@ export class NodeEditorModal extends Modal {
       case "rag-sync": {
         this.addTextField(container, "path", t("nodeEditor.ragNotePath"), t("nodeEditor.ragNotePath.placeholder"));
         this.addTextField(container, "oldPath", t("nodeEditor.ragOldPath"), t("nodeEditor.ragOldPath.placeholder"));
-        const ragNames = workflowHost().getRagSettingNames();
-        this.addLabeledDropdown(container, "ragSetting", t("nodeEditor.ragSetting"), [
-          { value: "", label: t("nodeEditor.ragSetting.select") },
-          ...ragNames.map((name: string) => ({ value: name, label: name })),
-        ]);
+        // A text field, not a dropdown: ragSetting also accepts {{variables}},
+        // which a fixed option list can neither show nor preserve.
+        this.addSuggestTextField(
+          container, "ragSetting", t("nodeEditor.ragSetting"),
+          t("nodeEditor.ragSetting.placeholder"), workflowHost().getRagSettingNames(),
+        );
         this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.ragResult"));
         break;
       }
@@ -540,6 +541,28 @@ export class NodeEditorModal extends Modal {
       if (enablePathCompletion) {
         this.setupPathCompletion(text.inputEl, setting.settingEl, key);
       }
+    });
+  }
+
+  /** Free text with the given values offered as native suggestions. */
+  private addSuggestTextField(
+    container: HTMLElement,
+    key: string,
+    name: string,
+    placeholder: string,
+    suggestions: string[]
+  ): void {
+    new Setting(container).setName(name).addText((text) => {
+      text.setPlaceholder(placeholder);
+      text.setValue(this.editedProperties[key] || "");
+      text.onChange((value) => {
+        this.editedProperties[key] = value;
+      });
+      const list = text.inputEl.parentElement?.createEl("datalist");
+      if (!list) return;
+      list.id = `${cls("node-editor-suggest")}-${key}`;
+      for (const value of suggestions) list.createEl("option", { value });
+      text.inputEl.setAttribute("list", list.id);
     });
   }
 

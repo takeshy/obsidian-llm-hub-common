@@ -95,6 +95,23 @@ describe("rag-sync execution", () => {
     });
   });
 
+  it("records the setting the host fell back to when ragSetting is omitted", async () => {
+    vi.spyOn(ExecutionHistoryManager.prototype, "saveRecord").mockResolvedValue();
+    configureWorkflowHost({ ...workflowHost(), runRagSyncNode: async () => ({ ragSetting: "selected" }) });
+    const fallbackNode = { ...node, properties: {} };
+    const result = await new WorkflowExecutor(app).execute(
+      { nodes: new Map([[fallbackNode.id, fallbackNode]]), edges: [], startNode: fallbackNode.id },
+      { variables: new Map() },
+      undefined,
+      { workflowPath: "sync.md", recordHistory: true },
+    );
+
+    expect(result.context.logs.find(log => log.status === "success")).toMatchObject({
+      input: { path: "", ragSetting: "selected" },
+    });
+    expect(result.historyRecord?.steps[0]).toMatchObject({ input: { path: "", ragSetting: "selected" } });
+  });
+
   it("propagates host sync failures without recording success", async () => {
     const save = vi.spyOn(ExecutionHistoryManager.prototype, "saveRecord").mockResolvedValue();
     const failure = new Error("Embedding server unavailable");

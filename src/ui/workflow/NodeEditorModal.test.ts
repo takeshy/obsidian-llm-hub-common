@@ -19,6 +19,12 @@ vi.mock("obsidian", async importOriginal => {
     change = (_value: any) => {};
     setValue(value: unknown) { this.value = value; return this; }
     setDisabled(value: boolean) { this.disabled = value; return this; }
+    setPlaceholder() { return this; }
+    options: string[] = [];
+    inputEl = {
+      setAttribute: () => {},
+      parentElement: { createEl: () => ({ id: "", createEl: (_tag: string, option: { value: string }) => { this.options.push(option.value); } }) },
+    };
     addOption() { return this; }
     onChange(callback: (value: any) => void) { this.change = callback; return this; }
   }
@@ -30,6 +36,7 @@ vi.mock("obsidian", async importOriginal => {
     constructor() { state.settings.push(this); }
     setName(name: string) { this.name = name; return this; }
     setDesc() { return this; }
+    addText(callback: (control: Control) => void) { this.control = new Control(); callback(this.control); return this; }
     addDropdown(callback: (control: Control) => void) { this.control = new Control(); callback(this.control); return this; }
     addToggle(callback: (control: Control) => void) { this.control = new Control(); callback(this.control); return this; }
   } };
@@ -93,5 +100,23 @@ describe("Workflow Jev checkbox", () => {
   it("hides the checkbox for hosts without Jev support", () => {
     configureWorkflowHost({ getModelOptions: () => [], getRagSettingNames: () => [], getMcpServerNames: () => [] } as unknown as WorkflowHost);
     expect(editor({}).checkbox).toBeUndefined();
+  });
+});
+
+describe("rag-sync RAG setting field", () => {
+  it("shows a variable expression, suggests the host's settings and saves typed text", async () => {
+    state.settings = [];
+    const onSave = vi.fn();
+    const modal = new NodeEditorModal(new App(), { id: "sync", type: "rag-sync", properties: { ragSetting: "{{settingName}}" } }, onSave);
+    const internal = modal as any;
+    for (const method of ["addTextField", "addTextArea", "addLinkField"]) internal[method] = vi.fn();
+    internal.renderPropertyFields({ addEventListener: () => {} });
+    const field = state.settings.find(setting => setting.name === t("nodeEditor.ragSetting"));
+
+    expect(field.control.value).toBe("{{settingName}}");
+    expect(field.control.options).toEqual(["Notes", "PDFs"]);
+    field.control.change("{{other}}");
+    await internal.save();
+    expect(onSave.mock.calls[0][0].properties.ragSetting).toBe("{{other}}");
   });
 });

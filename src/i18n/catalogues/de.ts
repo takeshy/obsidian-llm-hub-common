@@ -218,6 +218,7 @@ export const de = {
   "nodeEditor.ragOldPath": "Alter Pfad (für Umbenennung)",
   "nodeEditor.ragOldPath.placeholder": "Vorheriger Pfad zum Löschen aus dem Store (optional, unterstützt {{variables}})",
   "nodeEditor.ragSetting": "RAG-Einstellung",
+  "nodeEditor.ragSetting.placeholder": "Einstellungsname oder {{variable}} (leer: ausgewählte Einstellung)",
   "nodeEditor.ragSetting.select": "RAG-Einstellung auswählen",
   "nodeEditor.recursive": "Rekursiv",
   "nodeEditor.recursive.desc": "Unterordner einschließen",

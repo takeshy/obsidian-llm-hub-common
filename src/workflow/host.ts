@@ -129,8 +129,10 @@ export interface WorkflowHost {
   /**
    * Runs a RAG index sync node, for hosts with a local index.
    * Optional for hosts without RAG; executing rag-sync without this hook throws.
+   * Return the setting the sync actually used, after the host's own fallback,
+   * so logs and history record it instead of an empty name.
    */
-  runRagSyncNode?(request: NodeRequest): Promise<void>;
+  runRagSyncNode?(request: NodeRequest): Promise<void | { ragSetting?: string }>;
 }
 
 const noHost: WorkflowHost = {

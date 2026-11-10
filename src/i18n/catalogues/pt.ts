@@ -218,6 +218,7 @@ export const pt = {
   "nodeEditor.ragOldPath": "Caminho antigo (para renomear)",
   "nodeEditor.ragOldPath.placeholder": "Caminho anterior a eliminar do store (opcional, suporta {{variables}})",
   "nodeEditor.ragSetting": "Configuracao RAG",
+  "nodeEditor.ragSetting.placeholder": "Nome da configuracao ou {{variable}} (vazio: configuracao selecionada)",
   "nodeEditor.ragSetting.select": "Selecionar configuracao RAG",
   "nodeEditor.recursive": "Recursivo",
   "nodeEditor.recursive.desc": "Incluir subpastas",

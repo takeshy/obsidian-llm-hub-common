@@ -218,6 +218,7 @@ export const ko = {
   "nodeEditor.ragOldPath": "이전 경로 (이름 변경용)",
   "nodeEditor.ragOldPath.placeholder": "스토어에서 삭제할 이전 경로 (선택 사항, {{variables}} 지원)",
   "nodeEditor.ragSetting": "RAG 설정",
+  "nodeEditor.ragSetting.placeholder": "설정 이름 또는 {{variable}} (비어 있으면 선택된 설정)",
   "nodeEditor.ragSetting.select": "RAG 설정 선택",
   "nodeEditor.recursive": "재귀적",
   "nodeEditor.recursive.desc": "하위 폴더 포함",
