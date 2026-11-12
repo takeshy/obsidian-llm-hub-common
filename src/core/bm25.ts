@@ -49,7 +49,7 @@ export class Bm25Index {
       for (const term of tokens) frequencies.set(term, (frequencies.get(term) ?? 0) + 1);
       for (const [term, frequency] of frequencies) {
         let posting = this.postings.get(term);
-        if (!posting) this.postings.set(term, posting = new Map());
+        if (!posting) this.postings.set(term, posting = new Map<string, number>());
         posting.set(doc.id, frequency);
       }
       this.documents.set(doc.id, { revision: doc.revision, length: tokens.length, terms: new Set(frequencies.keys()) });

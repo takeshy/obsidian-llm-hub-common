@@ -21,5 +21,5 @@ export function addHybridSearchSettings(
     .setName(t("settings.hybridCandidateK"))
     .setDesc(t("settings.hybridCandidateK.desc"))
     .addSlider(slider => slider.setLimits(5, 100, 5).setValue(current.hybridCandidateK)
-      .setDynamicTooltip().onChange(async value => { await save({ hybridCandidateK: value }); }));
+      .onChange(async value => { await save({ hybridCandidateK: value }); }));
 }
