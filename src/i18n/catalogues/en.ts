@@ -1,5 +1,10 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const en = {
+  "settings.hybridSearch": "Hybrid search",
+  "settings.hybridSearch.desc": "Combine keyword (BM25) and vector search using reciprocal rank fusion. The similarity threshold applies only to vector candidates. Existing chunks are indexed automatically without re-embedding.",
+  "settings.hybridCandidateK": "Candidates per search",
+  "settings.hybridCandidateK.desc": "Maximum candidates from each of vector and keyword search before fusion and the final result limit.",
+
   "grounding.searchSuggestions": "Google Search suggestions",
   "grounding.autoSaveTitle": "This conversation is not saved automatically",
   "grounding.autoSaveDescription": "Automatic saving is disabled because Gemini Web search was enabled. Save this conversation manually if you want to keep it.",

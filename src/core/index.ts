@@ -48,3 +48,7 @@ export * from "./externalWebSearch.js";
 export * from "./webSearchUsage.js";
 
 export * from "./googleSearchSuggestions.js";
+export * from "./searchTokenizer.js";
+export * from "./bm25.js";
+export * from "./hybridSearch.js";
+export * from "./chunkBm25Index.js";

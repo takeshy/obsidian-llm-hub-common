@@ -1,5 +1,10 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const pt = {
+  "settings.hybridSearch": "Pesquisa híbrida",
+  "settings.hybridSearch.desc": "Combina pesquisa por palavras-chave (BM25) e vetorial com RRF. O limiar de similaridade aplica-se apenas aos candidatos vetoriais. Os trechos existentes são indexados automaticamente sem recalcular embeddings.",
+  "settings.hybridCandidateK": "Candidatos por pesquisa",
+  "settings.hybridCandidateK.desc": "Máximo de candidatos de cada pesquisa vetorial e por palavras-chave antes da fusão e do limite final de resultados.",
+
   "voice.submitPhrase": "enviar",
   "input.autoReadAloud": "Ler respostas automaticamente",
   "input.readAloudRate": "Velocidade",

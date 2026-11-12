@@ -1,5 +1,10 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const ko = {
+  "settings.hybridSearch": "하이브리드 검색",
+  "settings.hybridSearch.desc": "키워드 검색(BM25)과 벡터 검색을 RRF로 통합합니다. 유사도 임계값은 벡터 후보에만 적용됩니다. 기존 청크에서 자동으로 인덱스를 구성하므로 임베딩을 다시 생성할 필요가 없습니다.",
+  "settings.hybridCandidateK": "검색별 후보 수",
+  "settings.hybridCandidateK.desc": "벡터 검색과 키워드 검색 각각의 최대 후보 수입니다. 통합 후 최종 결과 수 제한을 적용합니다.",
+
   "voice.submitPhrase": "전송해 줘",
   "input.autoReadAloud": "응답 자동으로 읽기",
   "input.readAloudRate": "속도",

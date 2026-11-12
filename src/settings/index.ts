@@ -11,3 +11,4 @@ export * from "./controls.js";
 export * from "./voiceChatSettings.js";
 
 export * from "./webSearchUsage.js";
+export * from "./hybridSearchSettings.js";

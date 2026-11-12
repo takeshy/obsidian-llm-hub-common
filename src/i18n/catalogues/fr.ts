@@ -1,5 +1,10 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const fr = {
+  "settings.hybridSearch": "Recherche hybride",
+  "settings.hybridSearch.desc": "Combine la recherche par mots-clés (BM25) et par vecteurs avec RRF. Le seuil de similarité ne concerne que les candidats vectoriels. Les fragments existants sont indexés automatiquement sans recalcul des embeddings.",
+  "settings.hybridCandidateK": "Candidats par recherche",
+  "settings.hybridCandidateK.desc": "Nombre maximal de candidats de chaque recherche vectorielle et par mots-clés avant fusion et limitation des résultats.",
+
   "voice.submitPhrase": "envoie",
   "input.autoReadAloud": "Lire automatiquement les réponses",
   "input.readAloudRate": "Vitesse",

@@ -154,3 +154,34 @@ that can display Suggestions; source badges alone do not replace them.
 A host that supports Jev can implement `WorkflowHost.getRagSearchOptions(name?)`, returning `{ jevEnabled, searchUntilFound }`. An omitted name means the currently selected index. Command nodes show **Search until an answer is found** only when Jev is active for the selected index. Hosts without this hook keep their existing UI.
 
 The checkbox initially follows the host's saved per-index preference. Changing it saves `ragSearchUntilFound: "true"` or `"false"` in the node properties; reopening the editor preserves that explicit override. When the property is omitted, the host uses its saved preference. The host must apply the override during command execution. Jev credentials, API calls, result filtering, and repeated Top K searches stay in the host; this hook alone does not add Jev support to another Hub.
+## Hybrid retrieval
+
+The `core` entry exports `createSearchTokenizer`, `Bm25Index`, `ChunkBm25Index`,
+`reciprocalRankFusion`, `collectHybridCandidates`, and `DEFAULT_HYBRID_SEARCH`.
+These modules have no Obsidian or filesystem dependency. Hosts own embedding,
+cache I/O, the cosine threshold, and downstream relevance filters or rerankers.
+
+`Bm25Index.update()` takes `{ id, text, revision }` documents and only tokenizes
+added or changed revisions. It removes deleted documents and updates document
+lengths and postings. BM25 uses k1=1.2 and b=0.75. `ChunkBm25Index` adapts either
+chunk indices or character offsets to stable IDs, validates persisted snapshots,
+and reconciles them with the current chunk text. Its search result IDs are the
+current metadata positions as strings. Duplicate chunks in merged corpora remain
+distinct candidates.
+
+Snapshots are versioned compact JSON: document IDs and lengths occur once, and
+postings use numeric positions. A missing, malformed, obsolete, or differently
+tokenized snapshot is rebuilt from text. Re-embedding is not needed. Query and
+document tokenization use the same NFKC normalization and lowercasing; hyphenated
+and underscored identifiers are retained whole and also split into components.
+CJK runs use `Intl.Segmenter("ja", { granularity: "word" })`, falling back to
+overlapping Unicode character bigrams when unavailable. Segmenter dictionaries
+can vary across runtime versions; bigrams also match partial words and consume
+more postings space. Neither method provides stemming or semantic expansion.
+
+Hybrid search is opt-in, with 30 candidates per retrieval channel and RRF k=60
+by default. Hosts apply their cosine threshold only to vector candidates, then
+pass both rankings to `collectHybridCandidates`, which returns RRF scores after
+the final result limit. RRF scores are ranking scores, not cosine similarities.
+Keep existing vector-only paths when disabled. `settings.addHybridSearchSettings`
+provides the shared opt-in toggle and candidate slider in all nine locales.

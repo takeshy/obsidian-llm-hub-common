@@ -1,5 +1,10 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const ja = {
+  "settings.hybridSearch": "ハイブリッド検索",
+  "settings.hybridSearch.desc": "キーワード検索（BM25）とベクトル検索をRRFで統合します。類似度の閾値はベクトル候補だけに適用されます。既存チャンクから自動構築するため、再埋め込みは不要です。",
+  "settings.hybridCandidateK": "各検索の候補数",
+  "settings.hybridCandidateK.desc": "ベクトル検索とキーワード検索それぞれの候補数です。統合後に取得件数の上限を適用します。",
+
   "grounding.searchSuggestions": "Google Search Suggestions",
   "grounding.autoSaveTitle": "この会話は自動保存されません",
   "grounding.autoSaveDescription": "Gemini Web検索を有効にしたため、自動保存は無効です。会話を残す場合は、手動で保存してください。",

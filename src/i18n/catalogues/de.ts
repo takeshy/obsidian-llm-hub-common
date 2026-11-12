@@ -1,5 +1,10 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const de = {
+  "settings.hybridSearch": "Hybridsuche",
+  "settings.hybridSearch.desc": "Kombiniert Schlüsselwortsuche (BM25) und Vektorsuche mit RRF. Der Ähnlichkeitsschwellenwert gilt nur für Vektorkandidaten. Vorhandene Textabschnitte werden ohne neue Embeddings automatisch indexiert.",
+  "settings.hybridCandidateK": "Kandidaten je Suche",
+  "settings.hybridCandidateK.desc": "Maximale Kandidatenzahl für Vektor- und Schlüsselwortsuche vor der Zusammenführung und der abschließenden Ergebnisbegrenzung.",
+
   "voice.submitPhrase": "absenden",
   "input.autoReadAloud": "Antworten automatisch vorlesen",
   "input.readAloudRate": "Tempo",

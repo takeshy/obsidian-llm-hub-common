@@ -1,5 +1,10 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const it = {
+  "settings.hybridSearch": "Ricerca ibrida",
+  "settings.hybridSearch.desc": "Combina la ricerca per parole chiave (BM25) e vettoriale con RRF. La soglia di similarità si applica solo ai candidati vettoriali. I frammenti esistenti vengono indicizzati automaticamente senza ricalcolare gli embedding.",
+  "settings.hybridCandidateK": "Candidati per ricerca",
+  "settings.hybridCandidateK.desc": "Numero massimo di candidati di ciascuna ricerca vettoriale e per parole chiave prima della fusione e del limite finale.",
+
   "voice.submitPhrase": "invia",
   "input.autoReadAloud": "Leggi automaticamente le risposte",
   "input.readAloudRate": "Velocità",

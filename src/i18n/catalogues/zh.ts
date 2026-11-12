@@ -1,5 +1,10 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const zh = {
+  "settings.hybridSearch": "混合搜索",
+  "settings.hybridSearch.desc": "通过 RRF 融合关键词搜索（BM25）与向量搜索。相似度阈值仅适用于向量候选。索引会根据现有文本块自动构建，无需重新生成嵌入。",
+  "settings.hybridCandidateK": "每种搜索的候选数",
+  "settings.hybridCandidateK.desc": "向量搜索和关键词搜索各自的最大候选数。融合后再应用最终结果数量限制。",
+
   "voice.submitPhrase": "发送",
   "input.autoReadAloud": "自动朗读回复",
   "input.readAloudRate": "速度",
