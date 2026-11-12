@@ -1,5 +1,14 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const zh = {
+  "search.hybridOn": "混合搜索已开启",
+  "search.vectorMode": "向量搜索",
+  "search.hybridModeDescription": "通过 RRF 融合向量搜索和 BM25 关键词搜索的候选。",
+  "search.sourceVector": "向量",
+  "search.sourceBoth": "两者",
+  "search.retrievalSource": "候选来源",
+  "search.rrfScoreDescription": "RRF 排名分数，不是相似度百分比。",
+  "search.cosineScoreDescription": "查询与索引文本块之间的余弦相似度。",
+
   "settings.hybridSearch": "混合搜索",
   "settings.hybridSearch.desc": "通过 RRF 融合关键词搜索（BM25）与向量搜索。相似度阈值仅适用于向量候选。索引会根据现有文本块自动构建，无需重新生成嵌入。",
   "settings.hybridCandidateK": "每种搜索的候选数",

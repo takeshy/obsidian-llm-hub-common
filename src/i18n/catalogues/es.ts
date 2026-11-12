@@ -1,5 +1,14 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const es = {
+  "search.hybridOn": "Híbrida activada",
+  "search.vectorMode": "Búsqueda vectorial",
+  "search.hybridModeDescription": "Combina candidatos vectoriales y de palabras clave BM25 mediante RRF.",
+  "search.sourceVector": "Vector",
+  "search.sourceBoth": "Ambos",
+  "search.retrievalSource": "Origen del resultado",
+  "search.rrfScoreDescription": "Puntuación de clasificación RRF; no es un porcentaje de similitud.",
+  "search.cosineScoreDescription": "Similitud del coseno entre la consulta y el fragmento indexado.",
+
   "settings.hybridSearch": "Búsqueda híbrida",
   "settings.hybridSearch.desc": "Combina búsqueda por palabras clave (BM25) y vectores mediante RRF. El umbral de similitud solo se aplica a los candidatos vectoriales. Los fragmentos existentes se indexan automáticamente sin regenerar embeddings.",
   "settings.hybridCandidateK": "Candidatos por búsqueda",

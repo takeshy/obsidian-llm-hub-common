@@ -21,3 +21,4 @@ export * from "./speechPopup.js";
 
 export * from "./groundingPolicy.js";
 export * from "./fileMentions.js";
+export * from "./RagSearchBadges.js";

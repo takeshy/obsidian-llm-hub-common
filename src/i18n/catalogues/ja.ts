@@ -1,5 +1,14 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const ja = {
+  "search.hybridOn": "ハイブリッドON",
+  "search.vectorMode": "ベクトル検索",
+  "search.hybridModeDescription": "ベクトル検索とBM25キーワード検索の候補をRRFで統合します。",
+  "search.sourceVector": "ベクトル",
+  "search.sourceBoth": "両方",
+  "search.retrievalSource": "候補の取得元",
+  "search.rrfScoreDescription": "RRFによる順位スコアです。類似度のパーセントではありません。",
+  "search.cosineScoreDescription": "クエリと索引チャンクのcosine類似度です。",
+
   "settings.hybridSearch": "ハイブリッド検索",
   "settings.hybridSearch.desc": "キーワード検索（BM25）とベクトル検索をRRFで統合します。類似度の閾値はベクトル候補だけに適用されます。既存チャンクから自動構築するため、再埋め込みは不要です。",
   "settings.hybridCandidateK": "各検索の候補数",

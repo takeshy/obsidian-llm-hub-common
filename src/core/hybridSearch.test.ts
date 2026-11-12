@@ -127,9 +127,29 @@ describe("reciprocal rank fusion", () => {
       [{ id: "b", score: 8 }, { id: "ignored", score: 8 }],
       2, { hybridCandidateK: 1, rrfK: 10 },
     );
-    expect(result).toEqual([{ id: "a", score: 1 / 11 }, { id: "b", score: 1 / 11 }]);
+    expect(result).toEqual([
+      { id: "a", score: 1 / 11, retrievalSource: "vector" },
+      { id: "b", score: 1 / 11, retrievalSource: "bm25" },
+    ]);
     expect(reciprocalRankFusion([[{ id: "a", score: 1 }, { id: "a", score: 1 }]])).toEqual([{ id: "a", score: 1 / 61 }]);
     expect(normalizeHybridSearchOptions({ hybridCandidateK: NaN, rrfK: -1 }))
       .toEqual({ hybridSearch: false, hybridCandidateK: 30, rrfK: 60 });
+  });
+
+  it("reports sources from the eligible, capped lists used for fusion", () => {
+    const result = collectHybridCandidates(
+      [{ id: "both", score: 0.9 }, { id: "lexical-only", score: 0.1 }],
+      [{ id: "both", score: 3 }, { id: "lexical-only", score: 2 }],
+      5, { hybridCandidateK: 2 },
+    );
+    expect(result.map(r => r.retrievalSource)).toEqual(["both", "both"]);
+    const capped = collectHybridCandidates(
+      [{ id: "vector-only", score: 0.9 }, { id: "lexical-only", score: 0.1 }],
+      [{ id: "lexical-only", score: 3 }],
+      5, { hybridCandidateK: 1 },
+    );
+    expect(capped.map(r => [r.id, r.retrievalSource])).toEqual([
+      ["vector-only", "vector"], ["lexical-only", "bm25"],
+    ]);
   });
 });

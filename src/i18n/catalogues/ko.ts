@@ -1,5 +1,14 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const ko = {
+  "search.hybridOn": "하이브리드 켜짐",
+  "search.vectorMode": "벡터 검색",
+  "search.hybridModeDescription": "벡터 검색과 BM25 키워드 검색 후보를 RRF로 통합합니다.",
+  "search.sourceVector": "벡터",
+  "search.sourceBoth": "둘 다",
+  "search.retrievalSource": "후보 검색 출처",
+  "search.rrfScoreDescription": "RRF 순위 점수이며 유사도 백분율이 아닙니다.",
+  "search.cosineScoreDescription": "쿼리와 인덱스 청크 사이의 코사인 유사도입니다.",
+
   "settings.hybridSearch": "하이브리드 검색",
   "settings.hybridSearch.desc": "키워드 검색(BM25)과 벡터 검색을 RRF로 통합합니다. 유사도 임계값은 벡터 후보에만 적용됩니다. 기존 청크에서 자동으로 인덱스를 구성하므로 임베딩을 다시 생성할 필요가 없습니다.",
   "settings.hybridCandidateK": "검색별 후보 수",

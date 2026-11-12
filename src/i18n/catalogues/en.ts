@@ -1,5 +1,14 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const en = {
+  "search.hybridOn": "Hybrid ON",
+  "search.vectorMode": "Vector search",
+  "search.hybridModeDescription": "Combines vector and BM25 keyword candidates using RRF.",
+  "search.sourceVector": "Vector",
+  "search.sourceBoth": "Both",
+  "search.retrievalSource": "Retrieval source",
+  "search.rrfScoreDescription": "RRF ranking score; not a similarity percentage.",
+  "search.cosineScoreDescription": "Cosine similarity between the query and the indexed chunk.",
+
   "settings.hybridSearch": "Hybrid search",
   "settings.hybridSearch.desc": "Combine keyword (BM25) and vector search using reciprocal rank fusion. The similarity threshold applies only to vector candidates. Existing chunks are indexed automatically without re-embedding.",
   "settings.hybridCandidateK": "Candidates per search",

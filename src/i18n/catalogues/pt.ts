@@ -1,5 +1,14 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const pt = {
+  "search.hybridOn": "Híbrida ativada",
+  "search.vectorMode": "Pesquisa vetorial",
+  "search.hybridModeDescription": "Combina candidatos vetoriais e por palavras-chave BM25 com RRF.",
+  "search.sourceVector": "Vetor",
+  "search.sourceBoth": "Ambos",
+  "search.retrievalSource": "Origem do resultado",
+  "search.rrfScoreDescription": "Pontuação de classificação RRF, não uma percentagem de similaridade.",
+  "search.cosineScoreDescription": "Similaridade de cosseno entre a consulta e o trecho indexado.",
+
   "settings.hybridSearch": "Pesquisa híbrida",
   "settings.hybridSearch.desc": "Combina pesquisa por palavras-chave (BM25) e vetorial com RRF. O limiar de similaridade aplica-se apenas aos candidatos vetoriais. Os trechos existentes são indexados automaticamente sem recalcular embeddings.",
   "settings.hybridCandidateK": "Candidatos por pesquisa",

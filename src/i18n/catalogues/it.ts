@@ -1,5 +1,14 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const it = {
+  "search.hybridOn": "Ibrida attiva",
+  "search.vectorMode": "Ricerca vettoriale",
+  "search.hybridModeDescription": "Combina candidati vettoriali e per parole chiave BM25 con RRF.",
+  "search.sourceVector": "Vettore",
+  "search.sourceBoth": "Entrambi",
+  "search.retrievalSource": "Origine del risultato",
+  "search.rrfScoreDescription": "Punteggio di classificazione RRF, non una percentuale di similarità.",
+  "search.cosineScoreDescription": "Similarità coseno tra la query e il frammento indicizzato.",
+
   "settings.hybridSearch": "Ricerca ibrida",
   "settings.hybridSearch.desc": "Combina la ricerca per parole chiave (BM25) e vettoriale con RRF. La soglia di similarità si applica solo ai candidati vettoriali. I frammenti esistenti vengono indicizzati automaticamente senza ricalcolare gli embedding.",
   "settings.hybridCandidateK": "Candidati per ricerca",

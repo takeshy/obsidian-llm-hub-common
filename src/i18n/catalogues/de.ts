@@ -1,5 +1,14 @@
 /** Strings for the shared modules themselves. Hosts may override any of them. */
 export const de = {
+  "search.hybridOn": "Hybrid EIN",
+  "search.vectorMode": "Vektorsuche",
+  "search.hybridModeDescription": "Kombiniert Vektor- und BM25-Schlüsselwortkandidaten mit RRF.",
+  "search.sourceVector": "Vektor",
+  "search.sourceBoth": "Beide",
+  "search.retrievalSource": "Suchquelle",
+  "search.rrfScoreDescription": "RRF-Rangwert, kein Ähnlichkeitsprozentsatz.",
+  "search.cosineScoreDescription": "Kosinusähnlichkeit zwischen Anfrage und indexiertem Textabschnitt.",
+
   "settings.hybridSearch": "Hybridsuche",
   "settings.hybridSearch.desc": "Kombiniert Schlüsselwortsuche (BM25) und Vektorsuche mit RRF. Der Ähnlichkeitsschwellenwert gilt nur für Vektorkandidaten. Vorhandene Textabschnitte werden ohne neue Embeddings automatisch indexiert.",
   "settings.hybridCandidateK": "Kandidaten je Suche",

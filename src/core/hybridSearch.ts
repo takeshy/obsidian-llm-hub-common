@@ -6,6 +6,12 @@ export interface HybridSearchOptions {
   rrfK: number;
 }
 
+export type RagRetrievalSource = "vector" | "bm25" | "both";
+
+export interface HybridSearchCandidate extends RankedSearchCandidate {
+  retrievalSource: RagRetrievalSource;
+}
+
 export const DEFAULT_HYBRID_SEARCH: HybridSearchOptions = {
   hybridSearch: false,
   hybridCandidateK: 30,
@@ -41,9 +47,17 @@ export function reciprocalRankFusion(lists: readonly (readonly RankedSearchCandi
 export function collectHybridCandidates(
   vector: readonly RankedSearchCandidate[], lexical: readonly RankedSearchCandidate[],
   topK: number, options: Partial<HybridSearchOptions>,
-): RankedSearchCandidate[] {
+): HybridSearchCandidate[] {
   const normalized = normalizeHybridSearchOptions(options);
+  const vectorCandidates = vector.slice(0, normalized.hybridCandidateK);
+  const lexicalCandidates = lexical.slice(0, normalized.hybridCandidateK);
+  const vectorIds = new Set(vectorCandidates.map(candidate => candidate.id));
+  const lexicalIds = new Set(lexicalCandidates.map(candidate => candidate.id));
   return reciprocalRankFusion([
-    vector.slice(0, normalized.hybridCandidateK), lexical.slice(0, normalized.hybridCandidateK),
-  ], normalized.rrfK).slice(0, topK);
+    vectorCandidates, lexicalCandidates,
+  ], normalized.rrfK).slice(0, topK).map(candidate => ({
+    ...candidate,
+    retrievalSource: vectorIds.has(candidate.id)
+      ? lexicalIds.has(candidate.id) ? "both" : "vector" : "bm25",
+  }));
 }
