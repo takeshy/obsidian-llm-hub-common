@@ -7,6 +7,8 @@ import type { McpServerConfig } from "../core/mcpTypes.js";
 export interface WorkflowSpecContext {
   /** Models the host offers a command node, in the spelling the host accepts. */
   modelNames: string[];
+  /** Decision services offered by the host; separate from chat models. */
+  decisionModelNames?: string[];
   mcpServers: McpServerConfig[];
   ragSettingNames: string[];
 }
@@ -171,6 +173,22 @@ Conditional branching.
 - **condition** (required): Condition to evaluate
 - **trueNext** (required): Node ID for true branch
 - **falseNext** (optional): Node ID for false branch (defaults to next node)
+
+#### decision
+Evaluate shared input through Jev or Gemini Decisions API. Gemini always uses gemini-decision-1, independently of chat models.
+- **decisionType** (optional): boolean (default), noul, score, choice, or batch.
+- **prompt** (required for single questions): Instructions or a question. Supports {{variables}}.
+- **input** (optional): Shared evidence to evaluate; supports {{variables}}.
+- **model** (optional): Decision service identifier; omitted uses the configured decision model. Available: ${context.decisionModelNames?.join(", ") || "use the host decision settings"}. Chat models are not valid.
+- **saveTo** (optional; REQUIRED for batch): Result variable. boolean stores "true"/"false" strings; noul and score store raw numbers; choice stores a choice name; batch stores a JSON object keyed by question name.
+- **criteria** (required for score/choice): For score, an ordered array of at least two level descriptions; valid scores are 0 through array length minus 1 and can be fractional. For choice, an object mapping at least two choice names to descriptions. YAML objects/arrays or JSON strings are accepted.
+- **threshold** (optional for score/noul): A score/probability greater than or equal to this value follows trueNext; supports {{variables}}. Defaults to the midpoint of the valid range. Noul returns a probability between 0 and 1 (default threshold 0.5); score uses 0 through criteria.length-1. The saved raw value is never replaced by the boolean comparison.
+- **trueNext** (required for boolean/noul/score): Node for true, or "end".
+- **falseNext** (optional for boolean/noul/score): Node for false, defaults to the following node; "end" terminates.
+- **branches** (required for choice): Object mapping EVERY choice name to exactly one node ID or "end". For example {urgent: urgent_node, normal: normal_node}. Choice uses these named routes instead of trueNext/falseNext.
+- **questions** (required for batch): Named question object. Each value has type (boolean/noul/score/choice), instructions, and criteria where required. All questions share input and are sent in ONE API request. Example: {refund: {type: noul, instructions: "Requests a refund"}, urgency: {type: score, instructions: "Rate urgency", criteria: [Low, Medium, High]}}.
+- **next** (for batch): Ordinary next node, or "end". Reference saved values such as {{results.refund}}, {{results.urgency}}, and {{results.request_type}} in later if nodes; noul probabilities can be compared with 0.5.
+Failures, missing/invalid answers, unsupported types, and cancellation stop execution with no branch and no partial saved batch. Cloud API charges apply. No automatic model fallback.
 
 #### while
 Loop while condition is true.

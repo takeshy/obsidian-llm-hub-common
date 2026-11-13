@@ -1,3 +1,4 @@
+import type { DecisionResult } from "../core/decision.js";
 import type { StreamChunkUsage } from "../core/usage.js";
 import type { App } from "obsidian";
 import type { EncryptionConfig } from "./history.js";
@@ -83,6 +84,8 @@ export interface WorkflowChatRequest {
 export interface WorkflowHost {
   /** Models offered for a command node, in the order the host wants them shown. */
   getModelOptions(): WorkflowModelOption[];
+  /** Configured Jev/Gemini decision services, independently of chat models. */
+  getDecisionModelOptions?(): WorkflowModelOption[];
   /** Names of the configured RAG indexes, empty when the host has none. */
   getRagSettingNames(): string[];
   /** Optional Jev support. Omitted by hosts without Jev; undefined selects the current index. */
@@ -122,6 +125,8 @@ export interface WorkflowHost {
   tracing?: WorkflowTracing;
   /** Runs a command node: the model call with the host's tools, RAG and MCP wiring. */
   runCommandNode(request: CommandNodeRequest): Promise<CommandNodeResult>;
+  /** Returns a validated decision; failures must throw instead of choosing a branch. */
+  runDecisionNode?(request: NodeRequest): Promise<DecisionResult>;
   /** Runs an MCP tool node, for hosts with MCP support. */
   runMcpNode?(request: NodeRequest): Promise<unknown>;
   /** Runs a shell node, for hosts that allow shell commands. */

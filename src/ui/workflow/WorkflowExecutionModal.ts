@@ -1,3 +1,4 @@
+import { isBatchDecision, isChoiceDecision } from "../../workflow/decisionOptions.js";
 import { App, Modal } from "obsidian";
 import type { Workflow, WorkflowNode, ExecutionLog } from "../../workflow/types.js";
 import type { StreamChunkUsage } from "../../core/usage.js";
@@ -15,6 +16,7 @@ interface NodeDisplayInfo {
   next: string[];
   trueNext?: string;
   falseNext?: string;
+  choices?: { label: string; target: string }[];
 }
 
 interface NodeLogData {
@@ -125,7 +127,9 @@ export class WorkflowExecutionModal extends Modal {
 
       // Get connections from workflow edges
       const nodeEdges = this.workflow.edges.filter(e => e.from === node.id);
-      if (node.type === "if" || node.type === "while") {
+      if (isChoiceDecision(node)) {
+        info.choices = nodeEdges.map(edge => ({ label: edge.label || "", target: edge.to }));
+      } else if (node.type === "if" || node.type === "while" || (node.type === "decision" && !isBatchDecision(node))) {
         const trueEdge = nodeEdges.find(e => e.label === "true");
         const falseEdge = nodeEdges.find(e => e.label === "false");
         if (trueEdge) info.trueNext = trueEdge.to;
@@ -178,7 +182,10 @@ export class WorkflowExecutionModal extends Modal {
       }
 
       // Connection arrows
-      if (nodeInfo.trueNext || nodeInfo.falseNext) {
+      if (nodeInfo.choices) {
+        const connEl = nodeEl.createDiv({ cls: cls("workflow-execution-node-connections") });
+        for (const choice of nodeInfo.choices) connEl.createSpan({ text: `${choice.label}: ${choice.target}` });
+      } else if (nodeInfo.trueNext || nodeInfo.falseNext) {
         const connEl = nodeEl.createDiv({ cls: cls("workflow-execution-node-connections") });
         if (nodeInfo.trueNext) {
           connEl.createSpan({ text: `T: ${nodeInfo.trueNext}`, cls: cls("workflow-execution-conn-true") });
@@ -364,6 +371,7 @@ export class WorkflowExecutionModal extends Modal {
       case "if":
       case "while":
         return props.condition || "";
+      case "decision":
       case "command":
         return props.prompt?.substring(0, 30) + (props.prompt?.length > 30 ? "..." : "") || "";
       case "http":

@@ -1,3 +1,4 @@
+import { isBatchDecision, isChoiceDecision, choiceBranchEntries } from "./decisionOptions.js";
 // Workflow to Mermaid flowchart converter
 
 import type { SidebarNode } from "./types.js";
@@ -30,6 +31,10 @@ function getNodeLabel(node: SidebarNode): string {
     case "while":
       label = p.condition || "condition";
       break;
+    case "decision": {
+      label = `**${id}**\n${p.prompt || "(no prompt)"}`;
+      break;
+    }
     case "command": {
       const prompt = p.prompt || "(no prompt)";
       const saveTo = p.saveTo ? `\n→ ${p.saveTo}` : "";
@@ -118,6 +123,8 @@ function getMermaidShape(node: SidebarNode, label: string): string {
   const safeLabel = escapeLabel(label);
 
   switch (node.type) {
+    case "decision":
+      return `${safeId}{"◇ DECISION<br/>${safeLabel}"}`;
     case "if":
       return `${safeId}{"◇ IF<br/>${safeLabel}"}`;
     case "while":
@@ -163,7 +170,11 @@ export function sidebarNodesToMermaid(nodes: SidebarNode[]): string {
 
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
-    if (node.type === "if" || node.type === "while") {
+    if (isChoiceDecision(node)) {
+      for (const [label, target] of choiceBranchEntries(node)) {
+        if (nodeIdSet.has(target) || target === "end") edges.push({ from: node.id, to: target, label });
+      }
+    } else if (node.type === "if" || node.type === "while" || (node.type === "decision" && !isBatchDecision(node))) {
       if (node.trueNext && (nodeIdSet.has(node.trueNext) || node.trueNext === "end")) {
         edges.push({ from: node.id, to: node.trueNext, label: "true" });
       }
@@ -226,7 +237,13 @@ export function sidebarNodesToMermaid(nodes: SidebarNode[]): string {
 
     const nodeEdges = outgoing.get(node.id) || [];
 
-    if (node.type === "if" || node.type === "while") {
+    if (isChoiceDecision(node)) {
+      for (const edge of nodeEdges) {
+        const target = edge.to === "end" ? "FINISH" : edge.to.replace(/-/g, "_");
+        if (edge.to === "end") hasTerminal = true; else defineNode(edge.to);
+        lines.push(`  ${safeId} -->|"${escapeLabel(edge.label || "")}"| ${target}`);
+      }
+    } else if (node.type === "if" || node.type === "while" || (node.type === "decision" && !isBatchDecision(node))) {
       for (const edge of nodeEdges) {
         if (edge.to === "end") {
           // "end" is a Mermaid reserved word — route to END terminal node

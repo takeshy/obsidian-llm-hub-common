@@ -52,3 +52,5 @@ export * from "./searchTokenizer.js";
 export * from "./bm25.js";
 export * from "./hybridSearch.js";
 export * from "./chunkBm25Index.js";
+
+export * from "./decision.js";

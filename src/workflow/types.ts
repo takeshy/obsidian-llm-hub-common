@@ -29,6 +29,7 @@ export type WorkflowNodeType =
   | "variable"
   | "set"
   | "if"
+  | "decision"
   | "while"
   | "command"
   | "http"
@@ -54,7 +55,7 @@ export type WorkflowNodeType =
 
 /** All valid workflow node type values. Single source of truth for validation and docs. */
 export const WORKFLOW_NODE_TYPES: ReadonlySet<string> = new Set<WorkflowNodeType>([
-  "variable", "set", "if", "while", "command", "http", "json",
+  "variable", "set", "if", "decision", "while", "command", "http", "json",
   "note", "note-read", "note-search", "note-list", "folder-list",
   "open", "dialog", "prompt-file", "prompt-selection",
   "workflow", "rag-sync", "file-explorer", "file-save",

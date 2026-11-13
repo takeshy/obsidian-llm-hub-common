@@ -1,3 +1,4 @@
+import { isBatchDecision, isChoiceDecision } from "./decisionOptions.js";
 import { App, TFile } from "obsidian";
 import { SidebarNode, isWorkflowNodeType, normalizeValue, type WorkflowOptions } from "./types.js";
 import {
@@ -173,7 +174,7 @@ export async function saveToCodeBlock(
       }
     }
 
-    if (node.type === "if" || node.type === "while") {
+    if (!isChoiceDecision(node) && (node.type === "if" || node.type === "while" || (node.type === "decision" && !isBatchDecision(node)))) {
       if (node.trueNext) {
         entry.trueNext = node.trueNext;
       }
@@ -182,7 +183,7 @@ export async function saveToCodeBlock(
       } else if (!node.falseNext && index < data.nodes.length - 1) {
         entry.falseNext = data.nodes[index + 1].id;
       }
-    } else if (node.next) {
+    } else if (!isChoiceDecision(node) && node.next) {
       entry.next = node.next;
     }
 

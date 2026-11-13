@@ -164,7 +164,7 @@ export class NodeEditorModal extends Modal {
   }
 
   private renderPropertyFields(container: HTMLElement): void {
-    const isConditional = this.node.type === "if" || this.node.type === "while";
+    const isConditional = this.node.type === "if" || this.node.type === "while" || this.node.type === "decision";
     switch (this.node.type) {
       case "variable":
       case "set":
@@ -181,6 +181,33 @@ export class NodeEditorModal extends Modal {
           t("nodeEditor.condition.placeholder")
         );
         break;
+
+      case "decision": {
+        const mode = this.editedProperties.decisionType || "boolean";
+        new Setting(container).setName(t("nodeEditor.decisionType")).addDropdown(dropdown => {
+          for (const value of ["boolean", "noul", "score", "choice", "batch"]) dropdown.addOption(value, t(`nodeEditor.decisionType.${value}`));
+          dropdown.setValue(mode).onChange(value => {
+            this.editedProperties.decisionType = value;
+            container.empty(); this.renderPropertyFields(container);
+          });
+        });
+        if (mode === "score" || mode === "choice") this.addTextArea(container, "criteria", t("nodeEditor.decisionCriteria"),
+          mode === "score" ? t("nodeEditor.decisionScoreCriteria.placeholder") : t("nodeEditor.decisionChoiceCriteria.placeholder"));
+        if (mode === "score" || mode === "noul") this.addTextField(container, "threshold", t("nodeEditor.decisionThreshold"), t("nodeEditor.decisionThreshold.placeholder"));
+        if (mode === "choice") this.addTextArea(container, "branches", t("nodeEditor.decisionBranches"), t("nodeEditor.decisionBranches.placeholder"));
+        if (mode !== "batch") this.addTextArea(container, "prompt", t("nodeEditor.decisionPrompt"), t("nodeEditor.decisionPrompt.placeholder"));
+        if (mode === "batch") this.addTextArea(container, "questions", t("nodeEditor.decisionQuestions"), t("nodeEditor.decisionQuestions.placeholder"));
+        this.addTextArea(container, "input", t("nodeEditor.decisionInput"), t("nodeEditor.decisionInput.placeholder"));
+        const models = [{ value: "", label: t("nodeEditor.decisionDefaultModel") }, ...(workflowHost().getDecisionModelOptions?.() ?? [])];
+        const selected = this.editedProperties["model"] || "";
+        if (!models.some(model => model.value === selected)) models.push({ value: selected, label: selected });
+        new Setting(container).setName(t("nodeEditor.model")).addDropdown(dropdown => {
+          for (const model of models) dropdown.addOption(model.value, model.label);
+          dropdown.setValue(selected).onChange(value => { this.editedProperties["model"] = value; });
+        });
+        this.addTextField(container, "saveTo", t("nodeEditor.saveTo"), t("nodeEditor.saveTo.placeholder"));
+        break;
+      }
 
       case "command": {
         this.addDropdown(container, "confirm", t("nodeEditor.mcpConfirm"), ["true", "false"], t("nodeEditor.mcpConfirm.desc"));
@@ -516,10 +543,12 @@ export class NodeEditorModal extends Modal {
     // Comment field (common to all node types)
     this.addTextArea(container, "comment", t("nodeEditor.comment"), t("nodeEditor.comment.placeholder"));
 
-    if (isConditional) {
+    const isChoice = this.node.type === "decision" && this.editedProperties.decisionType === "choice";
+    const isBatch = this.node.type === "decision" && this.editedProperties.decisionType === "batch";
+    if (isConditional && !isChoice && !isBatch) {
       this.addLinkField(container, "trueNext", t("nodeEditor.trueNext"), t("nodeEditor.trueNext.placeholder"));
       this.addLinkField(container, "falseNext", t("nodeEditor.falseNext"), t("nodeEditor.falseNext.placeholder"));
-    } else {
+    } else if (!isChoice) {
       this.addLinkField(container, "next", t("nodeEditor.nextNode"), t("nodeEditor.nextNode.placeholder"));
     }
   }

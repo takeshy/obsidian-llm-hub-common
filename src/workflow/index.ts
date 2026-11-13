@@ -15,3 +15,5 @@ export * from "./commandNode.js";
 export * from "./skillWorkflow.js";
 export * from "./skillMarkers.js";
 export * from "./skillToolset.js";
+
+export * from "./decisionOptions.js";

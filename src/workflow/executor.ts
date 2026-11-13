@@ -1,3 +1,5 @@
+import { isBatchDecision, getDecisionNodeQuestions, getDecisionNodeDefinition, decisionThreshold, parseDecisionBranches, validateChoiceBranches } from "./decisionOptions.js";
+import { validateDecisionValue, validateDecisionResults } from "../core/decision.js";
 import { App, TFile } from "obsidian";
 import type { StreamChunkUsage } from "../core/usage.js";
 import {
@@ -373,6 +375,46 @@ export class WorkflowExecutor {
             for (const nextId of setNextNodes.reverse()) {
               stack.push({ nodeId: nextId, iterationCount: 0 });
             }
+            break;
+          }
+
+          case "decision": {
+            const handler = workflowHost().runDecisionNode;
+            if (!handler) throw new Error("decision requires the workflow host to implement runDecisionNode");
+            if (isBatchDecision(node)) {
+              const questions = getDecisionNodeQuestions(node, context);
+              const saveTo = node.properties.saveTo;
+              if (!saveTo?.trim()) throw new Error("Batch decisions require saveTo");
+              const decisionInput = { input: replaceVariables(node.properties.input || "", context), questions };
+              const results = await handler({ node, context, app: this.app, callbacks: promptCallbacks, abortSignal: options?.abortSignal });
+              options?.abortSignal?.throwIfAborted();
+              validateDecisionResults(results, questions);
+              context.variables.set(saveTo, JSON.stringify(results));
+              log(node.id, node.type, "Decision questions completed", "success", decisionInput, results);
+              addHistoryStep(node.id, node.type, decisionInput, results, "success");
+              for (const nextId of getNextNodes(workflow, node.id).reverse()) stack.push({ nodeId: nextId, iterationCount: 0 });
+              break;
+            }
+            const definition = getDecisionNodeDefinition(node, context);
+            const threshold = definition.type === "score" || definition.type === "noul" ? decisionThreshold(node, context, definition.type === "score" ? definition.criteria.length - 1 : 1) : undefined;
+            const branches = definition.type === "choice" ? parseDecisionBranches(node.properties.branches || "") : undefined;
+            if (definition.type === "choice") validateChoiceBranches(branches!, definition.criteria);
+            const decisionInput = {
+              prompt: replaceVariables(node.properties["prompt"] || "", context),
+              input: replaceVariables(node.properties["input"] || "", context),
+              model: replaceVariables(node.properties["model"] || "", context),
+              decisionType: definition.type, criteria: "criteria" in definition ? definition.criteria : undefined, threshold,
+            };
+            const decisionResult = await handler({ node, context, app: this.app, callbacks: promptCallbacks, abortSignal: options?.abortSignal });
+            options?.abortSignal?.throwIfAborted();
+            validateDecisionValue(decisionResult, definition);
+            const saveTo = node.properties["saveTo"];
+            if (saveTo) context.variables.set(saveTo, typeof decisionResult === "boolean" ? String(decisionResult) : decisionResult);
+            log(node.id, node.type, `Decision evaluated to: ${decisionResult}`, "success", decisionInput, decisionResult);
+            addHistoryStep(node.id, node.type, decisionInput, decisionResult, "success");
+            const route = (definition.type === "score" || definition.type === "noul") ? (decisionResult as number) >= threshold! : decisionResult as boolean | string;
+            const nextNodes = getNextNodes(workflow, node.id, route);
+            for (const nextId of nextNodes.reverse()) stack.push({ nodeId: nextId, iterationCount: 0 });
             break;
           }
 

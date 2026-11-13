@@ -1,3 +1,4 @@
+import { isBatchDecision, isChoiceDecision, parseDecisionBranches } from "./decisionOptions.js";
 import { parseYaml, stringifyYaml } from "obsidian";
 import { t } from "../i18n/index.js";
 import { Workflow, WorkflowEdge, WorkflowNode, WorkflowOptions, isWorkflowNodeType, normalizeValue } from "./types.js";
@@ -51,7 +52,7 @@ const WORKFLOW_YAML_KEYS = new Set([
   "extensions", "savePathTo", "saveFileTo", "saveSelectionTo",
   // workflow / integration
   "command", "input", "output", "prefix", "duration",
-  "oldPath", "ragSetting",
+  "oldPath", "ragSetting", "decisionType", "criteria", "threshold", "branches", "questions",
   // top-level
   "nodes",
 ]);
@@ -315,7 +316,7 @@ export function parseWorkflowFromMarkdown(content: string): Workflow {
     }
   }
 
-  const addEdge = (from: string, to: string, label?: "true" | "false") => {
+  const addEdge = (from: string, to: string, label?: string) => {
     if (!nodeIds.has(from) || !nodeIds.has(to)) {
       throw new Error(`Invalid edge reference: ${from} -> ${to}`);
     }
@@ -352,7 +353,15 @@ export function parseWorkflowFromMarkdown(content: string): Workflow {
       continue;
     }
 
-    if (typeRaw === "if" || typeRaw === "while") {
+    if (typeRaw === "decision" && isChoiceDecision(workflow.nodes.get(id)!)) {
+      const branches = parseDecisionBranches(workflow.nodes.get(id)!.properties.branches || "");
+      if (!Object.keys(branches).length) throw new Error(`Node ${id} missing choice branches`);
+      for (const [choice, target] of Object.entries(branches)) {
+        if (isTerminator(target)) continue;
+        validateBackReference(id, target);
+        addEdge(id, target, choice);
+      }
+    } else if (typeRaw === "if" || typeRaw === "while" || (typeRaw === "decision" && !isBatchDecision(workflow.nodes.get(id)!))) {
       const trueNext = normalizeValue(rawNode.trueNext);
       const falseNext = normalizeValue(rawNode.falseNext);
 
@@ -405,7 +414,7 @@ export function parseWorkflowFromMarkdown(content: string): Workflow {
 export function getNextNodes(
   workflow: Workflow,
   currentNodeId: string,
-  conditionResult?: boolean
+  conditionResult?: boolean | string
 ): string[] {
   const nextNodes: string[] = [];
   const currentNode = workflow.nodes.get(currentNodeId);
@@ -418,9 +427,9 @@ export function getNextNodes(
     (edge) => edge.from === currentNodeId
   );
 
-  if (currentNode.type === "if" || currentNode.type === "while") {
+  if (currentNode.type === "if" || currentNode.type === "while" || (currentNode.type === "decision" && !isBatchDecision(currentNode))) {
     if (conditionResult !== undefined) {
-      const expectedLabel = conditionResult ? "true" : "false";
+      const expectedLabel = typeof conditionResult === "string" ? conditionResult : conditionResult ? "true" : "false";
       for (const edge of outgoingEdges) {
         if (edge.label === expectedLabel) {
           nextNodes.push(edge.to);

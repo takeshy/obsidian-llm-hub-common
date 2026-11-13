@@ -25,7 +25,7 @@ vi.mock("obsidian", async importOriginal => {
       setAttribute: () => {},
       parentElement: { createEl: () => ({ id: "", createEl: (_tag: string, option: { value: string }) => { this.options.push(option.value); } }) },
     };
-    addOption() { return this; }
+    addOption(value: string) { this.options.push(value); return this; }
     onChange(callback: (value: any) => void) { this.change = callback; return this; }
   }
   return { ...original, Setting: class {
@@ -118,5 +118,62 @@ describe("rag-sync RAG setting field", () => {
     field.control.change("{{other}}");
     await internal.save();
     expect(onSave.mock.calls[0][0].properties.ragSetting).toBe("{{other}}");
+  });
+});
+
+
+describe("decision editor", () => {
+  it("offers decision models separately from chat models, retains branch links and saves overrides", async () => {
+    state.settings = [];
+    configureWorkflowHost({ getModelOptions: () => [{ value: "chat", label: "Chat" }],
+      getDecisionModelOptions: () => [{ value: "gemini-decision-1", label: "Gemini" }],
+    } as unknown as WorkflowHost);
+    const onSave = vi.fn();
+    const modal = new NodeEditorModal(new App(), { id: "judge", type: "decision", properties: { prompt: "Urgent?", input: "{{text}}" }, trueNext: "yes", falseNext: "no" }, onSave);
+    const internal = modal as any;
+    for (const method of ["addTextField", "addTextArea", "addLinkField"]) internal[method] = vi.fn();
+    internal.renderPropertyFields({});
+    const field = state.settings.find(setting => setting.name === t("nodeEditor.model"));
+    expect(field.control.options).toEqual(["", "gemini-decision-1"]);
+    field.control.change("gemini-decision-1");
+    expect(internal.addLinkField.mock.calls.map((args: any[]) => args[1])).toEqual(["trueNext", "falseNext"]);
+    await internal.save();
+    expect(onSave.mock.calls[0][0]).toMatchObject({ properties: { model: "gemini-decision-1", input: "{{text}}" }, trueNext: "yes", falseNext: "no" });
+  });
+});
+
+describe("decision modes in the editor", () => {
+  it.each(["score", "choice"])("edits %s criteria and preserves the relevant routing fields", async mode => {
+    state.settings = [];
+    const onSave = vi.fn();
+    const modal = new NodeEditorModal(new App(), { id: "judge", type: "decision", properties: { decisionType: mode }, trueNext: "yes", falseNext: "no" }, onSave);
+    const internal = modal as any;
+    for (const method of ["addTextField", "addTextArea", "addLinkField"]) internal[method] = vi.fn();
+    internal.renderPropertyFields({});
+    expect(internal.addTextArea.mock.calls.map((args: any[]) => args[1])).toContain("criteria");
+    if (mode === "choice") {
+      expect(internal.addTextArea.mock.calls.map((args: any[]) => args[1])).toContain("branches");
+      expect(internal.addLinkField).not.toHaveBeenCalled();
+    } else {
+      expect(internal.addTextField.mock.calls.map((args: any[]) => args[1])).toContain("threshold");
+      expect(internal.addLinkField.mock.calls.map((args: any[]) => args[1])).toEqual(["trueNext", "falseNext"]);
+    }
+    await internal.save();
+    expect(onSave.mock.calls[0][0].properties.decisionType).toBe(mode);
+  });
+});
+
+describe("multiple-question editor", () => {
+  it("edits named questions and uses next rather than boolean branch fields", () => {
+    state.settings = [];
+    const modal = new NodeEditorModal(new App(), { id: "judge", type: "decision", properties: { decisionType: "batch", saveTo: "results" } }, vi.fn());
+    const internal = modal as any;
+    for (const method of ["addTextField", "addTextArea", "addLinkField"]) internal[method] = vi.fn();
+    internal.renderPropertyFields({});
+    const fields = internal.addTextArea.mock.calls.map((args: any[]) => args[1]);
+    expect(fields).toContain("questions");
+    expect(fields).not.toContain("prompt");
+    expect(fields).not.toContain("criteria");
+    expect(internal.addLinkField.mock.calls.map((args: any[]) => args[1])).toEqual(["next"]);
   });
 });

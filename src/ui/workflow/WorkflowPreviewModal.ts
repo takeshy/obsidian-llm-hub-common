@@ -1,3 +1,4 @@
+import { isBatchDecision, isChoiceDecision, choiceBranchEntries } from "../../workflow/decisionOptions.js";
 import { App, Modal, Platform, MarkdownRenderer, Component } from "obsidian";
 import type { GenerationContext, SidebarNode } from "../../workflow/types.js";
 import { t } from "../../i18n/index.js";
@@ -26,6 +27,7 @@ function getNodeSummary(node: SidebarNode): string {
     case "if":
     case "while":
       return properties.condition || "";
+    case "decision":
     case "command":
       return properties.model
         ? `${properties.model}: ${properties.prompt?.substring(0, 50) || ""}...`
@@ -232,7 +234,9 @@ export class WorkflowPreviewModal extends Modal {
 
       // Connection info
       const connections: string[] = [];
-      if (node.type === "if" || node.type === "while") {
+      if (isChoiceDecision(node)) {
+        for (const [label, target] of choiceBranchEntries(node)) connections.push(`→ ${label}: ${target}`);
+      } else if (node.type === "if" || node.type === "while" || (node.type === "decision" && !isBatchDecision(node))) {
         if (node.trueNext) connections.push(`→ ${t("workflow.branchTrue")}: ${node.trueNext}`);
         if (node.falseNext) connections.push(`→ ${t("workflow.branchFalse")}: ${node.falseNext}`);
       } else if (node.next) {

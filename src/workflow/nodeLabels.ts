@@ -6,6 +6,7 @@ export const WORKFLOW_NODE_LABEL_KEYS: Record<WorkflowNodeType, string> = {
   variable: "workflow.nodeType.variable",
   set: "workflow.nodeType.set",
   if: "workflow.nodeType.if",
+  decision: "workflow.nodeType.decision",
   while: "workflow.nodeType.while",
   command: "workflow.nodeType.command",
   http: "workflow.nodeType.http",

@@ -1,3 +1,4 @@
+import { isBatchDecision, isChoiceDecision, choiceBranchEntries } from "../../workflow/decisionOptions.js";
 import { App, Modal, TFile } from "obsidian";
 import { t } from "../../i18n/index.js";
 import { loadFromCodeBlock, LoadResult, WorkflowBlockData } from "../../workflow/codeblockSync.js";
@@ -12,12 +13,20 @@ const getNodeTypeLabels = getWorkflowNodeTypeLabels;
 
 interface IncomingConnection {
   from: string;
-  type: "next" | "true" | "false";
+  type: "next" | "true" | "false" | "choice";
+  label?: string;
 }
 
 function buildIncomingMap(nodes: SidebarNode[]): Map<string, IncomingConnection[]> {
   const incoming = new Map<string, IncomingConnection[]>();
   for (const node of nodes) {
+    if (isChoiceDecision(node)) {
+      for (const [label, target] of choiceBranchEntries(node)) {
+        const existing = incoming.get(target) ?? [];
+        existing.push({ from: node.id, type: "choice", label }); incoming.set(target, existing);
+      }
+      continue;
+    }
     const connections: Array<{ target?: string; type: IncomingConnection["type"] }> = [
       { target: node.next, type: "next" },
       { target: node.trueNext, type: "true" },
@@ -42,6 +51,7 @@ function getNodeSummary(node: SidebarNode): string {
     case "if":
     case "while":
       return node.properties["condition"] || "(no condition)";
+    case "decision":
     case "command": {
       const prompt = node.properties["prompt"] || "";
       const truncated = prompt.length > 30 ? prompt.substring(0, 30) + "..." : prompt;
@@ -392,7 +402,7 @@ export class WorkflowSelectorModal extends Modal {
 
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
-      const isBranchNode = node.type === "if" || node.type === "while";
+      const isBranchNode = node.type === "if" || node.type === "while" || (node.type === "decision" && !isBatchDecision(node));
       const nextNode = i < nodes.length - 1 ? nodes[i + 1] : null;
       const incoming = incomingMap.get(node.id) ?? [];
 
@@ -403,7 +413,7 @@ export class WorkflowSelectorModal extends Modal {
         for (const connection of incoming) {
           incomingEl.createSpan({
             cls: cls("workflow-incoming-badge", `workflow-incoming-${connection.type}`),
-            text: `← ${connection.from}${connection.type === "next" ? "" : `.${connection.type === "true" ? "True" : "False"}`}`,
+            text: `← ${connection.from}${connection.type === "next" ? "" : `.${connection.type === "choice" ? connection.label : connection.type === "true" ? "True" : "False"}`}`,
           });
         }
       }
@@ -431,7 +441,15 @@ export class WorkflowSelectorModal extends Modal {
       }
 
       // Branch info for if/while nodes
-      if (isBranchNode) {
+      if (isChoiceDecision(node)) {
+        const branchInfo = nodeWrapper.createDiv({ cls: cls("workflow-node-branch") });
+        for (const [label, target] of choiceBranchEntries(node)) {
+          const row = branchInfo.createDiv({ cls: cls("workflow-branch-row") });
+          row.createSpan({ cls: cls("workflow-branch-label"), text: label });
+          row.createSpan({ cls: cls("workflow-branch-arrow"), text: "→" });
+          row.createSpan({ cls: cls("workflow-branch-target"), text: target });
+        }
+      } else if (isBranchNode) {
         const branchInfo = nodeWrapper.createDiv({ cls: cls("workflow-node-branch") });
 
         const trueRow = branchInfo.createDiv({ cls: cls("workflow-branch-row") });

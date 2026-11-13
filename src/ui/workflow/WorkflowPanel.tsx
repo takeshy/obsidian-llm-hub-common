@@ -1,3 +1,4 @@
+import { isBatchDecision, isChoiceDecision, choiceBranchEntries } from "../../workflow/decisionOptions.js";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { FolderOpen, Keyboard, KeyboardOff, Plus, Sparkles, Zap, ZapOff } from "lucide-react";
 import { type App, TFile, Notice, Menu, stringifyYaml } from "obsidian";
@@ -42,6 +43,7 @@ const ADDABLE_NODE_TYPES: WorkflowNodeType[] = [
   "variable",
   "set",
   "if",
+  "decision",
   "while",
   "command",
   "http",
@@ -74,6 +76,8 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
     case "if":
     case "while":
       return { condition: "" };
+    case "decision":
+      return { prompt: "", input: "", model: "", saveTo: "" };
     case "command":
       return { prompt: "", model: "", ragSetting: "__none__", enableThinking: "true", attachments: "", saveTo: "" };
     case "http":
@@ -124,13 +128,21 @@ function getDefaultProperties(type: WorkflowNodeType): Record<string, string> {
 // Build a map of incoming connections: nodeId -> { from: sourceNodeId, type: "next" | "true" | "false" }
 interface IncomingConnection {
   from: string;
-  type: "next" | "true" | "false";
+  type: "next" | "true" | "false" | "choice";
+  label?: string;
 }
 
 function buildIncomingMap(nodes: SidebarNode[]): Map<string, IncomingConnection[]> {
   const map = new Map<string, IncomingConnection[]>();
 
   for (const node of nodes) {
+    if (isChoiceDecision(node)) {
+      for (const [label, target] of choiceBranchEntries(node)) {
+        const existing = map.get(target) || [];
+        existing.push({ from: node.id, type: "choice", label }); map.set(target, existing);
+      }
+      continue;
+    }
     // Check next
     if (node.next) {
       const existing = map.get(node.next) || [];
@@ -157,7 +169,8 @@ function buildIncomingMap(nodes: SidebarNode[]): Map<string, IncomingConnection[
 // Build a map of outgoing connections: nodeId -> { to: targetNodeId, type: "next" | "true" | "false" }
 interface OutgoingConnection {
   to: string;
-  type: "next" | "true" | "false";
+  type: "next" | "true" | "false" | "choice";
+  label?: string;
 }
 
 function buildOutgoingMap(nodes: SidebarNode[]): Map<string, OutgoingConnection[]> {
@@ -165,6 +178,10 @@ function buildOutgoingMap(nodes: SidebarNode[]): Map<string, OutgoingConnection[
 
   for (const node of nodes) {
     const connections: OutgoingConnection[] = [];
+    if (isChoiceDecision(node)) {
+      for (const [label, to] of choiceBranchEntries(node)) connections.push({ to, type: "choice", label });
+      map.set(node.id, connections); continue;
+    }
     if (node.next) {
       connections.push({ to: node.next, type: "next" });
     }
@@ -191,6 +208,7 @@ function getNodeSummary(node: SidebarNode): string {
     case "if":
     case "while":
       return node.properties["condition"] || "(no condition)";
+    case "decision":
     case "command": {
       const prompt = node.properties["prompt"] || "";
       const truncated = prompt.length > 30 ? prompt.substring(0, 30) + "..." : prompt;
@@ -303,10 +321,10 @@ ${result.nodes.map(node => {
       }
     }
   }
-  if (node.type === "if" || node.type === "while") {
+  if (!isChoiceDecision(node) && (node.type === "if" || node.type === "while" || (node.type === "decision" && !isBatchDecision(node)))) {
     if (node.trueNext) lines.push(`    trueNext: ${node.trueNext}`);
     if (node.falseNext) lines.push(`    falseNext: ${node.falseNext}`);
-  } else if (node.next) {
+  } else if (!isChoiceDecision(node) && node.next) {
     lines.push(`    next: ${node.next}`);
   }
   return lines.join("\n");
@@ -696,6 +714,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
     const nodeTypeLabels = getNodeTypeLabels();
 
     for (const nodeType of ADDABLE_NODE_TYPES) {
+      if (nodeType === "decision" && !workflowHost().runDecisionNode) continue;
       menu.addItem((item) => {
         item.setTitle(nodeTypeLabels[nodeType]);
         item.onClick(() => addNode(nodeType));
@@ -716,10 +735,10 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
             entry[key] = value;
           }
         }
-        if (node.type === "if" || node.type === "while") {
+        if (!isChoiceDecision(node) && (node.type === "if" || node.type === "while" || (node.type === "decision" && !isBatchDecision(node)))) {
           if (node.trueNext) entry.trueNext = node.trueNext;
           if (node.falseNext) entry.falseNext = node.falseNext;
-        } else if (node.next) {
+        } else if (!isChoiceDecision(node) && node.next) {
           entry.next = node.next;
         }
         return entry;
@@ -1481,7 +1500,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
               const incoming = incomingMap.get(node.id) || [];
               const outgoing = outgoingMap.get(node.id) || [];
               const nextNode = index < nodes.length - 1 ? nodes[index + 1] : null;
-              const isBranchNode = node.type === "if" || node.type === "while";
+              const isBranchNode = node.type === "if" || node.type === "while" || (node.type === "decision" && !isBatchDecision(node));
 
               return (
                 <div key={node.id} className={cls("workflow-node-wrapper")}>
@@ -1490,7 +1509,7 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
                     <div className={cls("workflow-node-incoming")}>
                       {incoming.map((conn, i) => (
                         <span key={i} className={cls("workflow-incoming-badge", `workflow-incoming-${conn.type}`)}>
-                          ← {conn.from}{conn.type !== "next" ? `.${conn.type === "true" ? "True" : "False"}` : ""}
+                          ← {conn.from}{conn.type !== "next" ? `.${conn.type === "choice" ? conn.label : conn.type === "true" ? "True" : "False"}` : ""}
                         </span>
                       ))}
                     </div>
@@ -1578,7 +1597,17 @@ export default function WorkflowPanel({ app }: WorkflowPanelProps) {
                   </div>
 
                   {/* Outgoing connections */}
-                  {isBranchNode ? (
+                  {isChoiceDecision(node) ? (
+                    <div className={cls("workflow-node-branch")}>
+                      {choiceBranchEntries(node).map(([label, target]) => (
+                        <div key={label} className={cls("workflow-branch-row")}>
+                          <span className={cls("workflow-branch-label")}>{label}</span>
+                          <span className={cls("workflow-branch-arrow")}>→</span>
+                          <span className={cls("workflow-branch-target")}>{target}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : isBranchNode ? (
                     <div className={cls("workflow-node-branch")}>
                       <div className={cls("workflow-branch-row")}>
                         <span className={cls("workflow-branch-label", "workflow-branch-label-true")}>{t("workflow.branchTrue")}</span>
